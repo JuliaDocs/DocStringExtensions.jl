@@ -12,7 +12,7 @@ notifications:
   email: false
 
 after_success:
-  - julia -e 'include(Pkg.dir("PrivateModules", "test", "coverage.jl"))'
+  - julia -e 'include(Pkg.dir("DocStringExtensions", "test", "coverage.jl"))'
   - julia -e 'Pkg.add("Documenter")'
   - julia -e 'include(Pkg.dir("DocStringExtensions", "docs", "make.jl"))'
 
