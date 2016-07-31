@@ -5,3 +5,8 @@ makedocs(
     clean = false,
 )
 
+deploydocs(
+    deps = Deps.pip("pygments", "mkdocs", "mkdocs-material"),
+    repo = "github.com/JuliaDocs/DocStringExtensions.jl.git",
+)
+
