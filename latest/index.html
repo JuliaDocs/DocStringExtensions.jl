@@ -229,7 +229,7 @@
 <p>This package is currently in early development and should not be used not be used for anything other than entertainment at the moment.</p>
 <p>Both the public interface and private internals are likely the change without notice.</p>
 </div>
-<p><a target='_blank' href='https://github.com/JuliaDocs/DocStringExtensions.jl/tree/398683b7b02b68d70b86c1ecb790102ee6b67140/src/DocStringExtensions.jl#L3-17' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaDocs/DocStringExtensions.jl/tree/9636dde2c90875438c88fd41d6f2d55ba5271a71/src/DocStringExtensions.jl#L3-17' class='documenter-source'>source</a><br></p>
 <p><a id='Index-1'></a></p>
 <h2 id="index">Index</h2>
 <ul>
@@ -242,7 +242,6 @@
 <li><a href=".#DocStringExtensions.ModuleExports"><code>DocStringExtensions.ModuleExports</code></a></li>
 <li><a href=".#DocStringExtensions.ModuleImports"><code>DocStringExtensions.ModuleImports</code></a></li>
 <li><a href=".#DocStringExtensions.TypeFields"><code>DocStringExtensions.TypeFields</code></a></li>
-<li><a href=".#DocStringExtensions.bootstrap-Tuple{Module}"><code>DocStringExtensions.bootstrap</code></a></li>
 <li><a href=".#DocStringExtensions.filtermethods-Tuple{Any,Any,Any}"><code>DocStringExtensions.filtermethods</code></a></li>
 <li><a href=".#DocStringExtensions.format-Tuple{Any,Any,Any}"><code>DocStringExtensions.format</code></a></li>
 <li><a href=".#DocStringExtensions.parsedocs-Tuple{Module}"><code>DocStringExtensions.parsedocs</code></a></li>
@@ -266,7 +265,7 @@
 </pre></div>
 
 
-<p><a target='_blank' href='https://github.com/JuliaDocs/DocStringExtensions.jl/tree/398683b7b02b68d70b86c1ecb790102ee6b67140/src/abbreviations.jl#L105-126' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaDocs/DocStringExtensions.jl/tree/9636dde2c90875438c88fd41d6f2d55ba5271a71/src/abbreviations.jl#L105-126' class='documenter-source'>source</a><br></p>
 <p><a id='DocStringExtensions.fields' href='#DocStringExtensions.fields'>#</a>
 <strong><code>DocStringExtensions.fields</code></strong> &mdash; <em>Constant</em>.</p>
 <p>An <a href=".#DocStringExtensions.Abbreviation"><code>Abbreviation</code></a> to include the names of the fields of a type as well as any documentation that may be attached to the fields.</p>
@@ -286,7 +285,7 @@
 </pre></div>
 
 
-<p><a target='_blank' href='https://github.com/JuliaDocs/DocStringExtensions.jl/tree/398683b7b02b68d70b86c1ecb790102ee6b67140/src/abbreviations.jl#L44-67' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaDocs/DocStringExtensions.jl/tree/9636dde2c90875438c88fd41d6f2d55ba5271a71/src/abbreviations.jl#L44-67' class='documenter-source'>source</a><br></p>
 <p><a id='DocStringExtensions.imports' href='#DocStringExtensions.imports'>#</a>
 <strong><code>DocStringExtensions.imports</code></strong> &mdash; <em>Constant</em>.</p>
 <p>An <a href=".#DocStringExtensions.Abbreviation"><code>Abbreviation</code></a> to include all the imported modules in a sorted list.</p>
@@ -300,7 +299,7 @@
 </pre></div>
 
 
-<p><a target='_blank' href='https://github.com/JuliaDocs/DocStringExtensions.jl/tree/398683b7b02b68d70b86c1ecb790102ee6b67140/src/abbreviations.jl#L160-175' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaDocs/DocStringExtensions.jl/tree/9636dde2c90875438c88fd41d6f2d55ba5271a71/src/abbreviations.jl#L160-175' class='documenter-source'>source</a><br></p>
 <p><a id='DocStringExtensions.methodlist' href='#DocStringExtensions.methodlist'>#</a>
 <strong><code>DocStringExtensions.methodlist</code></strong> &mdash; <em>Constant</em>.</p>
 <p>An <a href=".#DocStringExtensions.Abbreviation"><code>Abbreviation</code></a> for including a list of all the methods that match a documented <code>Method</code> or <code>Function</code> within the current module.</p>
@@ -322,19 +321,7 @@
 </pre></div>
 
 
-<p><a target='_blank' href='https://github.com/JuliaDocs/DocStringExtensions.jl/tree/398683b7b02b68d70b86c1ecb790102ee6b67140/src/abbreviations.jl#L203-227' class='documenter-source'>source</a><br></p>
-<p><a id='DocStringExtensions.bootstrap-Tuple{Module}' href='#DocStringExtensions.bootstrap-Tuple{Module}'>#</a>
-<strong><code>DocStringExtensions.bootstrap</code></strong> &mdash; <em>Method</em>.</p>
-<p>Within the package itself we would like to be able to use the abbreviations that have been implemented. To do this we need to delay evaluation of the interpolated abbreviations until they have all been defined. We use <code>Symbol</code>s in place of the actual constants, such as <code>methodlist</code> which is written as <code>:methodlist</code> instead.</p>
-<p><strong>Methods</strong></p>
-<ul>
-<li><code>bootstrap(mod::Module) at /home/travis/.julia/v0.5/DocStringExtensions/src/utilities.jl:62</code></li>
-</ul>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>The docstring for the module itself, defined at the start of the file, does not need to use <code>Symbol</code>s since with the way <code>@doc</code> works the module docstring gets inserted at the end of the module definition and so has all the definitions already defined.</p>
-</div>
-<p><a target='_blank' href='https://github.com/JuliaDocs/DocStringExtensions.jl/tree/398683b7b02b68d70b86c1ecb790102ee6b67140/src/utilities.jl#L47-60' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaDocs/DocStringExtensions.jl/tree/9636dde2c90875438c88fd41d6f2d55ba5271a71/src/abbreviations.jl#L203-227' class='documenter-source'>source</a><br></p>
 <p><a id='DocStringExtensions.filtermethods-Tuple{Any,Any,Any}' href='#DocStringExtensions.filtermethods-Tuple{Any,Any,Any}'>#</a>
 <strong><code>DocStringExtensions.filtermethods</code></strong> &mdash; <em>Method</em>.</p>
 <p>Given a callable object <code>f</code> and a signature <code>sig</code> collect, filter, and sort the matching methods. All methods not defined within <code>mod</code> are discarded. Sorting is based on file name and line number.</p>
@@ -342,7 +329,7 @@
 <ul>
 <li><code>filtermethods(f, sig, mod) at /home/travis/.julia/v0.5/DocStringExtensions/src/utilities.jl:14</code></li>
 </ul>
-<p><a target='_blank' href='https://github.com/JuliaDocs/DocStringExtensions.jl/tree/398683b7b02b68d70b86c1ecb790102ee6b67140/src/utilities.jl#L6-12' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaDocs/DocStringExtensions.jl/tree/9636dde2c90875438c88fd41d6f2d55ba5271a71/src/utilities.jl#L6-12' class='documenter-source'>source</a><br></p>
 <p><a id='DocStringExtensions.format-Tuple{Any,Any,Any}' href='#DocStringExtensions.format-Tuple{Any,Any,Any}'>#</a>
 <strong><code>DocStringExtensions.format</code></strong> &mdash; <em>Method</em>.</p>
 <p>Expand the <a href=".#DocStringExtensions.Abbreviation"><code>Abbreviation</code></a> <code>abbr</code> in the context of the <code>DocStr</code> <code>doc</code> and write the resulting markdown-formatted text to the <code>IOBuffer</code> <code>buf</code>.</p>
@@ -354,7 +341,7 @@
 <li><code>format(::DocStringExtensions.ModuleImports, buf, doc) at /home/travis/.julia/v0.5/DocStringExtensions/src/abbreviations.jl:179</code></li>
 <li><code>format(::DocStringExtensions.MethodList, buf, doc) at /home/travis/.julia/v0.5/DocStringExtensions/src/abbreviations.jl:231</code></li>
 </ul>
-<p><a target='_blank' href='https://github.com/JuliaDocs/DocStringExtensions.jl/tree/398683b7b02b68d70b86c1ecb790102ee6b67140/src/abbreviations.jl#L15-20' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaDocs/DocStringExtensions.jl/tree/9636dde2c90875438c88fd41d6f2d55ba5271a71/src/abbreviations.jl#L15-20' class='documenter-source'>source</a><br></p>
 <p><a id='DocStringExtensions.parsedocs-Tuple{Module}' href='#DocStringExtensions.parsedocs-Tuple{Module}'>#</a>
 <strong><code>DocStringExtensions.parsedocs</code></strong> &mdash; <em>Method</em>.</p>
 <p>Parse all docstrings defined within a module <code>mod</code>.</p>
@@ -362,27 +349,27 @@
 <ul>
 <li><code>parsedocs(mod::Module) at /home/travis/.julia/v0.5/DocStringExtensions/src/utilities.jl:35</code></li>
 </ul>
-<p><a target='_blank' href='https://github.com/JuliaDocs/DocStringExtensions.jl/tree/398683b7b02b68d70b86c1ecb790102ee6b67140/src/utilities.jl#L29-33' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaDocs/DocStringExtensions.jl/tree/9636dde2c90875438c88fd41d6f2d55ba5271a71/src/utilities.jl#L29-33' class='documenter-source'>source</a><br></p>
 <p><a id='DocStringExtensions.Abbreviation' href='#DocStringExtensions.Abbreviation'>#</a>
 <strong><code>DocStringExtensions.Abbreviation</code></strong> &mdash; <em>Type</em>.</p>
 <p>Abbreviation objects are used to automatically generate context-dependant markdown content within documentation strings. Objects of this type interpolated into docstrings will be expanded automatically before parsing the text to markdown.</p>
-<p><a target='_blank' href='https://github.com/JuliaDocs/DocStringExtensions.jl/tree/398683b7b02b68d70b86c1ecb790102ee6b67140/src/abbreviations.jl#L6-12' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaDocs/DocStringExtensions.jl/tree/9636dde2c90875438c88fd41d6f2d55ba5271a71/src/abbreviations.jl#L6-12' class='documenter-source'>source</a><br></p>
 <p><a id='DocStringExtensions.MethodList' href='#DocStringExtensions.MethodList'>#</a>
 <strong><code>DocStringExtensions.MethodList</code></strong> &mdash; <em>Type</em>.</p>
 <p>The singleton type for <a href=".#DocStringExtensions.methodlist"><code>methodlist</code></a> abbreviations.</p>
-<p><a target='_blank' href='https://github.com/JuliaDocs/DocStringExtensions.jl/tree/398683b7b02b68d70b86c1ecb790102ee6b67140/src/abbreviations.jl#L196-200' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaDocs/DocStringExtensions.jl/tree/9636dde2c90875438c88fd41d6f2d55ba5271a71/src/abbreviations.jl#L196-200' class='documenter-source'>source</a><br></p>
 <p><a id='DocStringExtensions.ModuleExports' href='#DocStringExtensions.ModuleExports'>#</a>
 <strong><code>DocStringExtensions.ModuleExports</code></strong> &mdash; <em>Type</em>.</p>
 <p>The singleton type for <a href=".#DocStringExtensions.exports"><code>exports</code></a> abbreviations.</p>
-<p><a target='_blank' href='https://github.com/JuliaDocs/DocStringExtensions.jl/tree/398683b7b02b68d70b86c1ecb790102ee6b67140/src/abbreviations.jl#L98-102' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaDocs/DocStringExtensions.jl/tree/9636dde2c90875438c88fd41d6f2d55ba5271a71/src/abbreviations.jl#L98-102' class='documenter-source'>source</a><br></p>
 <p><a id='DocStringExtensions.ModuleImports' href='#DocStringExtensions.ModuleImports'>#</a>
 <strong><code>DocStringExtensions.ModuleImports</code></strong> &mdash; <em>Type</em>.</p>
 <p>The singleton type for <a href=".#DocStringExtensions.imports"><code>imports</code></a> abbreviations.</p>
-<p><a target='_blank' href='https://github.com/JuliaDocs/DocStringExtensions.jl/tree/398683b7b02b68d70b86c1ecb790102ee6b67140/src/abbreviations.jl#L153-157' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaDocs/DocStringExtensions.jl/tree/9636dde2c90875438c88fd41d6f2d55ba5271a71/src/abbreviations.jl#L153-157' class='documenter-source'>source</a><br></p>
 <p><a id='DocStringExtensions.TypeFields' href='#DocStringExtensions.TypeFields'>#</a>
 <strong><code>DocStringExtensions.TypeFields</code></strong> &mdash; <em>Type</em>.</p>
 <p>The singleton type for <a href=".#DocStringExtensions.fields"><code>fields</code></a> abbreviations.</p>
-<p><a target='_blank' href='https://github.com/JuliaDocs/DocStringExtensions.jl/tree/398683b7b02b68d70b86c1ecb790102ee6b67140/src/abbreviations.jl#L37-41' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaDocs/DocStringExtensions.jl/tree/9636dde2c90875438c88fd41d6f2d55ba5271a71/src/abbreviations.jl#L37-41' class='documenter-source'>source</a><br></p>
           <aside class="copyright" role="note">
             
             Documentation built with
