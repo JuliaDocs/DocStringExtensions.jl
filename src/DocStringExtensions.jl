@@ -24,7 +24,7 @@ using Compat
 
 # Exports.
 
-export fields, exports, methodlist, imports
+export fields, exports, methodlist, imports, signatures
 
 
 # Includes.

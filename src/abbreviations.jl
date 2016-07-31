@@ -16,7 +16,7 @@ abstract Abbreviation
 Expand the [`Abbreviation`](@ref) `abbr` in the context of the `DocStr` `doc` and write
 the resulting markdown-formatted text to the `IOBuffer` `buf`.
 
-$(:methodlist)
+$(:signatures)
 """
 format(abbr, buf, doc) = error("`format` not implemented for `$typeof(abbr)`.")
 
@@ -244,6 +244,56 @@ function format(::MethodList, buf, doc)
             println(buf, "    ```\n")
         end
         println(buf)
+    end
+    return nothing
+end
+
+
+#
+# `MethodSignatures`
+#
+
+"""
+The singleton type for [`signatures`](@ref) abbreviations.
+
+$(:fields)
+"""
+immutable MethodSignatures <: Abbreviation end
+
+"""
+An [`Abbreviation`](@ref) for including a simplified representation of all the method
+signatures that match the given docstring. See [`printmethod`](@ref) for details on
+the simplifications that are applied.
+
+# Examples
+
+The generated markdown text will look similar to the following example where a function
+`f` defines three different methods:
+
+````markdown
+# Signatures
+
+```julia
+f(x, y; a, b...)
+```
+````
+"""
+const signatures = MethodSignatures()
+
+function format(::MethodSignatures, buf, doc)
+    local binding = doc.data[:binding]
+    local typesig = doc.data[:typesig]
+    local modname = doc.data[:module]
+    local func = Docs.resolve(binding)
+    local mt = filtermethods(func, typesig, modname; exact = true)
+    if !isempty(mt)
+        println(buf, "# Signatures\n")
+        println(buf, "```julia")
+        for method in mt
+            printmethod(buf, binding, func, method)
+            println(buf)
+        end
+        println(buf, "\n```\n")
     end
     return nothing
 end
