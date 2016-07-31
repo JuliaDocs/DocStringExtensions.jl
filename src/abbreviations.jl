@@ -285,16 +285,17 @@ function format(::MethodSignatures, buf, doc)
     local typesig = doc.data[:typesig]
     local modname = doc.data[:module]
     local func = Docs.resolve(binding)
-    local mt = filtermethods(func, typesig, modname; exact = true)
-    if !isempty(mt)
+    local groups = methodgroups(func, typesig, modname)
+    if !isempty(groups)
         println(buf, "# Signatures\n")
         println(buf, "```julia")
-        for method in mt
-            printmethod(buf, binding, func, method)
-            println(buf)
+        for group in groups
+            for method in group
+                printmethod(buf, binding, func, method)
+                println(buf)
+            end
         end
         println(buf, "\n```\n")
     end
-    return nothing
 end
 

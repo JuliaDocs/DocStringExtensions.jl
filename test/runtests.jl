@@ -9,6 +9,8 @@ export f
 
 f(x) = x
 
+g(x = 1, y = 2, z = 3; kwargs...) = x
+
 type T
     a
     b
@@ -96,6 +98,34 @@ end
         @test startswith(str, "# Signatures\n")
         @test contains(str, "\n```julia\n")
         @test contains(str, "\nf(x)\n")
+        @test contains(str, "\n```\n")
+
+        doc.data = Dict(
+            :binding => Docs.Binding(M, :g),
+            :typesig => Union{Tuple{}, Tuple{Any}},
+            :module => M,
+        )
+        DSE.format(signatures, buf, doc)
+        str = takebuf_string(buf)
+        @test startswith(str, "# Signatures\n")
+        @test contains(str, "\n```julia\n")
+        @test contains(str, "\ng()\n")
+        @test contains(str, "\ng(x)\n")
+        @test contains(str, "\n```\n")
+
+        doc.data = Dict(
+            :binding => Docs.Binding(M, :g),
+            :typesig => Union{Tuple{}, Tuple{Any}, Tuple{Any, Any}, Tuple{Any, Any, Any}},
+            :module => M,
+        )
+        DSE.format(signatures, buf, doc)
+        str = takebuf_string(buf)
+        @test startswith(str, "# Signatures\n")
+        @test contains(str, "\n```julia\n")
+        @test contains(str, "\ng()\n")
+        @test contains(str, "\ng(x)\n")
+        @test contains(str, "\ng(x, y)\n")
+        @test contains(str, "\ng(x, y, z; kwargs...)\n")
         @test contains(str, "\n```\n")
     end
     @testset "utilities" begin
@@ -205,6 +235,27 @@ end
                 m = first(methods(f))
                 # Keywords are not ordered, so check for both combinations.
                 @test DSE.printmethod(b, f, m) in ("f(; a, b, c...)", "f(; b, a, c...)")
+            end
+        end
+        @testset "getmethods" begin
+            @test length(DSE.getmethods(M.f, Union{})) == 1
+            @test length(DSE.getmethods(M.f, Tuple{})) == 0
+            @test length(DSE.getmethods(M.f, Union{Tuple{}, Tuple{Any}})) == 1
+        end
+        @testset "alltypesigs" begin
+            @test DSE.alltypesigs(Union{}) == Core.svec()
+            @test DSE.alltypesigs(Union{Tuple{}}) == Core.svec(Tuple{})
+            @test DSE.alltypesigs(Tuple{}) == Core.svec(Tuple{})
+        end
+        @testset "groupby" begin
+            let groups = DSE.groupby(Int, Vector{Int}, collect(1:10)) do each
+                    mod(each, 3), each
+                end
+                @test groups == Pair{Int, Vector{Int}}[
+                    0 => [3, 6, 9],
+                    1 => [1, 4, 7, 10],
+                    2 => [2, 5, 8],
+                ]
             end
         end
     end
