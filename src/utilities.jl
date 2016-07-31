@@ -3,36 +3,6 @@
 # Utilties.
 #
 
-"""
-Given a callable object `f` and a signature `sig` collect, filter, and sort the matching
-methods. All methods not defined within `mod` are discarded. Sorting is based on file name
-and line number. When the `exact` keyword is set to `true` then only exact matching methods
-will be returned, not all subtypes as well.
-
-$(:signatures)
-"""
-function filtermethods(f, sig, mod; exact = false)
-    local mt = sig == Union{} ? methods(f) : methods(f, sig)
-    local results = Method[]
-    for method in mt
-        if getfield(method, :module)::Module == mod
-            if exact
-                if Base.tuple_type_tail(method.sig) == sig
-                    push!(results, method)
-                end
-            else
-                push!(results, method)
-            end
-        end
-    end
-    local sorter = function(a, b)
-        sa, sb = string(a.file), string(b.file)
-        comp = sa < sb ? -1 : sa > sb ? 1 : 0
-        comp == 0 ? a.line < b.line : comp < 0
-    end
-    return sort!(results, lt = sorter)
-end
-
 #
 # Method grouping.
 #
@@ -49,6 +19,8 @@ Keyword argument `exact = true` matches signatures "exactly" with `==` rather th
 ```julia
 groups = methodgroups(f, Union{Tuple{Any}, Tuple{Any, Integer}}, Main; exact = false)
 ```
+
+$(:methodlist)
 """
 function methodgroups(func, typesig, modname; exact = true)
     # Group methods by file and line number.
@@ -143,6 +115,15 @@ end
 """
 groupby(f, K, V, data) = groupby!(f, Dict{K, V}(), data)
 
+"""
+$(:signatures)
+
+Remove the `Pkg.dir` part of a file `path` if it exists.
+"""
+function cleanpath(path::AbstractString)
+    local pkgdir = joinpath(Pkg.dir(), "")
+    return startswith(path, pkgdir) ? first(split(path, pkgdir; keep = false)) : path
+end
 
 """
 Parse all docstrings defined within a module `mod`.

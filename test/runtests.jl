@@ -83,9 +83,9 @@ end
         DSE.format(methodlist, buf, doc)
         str = takebuf_string(buf)
         @test startswith(str, "# Methods\n")
-        @test contains(str, " - ```")
-        @test contains(str, "f(x) at ")
-        @test contains(str, @__FILE__)
+        @test contains(str, "```julia")
+        @test contains(str, "f(x)")
+        @test contains(str, "[`$(joinpath("DocStringExtensions", "test", "runtests.jl"))")
 
         # Method signatures.
         doc.data = Dict(
@@ -129,20 +129,6 @@ end
         @test contains(str, "\n```\n")
     end
     @testset "utilities" begin
-        @testset "filtermethods" begin
-            let list = DSE.filtermethods(DSE.filtermethods, Tuple{Any, Any, Any}, DSE)
-                @test length(list) == 1
-            end
-            let list = DSE.filtermethods(DSE.filtermethods, Tuple{Any, Any, Any}, Base)
-                @test length(list) == 0
-            end
-            let list = DSE.filtermethods(DSE.filtermethods, Tuple{Any, Any}, DSE)
-                @test length(list) == 0
-            end
-            let list = DSE.filtermethods(DSE.filtermethods, Union{}, DSE)
-                @test length(list) == 1
-            end
-        end
         @testset "keywords" begin
             @test DSE.keywords(M.T, first(methods(M.T))) == Symbol[]
             @test DSE.keywords(M.K, first(methods(M.K))) == [:a]
