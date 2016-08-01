@@ -209,21 +209,21 @@ An [`Abbreviation`](@ref) for including a list of all the methods that match a d
 The generated markdown text will look similar to the following example where a function
 `f` defines three different methods:
 
-```markdown
+````markdown
 # Methods
 
-  - ```
-    f(x) at f.jl:1
-    ```
-
-  - ```
-    f(x, y) at f.jl:1
-    ```
-
-  - ```
-    f(x, y, z) at f.jl:1
-    ```
+```julia
+f(x)
 ```
+
+defined at [`<path>:<line>`](<github-url>).
+
+```julia
+f(x, y)
+```
+
+defined at [`<path>:<line>`](<github-url>).
+````
 """
 const methodlist = MethodList()
 
@@ -231,17 +231,26 @@ function format(::MethodList, buf, doc)
     local binding = doc.data[:binding]
     local typesig = doc.data[:typesig]
     local modname = doc.data[:module]
-    local mt = filtermethods(Docs.resolve(binding), typesig, modname)
-    if !isempty(mt)
+    local func = Docs.resolve(binding)
+    local groups = methodgroups(func, typesig, modname; exact = false)
+    if !isempty(groups)
         println(buf, "# Methods\n")
-        for method in mt
-            # TODO: better printing of signatures. Discard most of the type information
-            #       since we would provide a link to look at the actual signature if all
-            #       the details are really needed. In a docstring we just want a simple
-            #       outline that can be skimmed over easily.
-            println(buf, "  - ```")
-            println(buf, "    ", method)
-            println(buf, "    ```\n")
+        for group in groups
+            println(buf, "```julia")
+            for method in group
+                printmethod(buf, binding, func, method)
+                println(buf)
+            end
+            println(buf, "```\n")
+            if !isempty(group)
+                local method = group[1]
+                local file = string(method.file)
+                local line = method.line
+                local path = cleanpath(file)
+                local url = Base.url(method)
+                println(buf, "defined at [`$path:$line`]($url).")
+            end
+            println(buf)
         end
         println(buf)
     end
@@ -285,16 +294,17 @@ function format(::MethodSignatures, buf, doc)
     local typesig = doc.data[:typesig]
     local modname = doc.data[:module]
     local func = Docs.resolve(binding)
-    local mt = filtermethods(func, typesig, modname; exact = true)
-    if !isempty(mt)
+    local groups = methodgroups(func, typesig, modname)
+    if !isempty(groups)
         println(buf, "# Signatures\n")
         println(buf, "```julia")
-        for method in mt
-            printmethod(buf, binding, func, method)
-            println(buf)
+        for group in groups
+            for method in group
+                printmethod(buf, binding, func, method)
+                println(buf)
+            end
         end
         println(buf, "\n```\n")
     end
-    return nothing
 end
 
