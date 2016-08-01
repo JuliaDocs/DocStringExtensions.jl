@@ -202,24 +202,24 @@ immutable MethodList <: Abbreviation end
 
 """
 An [`Abbreviation`](@ref) for including a list of all the methods that match a documented
-`Method` or `Function` within the current module.
+`Method`, `Function`, or `DataType` within the current module.
 
 # Examples
 
 The generated markdown text will look similar to the following example where a function
-`f` defines three different methods:
+`f` defines two different methods (one that takes a number, and the other a string):
 
 ````markdown
 # Methods
 
 ```julia
-f(x)
+f(num)
 ```
 
 defined at [`<path>:<line>`](<github-url>).
 
 ```julia
-f(x, y)
+f(str)
 ```
 
 defined at [`<path>:<line>`](<github-url>).
@@ -276,8 +276,8 @@ the simplifications that are applied.
 
 # Examples
 
-The generated markdown text will look similar to the following example where a function
-`f` defines three different methods:
+The generated markdown text will look similar to the following example where a function `f`
+defines method taking two positional arguments, `x` and `y`, and two keywords, `a` and the `b`.
 
 ````markdown
 # Signatures
