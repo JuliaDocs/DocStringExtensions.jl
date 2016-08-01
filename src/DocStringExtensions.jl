@@ -37,7 +37,7 @@ using DocStringExtensions
 \"""
 A short summary of `func`...
 
-\$signatures
+\$(SIGNATURES)
 
 where `x` and `y` should both be positive.
 
@@ -48,7 +48,7 @@ Some details about `func`...
 func(x, y) = x + y
 ```
 
-`\$signatures` will be replaced in the above docstring with
+`\$(SIGNATURES)` will be replaced in the above docstring with
 
 ````markdown
 # Signatures
@@ -61,14 +61,14 @@ func(x, y)
 The resulting generated content can be viewed via Julia's `?` mode or, if `Documenter.jl` is
 set up, the generated external documentation.
 
-The advantage of using [`signatures`](@ref) (and other abbreviations) is that docstrings are
+The advantage of using [`SIGNATURES`](@ref) (and other abbreviations) is that docstrings are
 less likely to become out-of-sync with the surrounding code. Note though that references to
 the argument names `x` and `y` that have been manually embedded within the docstring are, of
 course, not updated automatically.
 
-$(exports)
+$(EXPORTS)
 
-$(imports)
+$(IMPORTS)
 
 """
 module DocStringExtensions
@@ -80,7 +80,7 @@ using Compat
 
 # Exports.
 
-export fields, exports, methodlist, imports, signatures
+export FIELDS, EXPORTS, METHODLIST, IMPORTS, SIGNATURES
 
 
 # Includes.
@@ -95,7 +95,7 @@ include("abbreviations.jl")
 # Within the package itself we would like to be able to use the abbreviations that have been
 # implemented. To do this we need to delay evaluation of the interpolated abbreviations
 # until they have all been defined. We use `Symbol`s in place of the actual constants, such
-# as `methodlist` which is written as `:methodlist` instead.
+# as `METHODLIST` which is written as `:METHODLIST` instead.
 #
 # The docstring for the module itself, defined at the start of the file, does not need to
 # use `Symbol`s since with the way `@doc` works the module docstring gets inserted at the

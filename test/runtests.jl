@@ -37,7 +37,7 @@ end
             :binding => Docs.Binding(Main, :M),
             :typesig => Union{},
         )
-        DSE.format(imports, buf, doc)
+        DSE.format(IMPORTS, buf, doc)
         @test takebuf_string(buf) ==
         """
         # Imports
@@ -48,7 +48,7 @@ end
         """
 
         # Module exports.
-        DSE.format(exports, buf, doc)
+        DSE.format(EXPORTS, buf, doc)
         @test takebuf_string(buf) ==
         """
         # Exports
@@ -65,7 +65,7 @@ end
                 :b => "two",
             ),
         )
-        DSE.format(fields, buf, doc)
+        DSE.format(FIELDS, buf, doc)
         str = takebuf_string(buf)
         @test startswith(str, "# Fields\n")
         @test contains(str, "  - `a`")
@@ -80,7 +80,7 @@ end
             :typesig => Tuple{Any},
             :module => M,
         )
-        DSE.format(methodlist, buf, doc)
+        DSE.format(METHODLIST, buf, doc)
         str = takebuf_string(buf)
         @test startswith(str, "# Methods\n")
         @test contains(str, "```julia")
@@ -93,7 +93,7 @@ end
             :typesig => Tuple{Any},
             :module => M,
         )
-        DSE.format(signatures, buf, doc)
+        DSE.format(SIGNATURES, buf, doc)
         str = takebuf_string(buf)
         @test startswith(str, "# Signatures\n")
         @test contains(str, "\n```julia\n")
@@ -105,7 +105,7 @@ end
             :typesig => Union{Tuple{}, Tuple{Any}},
             :module => M,
         )
-        DSE.format(signatures, buf, doc)
+        DSE.format(SIGNATURES, buf, doc)
         str = takebuf_string(buf)
         @test startswith(str, "# Signatures\n")
         @test contains(str, "\n```julia\n")
@@ -118,7 +118,7 @@ end
             :typesig => Union{Tuple{}, Tuple{Any}, Tuple{Any, Any}, Tuple{Any, Any, Any}},
             :module => M,
         )
-        DSE.format(signatures, buf, doc)
+        DSE.format(SIGNATURES, buf, doc)
         str = takebuf_string(buf)
         @test startswith(str, "# Signatures\n")
         @test contains(str, "\n```julia\n")
