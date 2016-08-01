@@ -19,6 +19,10 @@ information such as:
   * import and export lists for modules;
   * and source-linked lists of methods applicable to a particular docstring.
 
+Users are most welcome to suggest additional abbreviation ideas, or implement and submit
+them themselves. Julia's strong support for program introspection makes this a reasonably
+straight forward process.
+
 Details of the currently available abbreviations can be viewed in their individual
 docstrings listed below in the "Exports" section.
 
@@ -28,6 +32,8 @@ In simple terms an abbreviation can be used by simply interpolating it into a su
 docstring. For example:
 
 ```julia
+using DocStringExtensions
+
 \"""
 A short summary of `func`...
 
@@ -42,8 +48,18 @@ Some details about `func`...
 func(x, y) = x + y
 ```
 
-The resulting generated content can then be viewed via Julia's `?` mode or, if
-`Documenter.jl` is set up, the generated external documentation.
+`\$signatures` will be replaced in the above docstring with
+
+````markdown
+# Signatures
+
+```julia
+func(x, y)
+```
+````
+
+The resulting generated content can be viewed via Julia's `?` mode or, if `Documenter.jl` is
+set up, the generated external documentation.
 
 The advantage of using [`signatures`](@ref) (and other abbreviations) is that docstrings are
 less likely to become out-of-sync with the surrounding code. Note though that references to
@@ -53,13 +69,6 @@ course, not updated automatically.
 $(exports)
 
 $(imports)
-
-!!! warning
-
-    This package is currently in early development and should not be used not be used for
-    anything other than entertainment at the moment.
-
-    Both the public interface and private internals are likely the change without notice.
 
 """
 module DocStringExtensions
