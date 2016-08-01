@@ -238,3 +238,61 @@ function arguments(m::Method)
     return Symbol[]
 end
 
+#
+# Source URLs.
+#
+# Based on code from https://github.com/JuliaLang/julia/blob/master/base/methodshow.jl.
+#
+# Customised to handle URLs on travis since the directory is not a Git repo and we must
+# instead rely on `TRAVIS_REPO_SLUG` to get the remote repo.
+#
+
+"""
+Get the URL (file and line number) where a method `m` is defined.
+
+$(:signatures)
+
+Note that this is based on the implementation of `Base.url`, but handles URLs correctly
+on TravisCI as well.
+"""
+url(m::Method) = url(m.module, string(m.file), m.line)
+
+if VERSION < v"0.5.0-dev"
+    url(mod, file, line) = ""
+else
+    function url(mod::Module, file::AbstractString, line::Integer)
+        file = is_windows() ? replace(file, '\\', '/') : file
+        if Base.inbase(mod) && !isabspath(file)
+            local base = "https://github.com/JuliaLang/julia/tree"
+            if isempty(Base.GIT_VERSION_INFO.commit)
+                return "$base/v$VERSION/base/$file#L$line"
+            else
+                local commit = Base.GIT_VERSION_INFO.commit
+                return "$base/$commit/base/$file#L$line"
+            end
+        else
+            if isfile(file)
+                local d = dirname(file)
+                return LibGit2.with(LibGit2.GitRepoExt(d)) do repo
+                    LibGit2.with(LibGit2.GitConfig(repo)) do cfg
+                        local u = LibGit2.get(cfg, "remote.origin.url", "")
+                        local m = match(LibGit2.GITHUB_REGEX, u)
+                        u = m === nothing ? get(ENV, "TRAVIS_REPO_SLUG", "") : m.captures[1]
+                        local commit = string(LibGit2.head_oid(repo))
+                        local root = LibGit2.path(repo)
+                        if startswith(file, root) || startswith(realpath(file), root)
+                            local base = "https://github.com/$u/tree"
+                            local filename = file[(length(root) + 1):end]
+                            return "$base/$commit/$filename#L$line"
+                        else
+                            return ""
+                        end
+                    end
+                end
+            else
+                return ""
+            end
+        end
+    end
+end
+

@@ -247,8 +247,8 @@ function format(::MethodList, buf, doc)
                 local file = string(method.file)
                 local line = method.line
                 local path = cleanpath(file)
-                local url = Base.url(method)
-                println(buf, "defined at [`$path:$line`]($url).")
+                local URL = url(method)
+                isempty(URL) || println(buf, "defined at [`$path:$line`]($URL).")
             end
             println(buf)
         end
