@@ -244,8 +244,15 @@ end
                 ]
             end
         end
+        @testset "url" begin
+            @test !isempty(DSE.url(first(methods(sin))))
+            @test !isempty(DSE.url(first(methods(DSE.parsedocs))))
+            @test !isempty(DSE.url(first(methods(M.f))))
+            @test !isempty(DSE.url(first(methods(M.K))))
+        end
     end
 end
 
 DSE.parsedocs(DSE)
+
 
