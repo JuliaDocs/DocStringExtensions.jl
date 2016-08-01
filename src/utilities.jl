@@ -10,7 +10,7 @@
 """
 Group all methods of function `func` with type signatures `typesig` in module `modname`.
 
-$(:signatures)
+$(:SIGNATURES)
 
 Keyword argument `exact = true` matches signatures "exactly" with `==` rather than `<:`.
 
@@ -20,7 +20,7 @@ Keyword argument `exact = true` matches signatures "exactly" with `==` rather th
 groups = methodgroups(f, Union{Tuple{Any}, Tuple{Any, Integer}}, Main; exact = false)
 ```
 
-$(:methodlist)
+$(:METHODLIST)
 """
 function methodgroups(func, typesig, modname; exact = true)
     # Group methods by file and line number.
@@ -51,7 +51,7 @@ function methodgroups(func, typesig, modname; exact = true)
 end
 
 """
-$(:signatures)
+$(:SIGNATURES)
 
 A helper method for [`getmethods`](@ref) that collects methods in `results`.
 """
@@ -70,7 +70,7 @@ end
 """
 Collect and return all methods of function `f` matching signature `sig`.
 
-$(:signatures)
+$(:SIGNATURES)
 
 This is similar to `methods(f, sig)`, but handles type signatures found in `DocStr` objects
 more consistently that `methods`.
@@ -78,14 +78,14 @@ more consistently that `methods`.
 getmethods(f, sig) = getmethods!(Method[], f, sig)
 
 """
-$(:signatures)
+$(:SIGNATURES)
 
 Returns a `SimpleVector` of the `Tuple` types contained in `sig`.
 """
 alltypesigs(sig) = isa(sig, Union) ? sig.types : Core.svec(sig)
 
 """
-$(:signatures)
+$(:SIGNATURES)
 
 A helper method for [`groupby`](@ref) that uses a pre-allocated `groups` `Dict`.
 """
@@ -100,7 +100,7 @@ end
 """
 Group `data` using function `f` where key type is specified by `K` and group type by `V`.
 
-$(:signatures)
+$(:SIGNATURES)
 
 The function `f` takes a single argument, an element of `data`, and should return a 2-tuple
 of `(computed_key, element)`. See the example below for details.
@@ -116,7 +116,7 @@ end
 groupby(f, K, V, data) = groupby!(f, Dict{K, V}(), data)
 
 """
-$(:signatures)
+$(:SIGNATURES)
 
 Remove the `Pkg.dir` part of a file `path` if it exists.
 """
@@ -128,7 +128,7 @@ end
 """
 Parse all docstrings defined within a module `mod`.
 
-$(:signatures)
+$(:SIGNATURES)
 """
 function parsedocs(mod::Module)
     for (binding, multidoc) in Docs.meta(mod)
@@ -142,7 +142,7 @@ end
 """
 Print a simplified representation of a method signature to `buffer`.
 
-$(:signatures)
+$(:SIGNATURES)
 
 Simplifications include:
 
@@ -178,7 +178,7 @@ printmethod(b, f, m) = takebuf_string(printmethod(IOBuffer(), b, f, m))
 """
 Returns the list of keywords for a particular method `m` of a function `func`.
 
-$(:signatures)
+$(:SIGNATURES)
 
 # Examples
 
@@ -216,7 +216,7 @@ end
 """
 Returns the list of arguments for a particular method `m`.
 
-$(:signatures)
+$(:SIGNATURES)
 
 # Examples
 
@@ -250,7 +250,7 @@ end
 """
 Get the URL (file and line number) where a method `m` is defined.
 
-$(:signatures)
+$(:SIGNATURES)
 
 Note that this is based on the implementation of `Base.url`, but handles URLs correctly
 on TravisCI as well.
