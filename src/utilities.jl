@@ -1,6 +1,6 @@
 
 #
-# Utilties.
+# Utilities.
 #
 
 #
@@ -41,13 +41,19 @@ function methodgroups(func, typesig, modname; exact = true)
     end
 
     # Sort the groups by file and line.
-    local sorter = function(a, b)
-        comp = a.file < b.file ? -1 : a.file > b.file ? 1 : 0
-        comp == 0 ? a.line < b.line : comp < 0
-    end
-    sort!(results, lt = sorter, by = first)
+    sort!(results, lt = comparemethods, by = first)
 
     return results
+end
+
+"""
+Compare methods `a` and `b` by file and line number.
+
+$(:SIGNATURES)
+"""
+function comparemethods(a::Method, b::Method)
+    comp = a.file < b.file ? -1 : a.file > b.file ? 1 : 0
+    comp == 0 ? a.line < b.line : comp < 0
 end
 
 """

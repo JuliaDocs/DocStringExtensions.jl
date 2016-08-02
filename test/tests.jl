@@ -248,6 +248,14 @@ end
             @test !isempty(DSE.url(first(methods(M.f))))
             @test !isempty(DSE.url(first(methods(M.K))))
         end
+        @testset "comparemethods" begin
+            let f = first(methods(M.f)),
+                g = first(methods(M.g))
+                @test !DSE.comparemethods(f, f)
+                @test DSE.comparemethods(f, g)
+                @test !DSE.comparemethods(g, f)
+            end
+        end
     end
 end
 
