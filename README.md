@@ -2,16 +2,16 @@
 
 *Extensions for Julia's docsystem.*
 
-| **Documentation**                                                               | **Build Status**                                                                                |
-|:-------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------:|
-| [![][docs-stable-img]][docs-stable-url] [![][docs-latest-img]][docs-latest-url] | [![][travis-img]][travis-url] [![][appveyor-img]][appveyor-url] [![][codecov-img]][codecov-url] |
+| **Documentation**                                                               | **PackageEvaluator**                                            | **Build Status**                                                                                |
+|:-------------------------------------------------------------------------------:|:---------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------:|
+| [![][docs-stable-img]][docs-stable-url] [![][docs-latest-img]][docs-latest-url] | [![][pkg-0.4-img]][pkg-0.4-url] [![][pkg-0.5-img]][pkg-0.5-url] | [![][travis-img]][travis-url] [![][appveyor-img]][appveyor-url] [![][codecov-img]][codecov-url] |
 
 ## Installation
 
-The package is currently unregistered and so must be installed with `Pkg.clone`.
+The package is registered in `METADATA.jl` and so can be installed with `Pkg.add`.
 
 ```julia
-julia> Pkg.clone("https://github.com/JuliaDocs/DocStringExtensions.jl")
+julia> Pkg.add("DocStringExtensions")
 ```
 
 ## Documentation
@@ -31,7 +31,7 @@ Contributions are very welcome, as are feature requests and suggestions. Please 
 [docs-latest-url]: https://juliadocs.github.io/DocStringExtensions.jl/latest
 
 [docs-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
-[docs-stable-url]: https://juliadocs.github.io/DocStringExtensions.jl/latest
+[docs-stable-url]: https://juliadocs.github.io/DocStringExtensions.jl/stable
 
 [travis-img]: https://travis-ci.org/JuliaDocs/DocStringExtensions.jl.svg?branch=master
 [travis-url]: https://travis-ci.org/JuliaDocs/DocStringExtensions.jl
@@ -44,3 +44,7 @@ Contributions are very welcome, as are feature requests and suggestions. Please 
 
 [issues-url]: https://github.com/JuliaDocs/DocStringExtensions.jl/issues
 
+[pkg-0.4-img]: http://pkg.julialang.org/badges/DocStringExtensions_0.4.svg
+[pkg-0.4-url]: http://pkg.julialang.org/?pkg=DocStringExtensions
+[pkg-0.5-img]: http://pkg.julialang.org/badges/DocStringExtensions_0.5.svg
+[pkg-0.5-url]: http://pkg.julialang.org/?pkg=DocStringExtensions
