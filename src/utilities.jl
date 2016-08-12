@@ -8,10 +8,9 @@
 #
 
 """
-Group all methods of function `func` with type signatures `typesig` in module `modname`.
-
 $(:SIGNATURES)
 
+Group all methods of function `func` with type signatures `typesig` in module `modname`.
 Keyword argument `exact = true` matches signatures "exactly" with `==` rather than `<:`.
 
 # Examples
@@ -19,8 +18,6 @@ Keyword argument `exact = true` matches signatures "exactly" with `==` rather th
 ```julia
 groups = methodgroups(f, Union{Tuple{Any}, Tuple{Any, Integer}}, Main; exact = false)
 ```
-
-$(:METHODLIST)
 """
 function methodgroups(func, typesig, modname; exact = true)
     # Group methods by file and line number.
@@ -47,9 +44,9 @@ function methodgroups(func, typesig, modname; exact = true)
 end
 
 """
-Compare methods `a` and `b` by file and line number.
-
 $(:SIGNATURES)
+
+Compare methods `a` and `b` by file and line number.
 """
 function comparemethods(a::Method, b::Method)
     comp = a.file < b.file ? -1 : a.file > b.file ? 1 : 0
@@ -74,9 +71,9 @@ function getmethods!(results, f, sig)
     return results
 end
 """
-Collect and return all methods of function `f` matching signature `sig`.
-
 $(:SIGNATURES)
+
+Collect and return all methods of function `f` matching signature `sig`.
 
 This is similar to `methods(f, sig)`, but handles type signatures found in `DocStr` objects
 more consistently that `methods`.
@@ -104,9 +101,9 @@ function groupby!(f, groups, data)
 end
 
 """
-Group `data` using function `f` where key type is specified by `K` and group type by `V`.
-
 $(:SIGNATURES)
+
+Group `data` using function `f` where key type is specified by `K` and group type by `V`.
 
 The function `f` takes a single argument, an element of `data`, and should return a 2-tuple
 of `(computed_key, element)`. See the example below for details.
@@ -132,9 +129,9 @@ function cleanpath(path::AbstractString)
 end
 
 """
-Parse all docstrings defined within a module `mod`.
-
 $(:SIGNATURES)
+
+Parse all docstrings defined within a module `mod`.
 """
 function parsedocs(mod::Module)
     for (binding, multidoc) in Docs.meta(mod)
@@ -146,11 +143,10 @@ end
 
 
 """
-Print a simplified representation of a method signature to `buffer`.
-
 $(:SIGNATURES)
 
-Simplifications include:
+Print a simplified representation of a method signature to `buffer`. Some of these
+simplifications include:
 
   * no `TypeVar`s;
   * no types;
@@ -182,9 +178,9 @@ printmethod(b, f, m) = takebuf_string(printmethod(IOBuffer(), b, f, m))
 
 
 """
-Returns the list of keywords for a particular method `m` of a function `func`.
-
 $(:SIGNATURES)
+
+Returns the list of keywords for a particular method `m` of a function `func`.
 
 # Examples
 
@@ -220,9 +216,9 @@ end
 
 
 """
-Returns the list of arguments for a particular method `m`.
-
 $(:SIGNATURES)
+
+Returns the list of arguments for a particular method `m`.
 
 # Examples
 
@@ -254,9 +250,9 @@ end
 #
 
 """
-Get the URL (file and line number) where a method `m` is defined.
-
 $(:SIGNATURES)
+
+Get the URL (file and line number) where a method `m` is defined.
 
 Note that this is based on the implementation of `Base.url`, but handles URLs correctly
 on TravisCI as well.

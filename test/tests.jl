@@ -38,7 +38,6 @@ end
         DSE.format(IMPORTS, buf, doc)
         @test takebuf_string(buf) ==
         """
-        # Imports
 
           - `Base`
           - `Core`
@@ -49,7 +48,6 @@ end
         DSE.format(EXPORTS, buf, doc)
         @test takebuf_string(buf) ==
         """
-        # Exports
 
           - [`f`](@ref)
 
@@ -65,7 +63,6 @@ end
         )
         DSE.format(FIELDS, buf, doc)
         str = takebuf_string(buf)
-        @test startswith(str, "# Fields\n")
         @test contains(str, "  - `a`")
         @test contains(str, "  - `b`")
         @test contains(str, "  - `c`")
@@ -80,7 +77,6 @@ end
         )
         DSE.format(METHODLIST, buf, doc)
         str = takebuf_string(buf)
-        @test startswith(str, "# Methods\n")
         @test contains(str, "```julia")
         @test contains(str, "f(x)")
         @test contains(str, "[`$(joinpath("DocStringExtensions", "test", "tests.jl"))")
@@ -93,7 +89,6 @@ end
         )
         DSE.format(SIGNATURES, buf, doc)
         str = takebuf_string(buf)
-        @test startswith(str, "# Signatures\n")
         @test contains(str, "\n```julia\n")
         @test contains(str, "\nf(x)\n")
         @test contains(str, "\n```\n")
@@ -105,7 +100,6 @@ end
         )
         DSE.format(SIGNATURES, buf, doc)
         str = takebuf_string(buf)
-        @test startswith(str, "# Signatures\n")
         @test contains(str, "\n```julia\n")
         @test contains(str, "\ng()\n")
         @test contains(str, "\ng(x)\n")
@@ -118,7 +112,6 @@ end
         )
         DSE.format(SIGNATURES, buf, doc)
         str = takebuf_string(buf)
-        @test startswith(str, "# Signatures\n")
         @test contains(str, "\n```julia\n")
         @test contains(str, "\ng()\n")
         @test contains(str, "\ng(x)\n")
