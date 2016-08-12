@@ -66,8 +66,10 @@ less likely to become out-of-sync with the surrounding code. Note though that re
 the argument names `x` and `y` that have been manually embedded within the docstring are, of
 course, not updated automatically.
 
+# Exports
 $(EXPORTS)
 
+# Imports
 $(IMPORTS)
 
 !!! note
