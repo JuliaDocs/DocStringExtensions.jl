@@ -9,6 +9,11 @@ f(x) = x
 
 g(x = 1, y = 2, z = 3; kwargs...) = x
 
+typealias A{T} Union{Vector{T}, Matrix{T}}
+
+h_1(x::A) = x
+h_2(x::A{Int}) = x
+
 type T
     a
     b
@@ -218,6 +223,14 @@ end
             @test length(DSE.getmethods(M.f, Union{})) == 1
             @test length(DSE.getmethods(M.f, Tuple{})) == 0
             @test length(DSE.getmethods(M.f, Union{Tuple{}, Tuple{Any}})) == 1
+        end
+        @testset "methodgroups" begin
+            @test length(DSE.methodgroups(M.f, Tuple{Any}, M)) == 1
+            @test length(DSE.methodgroups(M.f, Tuple{Any}, M)[1]) == 1
+            @test length(DSE.methodgroups(M.h_1, Tuple{M.A}, M)) == 1
+            @test length(DSE.methodgroups(M.h_1, Tuple{M.A}, M)[1]) == 1
+            @test length(DSE.methodgroups(M.h_2, Tuple{M.A{Int}}, M)) == 1
+            @test length(DSE.methodgroups(M.h_2, Tuple{M.A{Int}}, M)[1]) == 1
         end
         @testset "alltypesigs" begin
             @test DSE.alltypesigs(Union{}) == Core.svec()
