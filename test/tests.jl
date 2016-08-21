@@ -24,6 +24,16 @@ immutable K
     K(; a = 1) = new()
 end
 
+
+abstract AbstractType <: Integer
+
+immutable CustomType{S, T <: Integer} <: Integer
+end
+
+bitstype 8 BitType8
+
+bitstype 32 BitType32 <: Real
+
 end
 
 @testset "" begin
@@ -35,94 +45,137 @@ end
         # Errors.
         @test_throws ErrorException DSE.format(nothing, buf, doc)
 
-        # Module imports.
-        doc.data = Dict(
-            :binding => Docs.Binding(Main, :M),
-            :typesig => Union{},
-        )
-        DSE.format(IMPORTS, buf, doc)
-        @test takebuf_string(buf) ==
-        """
+        @testset "imports & exports" begin
+            # Module imports.
+            doc.data = Dict(
+                :binding => Docs.Binding(Main, :M),
+                :typesig => Union{},
+            )
+            DSE.format(IMPORTS, buf, doc)
+            str = takebuf_string(buf)
+            @test contains(str, "\n  - `Base`\n")
+            @test contains(str, "\n  - `Core`\n")
 
-          - `Base`
-          - `Core`
+            # Module exports.
+            DSE.format(EXPORTS, buf, doc)
+            str = takebuf_string(buf)
+            @test contains(str, "\n  - [`f`](@ref)\n")
+        end
 
-        """
+        @testset "type fields" begin
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :T),
+                :fields => Dict(
+                    :a => "one",
+                    :b => "two",
+                ),
+            )
+            DSE.format(FIELDS, buf, doc)
+            str = takebuf_string(buf)
+            @test contains(str, "  - `a`")
+            @test contains(str, "  - `b`")
+            @test contains(str, "  - `c`")
+            @test contains(str, "one")
+            @test contains(str, "two")
+        end
 
-        # Module exports.
-        DSE.format(EXPORTS, buf, doc)
-        @test takebuf_string(buf) ==
-        """
+        @testset "method lists" begin
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :f),
+                :typesig => Tuple{Any},
+                :module => M,
+            )
+            DSE.format(METHODLIST, buf, doc)
+            str = takebuf_string(buf)
+            @test contains(str, "```julia")
+            @test contains(str, "f(x)")
+            @test contains(str, "[`$(joinpath("DocStringExtensions", "test", "tests.jl"))")
+        end
 
-          - [`f`](@ref)
+        @testset "method signatures" begin
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :f),
+                :typesig => Tuple{Any},
+                :module => M,
+            )
+            DSE.format(SIGNATURES, buf, doc)
+            str = takebuf_string(buf)
+            @test contains(str, "\n```julia\n")
+            @test contains(str, "\nf(x)\n")
+            @test contains(str, "\n```\n")
 
-        """
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :g),
+                :typesig => Union{Tuple{}, Tuple{Any}},
+                :module => M,
+            )
+            DSE.format(SIGNATURES, buf, doc)
+            str = takebuf_string(buf)
+            @test contains(str, "\n```julia\n")
+            @test contains(str, "\ng()\n")
+            @test contains(str, "\ng(x)\n")
+            @test contains(str, "\n```\n")
 
-        # Type fields.
-        doc.data = Dict(
-            :binding => Docs.Binding(M, :T),
-            :fields => Dict(
-                :a => "one",
-                :b => "two",
-            ),
-        )
-        DSE.format(FIELDS, buf, doc)
-        str = takebuf_string(buf)
-        @test contains(str, "  - `a`")
-        @test contains(str, "  - `b`")
-        @test contains(str, "  - `c`")
-        @test contains(str, "one")
-        @test contains(str, "two")
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :g),
+                :typesig => Union{Tuple{}, Tuple{Any}, Tuple{Any, Any}, Tuple{Any, Any, Any}},
+                :module => M,
+            )
+            DSE.format(SIGNATURES, buf, doc)
+            str = takebuf_string(buf)
+            @test contains(str, "\n```julia\n")
+            @test contains(str, "\ng()\n")
+            @test contains(str, "\ng(x)\n")
+            @test contains(str, "\ng(x, y)\n")
+            @test contains(str, "\ng(x, y, z; kwargs...)\n")
+            @test contains(str, "\n```\n")
+        end
 
-        # Method lists.
-        doc.data = Dict(
-            :binding => Docs.Binding(M, :f),
-            :typesig => Tuple{Any},
-            :module => M,
-        )
-        DSE.format(METHODLIST, buf, doc)
-        str = takebuf_string(buf)
-        @test contains(str, "```julia")
-        @test contains(str, "f(x)")
-        @test contains(str, "[`$(joinpath("DocStringExtensions", "test", "tests.jl"))")
+        @testset "type definitions" begin
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :AbstractType),
+                :typesig => Union{},
+                :module => M,
+            )
+            DSE.format(TYPEDEF, buf, doc)
+            str = takebuf_string(buf)
+            @test contains(str, "\n```julia\n")
+            @test contains(str, "\nabstract AbstractType <: Integer\n")
+            @test contains(str, "\n```\n")
 
-        # Method signatures.
-        doc.data = Dict(
-            :binding => Docs.Binding(M, :f),
-            :typesig => Tuple{Any},
-            :module => M,
-        )
-        DSE.format(SIGNATURES, buf, doc)
-        str = takebuf_string(buf)
-        @test contains(str, "\n```julia\n")
-        @test contains(str, "\nf(x)\n")
-        @test contains(str, "\n```\n")
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :CustomType),
+                :typesig => Union{},
+                :module => M,
+            )
+            DSE.format(TYPEDEF, buf, doc)
+            str = takebuf_string(buf)
+            @test contains(str, "\n```julia\n")
+            @test contains(str, "\nimmutable CustomType{S, T<:Integer} <: Integer\n")
+            @test contains(str, "\n```\n")
 
-        doc.data = Dict(
-            :binding => Docs.Binding(M, :g),
-            :typesig => Union{Tuple{}, Tuple{Any}},
-            :module => M,
-        )
-        DSE.format(SIGNATURES, buf, doc)
-        str = takebuf_string(buf)
-        @test contains(str, "\n```julia\n")
-        @test contains(str, "\ng()\n")
-        @test contains(str, "\ng(x)\n")
-        @test contains(str, "\n```\n")
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :BitType8),
+                :typesig => Union{},
+                :module => M,
+            )
+            DSE.format(TYPEDEF, buf, doc)
+            str = takebuf_string(buf)
+            @test contains(str, "\n```julia\n")
+            @test contains(str, "\nbitstype 8 BitType8\n")
+            @test contains(str, "\n```\n")
 
-        doc.data = Dict(
-            :binding => Docs.Binding(M, :g),
-            :typesig => Union{Tuple{}, Tuple{Any}, Tuple{Any, Any}, Tuple{Any, Any, Any}},
-            :module => M,
-        )
-        DSE.format(SIGNATURES, buf, doc)
-        str = takebuf_string(buf)
-        @test contains(str, "\n```julia\n")
-        @test contains(str, "\ng()\n")
-        @test contains(str, "\ng(x)\n")
-        @test contains(str, "\ng(x, y)\n")
-        @test contains(str, "\ng(x, y, z; kwargs...)\n")
-        @test contains(str, "\n```\n")
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :BitType32),
+                :typesig => Union{},
+                :module => M,
+            )
+            DSE.format(TYPEDEF, buf, doc)
+            str = takebuf_string(buf)
+            @test contains(str, "\n```julia\n")
+            @test contains(str, "\nbitstype 32 BitType32 <: Real")
+            @test contains(str, "\n```\n")
+        end
     end
     @testset "utilities" begin
         @testset "keywords" begin
