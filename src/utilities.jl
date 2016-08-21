@@ -21,7 +21,7 @@ groups = methodgroups(f, Union{Tuple{Any}, Tuple{Any, Integer}}, Main; exact = f
 """
 function methodgroups(func, typesig, modname; exact = true)
     # Group methods by file and line number.
-    local methods = getmethods(func, typesig)
+    local methods = Set{Method}(getmethods(func, typesig))
     local groups = groupby(Tuple{Symbol, Int}, Vector{Method}, methods) do m
         (m.file, m.line), m
     end
