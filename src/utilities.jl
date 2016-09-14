@@ -192,6 +192,16 @@ end
 
 printmethod(b, f, m) = takebuf_string(printmethod(IOBuffer(), b, f, m))
 
+# Handle differences between Julia 0.5/0.6 where `LambdaInfo` is replaced with `CodeInfo`.
+if isdefined(Base, :LambdaInfo)
+    has_method_source(m::Method) = isdefined(m, :lambda_template)
+    get_method_source(m::Method) = m.lambda_template
+    nargs(m::Method) = m.lambda_template.nargs
+else
+    has_method_source(m::Method) = isdefined(m, :source)
+    get_method_source(m::Method) = m.source
+    nargs(m::Method) = m.nargs
+end
 
 """
 $(:SIGNATURES)
@@ -212,10 +222,10 @@ function keywords(func, m::Method)
         local signature = Base.tuple_type_cons(Vector{Any}, m.sig)
         if method_exists(kwsorter, signature)
             local method = which(kwsorter, signature)
-            if isdefined(method, :lambda_template)
-                local template = method.lambda_template
+            if has_method_source(method)
+                local template = get_method_source(method)
                 # `.slotnames` is a `Vector{Any}`. Convert it to the right type.
-                local args = map(Symbol, template.slotnames[(template.nargs + 1):end])
+                local args = map(Symbol, template.slotnames[(nargs(method) + 1):end])
                 # Only return the usable symbols, not ones that aren't identifiers.
                 filter!(arg -> !contains(string(arg), "#"), args)
                 # Keywords *may* not be sorted correctly. We move the vararg one to the end.
@@ -244,10 +254,10 @@ args = arguments(first(methods(f)))
 ```
 """
 function arguments(m::Method)
-    if isdefined(m, :lambda_template)
-        local template = m.lambda_template
+    if has_method_source(m)
+        local template = get_method_source(m)
         if isdefined(template, :slotnames)
-            local args = map(template.slotnames[1:template.nargs]) do arg
+            local args = map(template.slotnames[1:nargs(m)]) do arg
                 arg === Symbol("#unused#") ? "?" : arg
             end
             return filter(arg -> arg !== Symbol("#self#"), args)
