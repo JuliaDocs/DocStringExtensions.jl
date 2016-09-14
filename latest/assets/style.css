@@ -205,6 +205,11 @@ nav.toc ul.internal {
     list-style: none;
 }
 
+nav.toc ul.internal li.toplevel {
+    border-top: 1px solid #c9c9c9;
+    font-weight: bold;
+}
+
 nav.toc .toctext {
     padding-top: 0.3em;
     padding-bottom: 0.3em;
@@ -368,6 +373,13 @@ article section.docstring a.source-link {
 
 .admonition.tip {
     background-color: #dbfaf4;
+}
+
+
+/* footnotes */
+.footnote {
+    padding-left: 0.8em;
+    border-left: 2px solid #ccc;
 }
 
 /* Search page */
