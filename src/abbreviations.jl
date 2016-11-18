@@ -372,3 +372,24 @@ function format(::TypeDefinition, buf, doc)
         println(buf, "```\n")
     end
 end
+
+#
+# `DocStringTemplate`
+#
+
+"""
+The singleton type for [`DOCSTRING`](@ref) abbreviations.
+"""
+immutable DocStringTemplate <: Abbreviation end
+
+"""
+An [`Abbreviation`](@ref) used in [`@template`](@ref) definitions to represent the location
+of the docstring body that should be spliced into a template.
+
+!!! warning
+
+    This abbreviation must only ever be used in template strings; never normal docstrings.
+"""
+const DOCSTRING = DocStringTemplate()
+
+# NOTE: no `format` needed for this 'mock' abbreviation.

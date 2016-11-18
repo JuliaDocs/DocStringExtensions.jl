@@ -93,7 +93,7 @@ using Compat
 
 # Exports.
 
-export FIELDS, EXPORTS, METHODLIST, IMPORTS, SIGNATURES, TYPEDEF
+export @template, FIELDS, EXPORTS, METHODLIST, IMPORTS, SIGNATURES, TYPEDEF, DOCSTRING
 
 
 # Note:
@@ -113,7 +113,7 @@ export FIELDS, EXPORTS, METHODLIST, IMPORTS, SIGNATURES, TYPEDEF
 #
 if VERSION < v"0.5.0-dev"
 
-const FIELDS, EXPORTS, METHODLIST, IMPORTS, SIGNATURES, TYPEDEF = "", "", "", "", "", ""
+include("mock.jl")
 
 else # VERSION < v"0.5.0-dev"
 
@@ -129,7 +129,7 @@ end
 
 include("utilities.jl")
 include("abbreviations.jl")
-
+include("templates.jl")
 
 #
 # Bootstrap abbreviations.
@@ -150,6 +150,8 @@ let λ = s -> isa(s, Symbol) ? getfield(DocStringExtensions, s) : s
         end
     end
 end
+
+__init__() = (hook!(template_hook); nothing)
 
 end # VERSION < v"0.5.0-dev"
 

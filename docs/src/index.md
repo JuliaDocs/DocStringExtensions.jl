@@ -14,6 +14,6 @@ Modules = [DocStringExtensions]
 
 ```@autodocs
 Modules = [DocStringExtensions]
-Order = [:constant, :function, :type]
+Order = [:constant, :function, :macro, :type]
 ```
 

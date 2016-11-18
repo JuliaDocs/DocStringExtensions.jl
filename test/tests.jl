@@ -1,6 +1,8 @@
 
 const DSE = DocStringExtensions
 
+include("templates.jl")
+
 module M
 
 export f
@@ -175,6 +177,23 @@ end
             @test contains(str, "\n```julia\n")
             @test contains(str, "\nbitstype 32 BitType32 <: Real")
             @test contains(str, "\n```\n")
+        end
+    end
+    @testset "templates" begin
+        let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))
+            @test contains(fmt(:(TemplateTests.K)), "(DEFAULT)")
+            @test contains(fmt(:(TemplateTests.T)), "(TYPES)")
+            @test contains(fmt(:(TemplateTests.f)), "(METHODS, MACROS)")
+            @test contains(fmt(:(TemplateTests.@m)), "(METHODS, MACROS)")
+
+            @test contains(fmt(:(TemplateTests.InnerModule.K)), "(DEFAULT)")
+            @test contains(fmt(:(TemplateTests.InnerModule.T)), "(DEFAULT)")
+            @test contains(fmt(:(TemplateTests.InnerModule.f)), "(METHODS, MACROS)")
+            @test contains(fmt(:(TemplateTests.InnerModule.@m)), "(MACROS)")
+
+            @test contains(fmt(:(TemplateTests.OtherModule.T)), "(TYPES)")
+            @test contains(fmt(:(TemplateTests.OtherModule.@m)), "(MACROS)")
+            @test fmt(:(TemplateTests.OtherModule.f)) == "method `f`\n"
         end
     end
     @testset "utilities" begin
