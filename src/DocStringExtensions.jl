@@ -117,6 +117,14 @@ const FIELDS, EXPORTS, METHODLIST, IMPORTS, SIGNATURES, TYPEDEF = "", "", "", ""
 
 else # VERSION < v"0.5.0-dev"
 
+# Compat.
+
+if VERSION < v"0.6.0-dev.1254"
+    takebuf_str(b) = takebuf_string(b)
+else
+    takebuf_str(b) = String(take!(b))
+end
+
 # Includes.
 
 include("utilities.jl")

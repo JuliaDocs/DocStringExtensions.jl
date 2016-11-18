@@ -52,13 +52,13 @@ end
                 :typesig => Union{},
             )
             DSE.format(IMPORTS, buf, doc)
-            str = takebuf_string(buf)
+            str = DSE.takebuf_str(buf)
             @test contains(str, "\n  - `Base`\n")
             @test contains(str, "\n  - `Core`\n")
 
             # Module exports.
             DSE.format(EXPORTS, buf, doc)
-            str = takebuf_string(buf)
+            str = DSE.takebuf_str(buf)
             @test contains(str, "\n  - [`f`](@ref)\n")
         end
 
@@ -71,7 +71,7 @@ end
                 ),
             )
             DSE.format(FIELDS, buf, doc)
-            str = takebuf_string(buf)
+            str = DSE.takebuf_str(buf)
             @test contains(str, "  - `a`")
             @test contains(str, "  - `b`")
             @test contains(str, "  - `c`")
@@ -86,7 +86,7 @@ end
                 :module => M,
             )
             DSE.format(METHODLIST, buf, doc)
-            str = takebuf_string(buf)
+            str = DSE.takebuf_str(buf)
             @test contains(str, "```julia")
             @test contains(str, "f(x)")
             @test contains(str, "[`$(joinpath("DocStringExtensions", "test", "tests.jl"))")
@@ -99,7 +99,7 @@ end
                 :module => M,
             )
             DSE.format(SIGNATURES, buf, doc)
-            str = takebuf_string(buf)
+            str = DSE.takebuf_str(buf)
             @test contains(str, "\n```julia\n")
             @test contains(str, "\nf(x)\n")
             @test contains(str, "\n```\n")
@@ -110,7 +110,7 @@ end
                 :module => M,
             )
             DSE.format(SIGNATURES, buf, doc)
-            str = takebuf_string(buf)
+            str = DSE.takebuf_str(buf)
             @test contains(str, "\n```julia\n")
             @test contains(str, "\ng()\n")
             @test contains(str, "\ng(x)\n")
@@ -122,7 +122,7 @@ end
                 :module => M,
             )
             DSE.format(SIGNATURES, buf, doc)
-            str = takebuf_string(buf)
+            str = DSE.takebuf_str(buf)
             @test contains(str, "\n```julia\n")
             @test contains(str, "\ng()\n")
             @test contains(str, "\ng(x)\n")
@@ -138,7 +138,7 @@ end
                 :module => M,
             )
             DSE.format(TYPEDEF, buf, doc)
-            str = takebuf_string(buf)
+            str = DSE.takebuf_str(buf)
             @test contains(str, "\n```julia\n")
             @test contains(str, "\nabstract AbstractType <: Integer\n")
             @test contains(str, "\n```\n")
@@ -149,7 +149,7 @@ end
                 :module => M,
             )
             DSE.format(TYPEDEF, buf, doc)
-            str = takebuf_string(buf)
+            str = DSE.takebuf_str(buf)
             @test contains(str, "\n```julia\n")
             @test contains(str, "\nimmutable CustomType{S, T<:Integer} <: Integer\n")
             @test contains(str, "\n```\n")
@@ -160,7 +160,7 @@ end
                 :module => M,
             )
             DSE.format(TYPEDEF, buf, doc)
-            str = takebuf_string(buf)
+            str = DSE.takebuf_str(buf)
             @test contains(str, "\n```julia\n")
             @test contains(str, "\nbitstype 8 BitType8\n")
             @test contains(str, "\n```\n")
@@ -171,7 +171,7 @@ end
                 :module => M,
             )
             DSE.format(TYPEDEF, buf, doc)
-            str = takebuf_string(buf)
+            str = DSE.takebuf_str(buf)
             @test contains(str, "\n```julia\n")
             @test contains(str, "\nbitstype 32 BitType32 <: Real")
             @test contains(str, "\n```\n")
