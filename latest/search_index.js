@@ -13,7 +13,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "DocStringExtensions",
     "category": "Module",
-    "text": "Extensions for the Julia docsystem.\n\nIntroduction\n\nThis package provides a collection of useful extensions for Julia's built-in docsystem. These are features that are still regarded as \"experimental\" and not yet mature enough to be considered for inclusion in Base, or that have sufficiently niche use cases that including them with the default Julia installation is not seen as valuable enough at this time.\n\nCurrently DocStringExtensions.jl exports a collection of so-called \"abbreviations\", which can be used to add useful automatically generated information to docstrings. These include information such as:\n\nsimplified method signatures;\ndocumentation for the individual fields of composite types;\nimport and export lists for modules;\nand source-linked lists of methods applicable to a particular docstring.\n\nUsers are most welcome to suggest additional abbreviation ideas, or implement and submit them themselves. Julia's strong support for program introspection makes this a reasonably straight forward process.\n\nDetails of the currently available abbreviations can be viewed in their individual docstrings listed below in the \"Exports\" section.\n\nExamples\n\nIn simple terms an abbreviation can be used by simply interpolating it into a suitable docstring. For example:\n\nusing DocStringExtensions\n\n\"\"\"\nA short summary of `func`...\n\n$(SIGNATURES)\n\nwhere `x` and `y` should both be positive.\n\n# Details\n\nSome details about `func`...\n\"\"\"\nfunc(x, y) = x + y\n\n$(SIGNATURES) will be replaced in the above docstring with\n\n# Signatures\n\n```julia\nfunc(x, y)\n```\n\nThe resulting generated content can be viewed via Julia's ? mode or, if Documenter.jl is set up, the generated external documentation.\n\nThe advantage of using SIGNATURES (and other abbreviations) is that docstrings are less likely to become out-of-sync with the surrounding code. Note though that references to the argument names x and y that have been manually embedded within the docstring are, of course, not updated automatically.\n\nExports\n\nEXPORTS\nFIELDS\nIMPORTS\nMETHODLIST\nSIGNATURES\nTYPEDEF\n\nImports\n\nBase\nCompat\nCore\n\nnote: Note\nThis package is installable on Julia 0.4, but does not provide any features. Abbreviations can still be interpolated into docstrings but will expand to an empty string rather than the expected auto-generated content that it would on Julia 0.5 and above.This allows the package to be added as a dependancy for packages that still support Julia 0.4 to allow them to begin using abbreviations without needing to conditionally import this pacakage.\n\n\n\n"
+    "text": "Extensions for the Julia docsystem.\n\nIntroduction\n\nThis package provides a collection of useful extensions for Julia's built-in docsystem. These are features that are still regarded as \"experimental\" and not yet mature enough to be considered for inclusion in Base, or that have sufficiently niche use cases that including them with the default Julia installation is not seen as valuable enough at this time.\n\nCurrently DocStringExtensions.jl exports a collection of so-called \"abbreviations\", which can be used to add useful automatically generated information to docstrings. These include information such as:\n\nsimplified method signatures;\ndocumentation for the individual fields of composite types;\nimport and export lists for modules;\nand source-linked lists of methods applicable to a particular docstring.\n\nUsers are most welcome to suggest additional abbreviation ideas, or implement and submit them themselves. Julia's strong support for program introspection makes this a reasonably straight forward process.\n\nDetails of the currently available abbreviations can be viewed in their individual docstrings listed below in the \"Exports\" section.\n\nExamples\n\nIn simple terms an abbreviation can be used by simply interpolating it into a suitable docstring. For example:\n\nusing DocStringExtensions\n\n\"\"\"\nA short summary of `func`...\n\n$(SIGNATURES)\n\nwhere `x` and `y` should both be positive.\n\n# Details\n\nSome details about `func`...\n\"\"\"\nfunc(x, y) = x + y\n\n$(SIGNATURES) will be replaced in the above docstring with\n\n# Signatures\n\n```julia\nfunc(x, y)\n```\n\nThe resulting generated content can be viewed via Julia's ? mode or, if Documenter.jl is set up, the generated external documentation.\n\nThe advantage of using SIGNATURES (and other abbreviations) is that docstrings are less likely to become out-of-sync with the surrounding code. Note though that references to the argument names x and y that have been manually embedded within the docstring are, of course, not updated automatically.\n\nExports\n\nDOCSTRING\nEXPORTS\nFIELDS\nIMPORTS\nMETHODLIST\nSIGNATURES\nTYPEDEF\n@template\n\nImports\n\nBase\nCompat\nCore\n\nnote: Note\nThis package is installable on Julia 0.4, but does not provide any features. Abbreviations can still be interpolated into docstrings but will expand to an empty string rather than the expected auto-generated content that it would on Julia 0.5 and above.This allows the package to be added as a dependancy for packages that still support Julia 0.4 to allow them to begin using abbreviations without needing to conditionally import this pacakage.\n\n\n\n"
 },
 
 {
@@ -30,6 +30,14 @@ var documenterSearchIndex = {"docs": [
     "title": "Index",
     "category": "section",
     "text": "Modules = [DocStringExtensions]"
+},
+
+{
+    "location": "index.html#DocStringExtensions.DOCSTRING",
+    "page": "Home",
+    "title": "DocStringExtensions.DOCSTRING",
+    "category": "Constant",
+    "text": "An Abbreviation used in @template definitions to represent the location of the docstring body that should be spliced into a template.\n\nwarning: Warning\nThis abbreviation must only ever be used in template strings; never normal docstrings.\n\n\n\n"
 },
 
 {
@@ -78,6 +86,14 @@ var documenterSearchIndex = {"docs": [
     "title": "DocStringExtensions.TYPEDEF",
     "category": "Constant",
     "text": "An Abbreviation for including a summary of the signature of a type definition. Some of the following information may be included in the output:\n\nwhether the object is an abstract type or a bitstype;\nmutability (either type or immutable is printed);\nthe unqualified name of the type;\nany type parameters;\nthe supertype of the type if it is not Any.\n\nExamples\n\nThe generated output for a type definition such as:\n\n\"\"\"\n$(TYPEDEF)\n\"\"\"\nimmutable MyType{S, T <: Integer} <: AbstractArray\n    # ...\nend\n\nwill look similar to the following:\n\n```julia\nimmutable MyType{S, T<:Integer} <: AbstractArray\n```\n\nnote: Note\nNo information about the fields of the type is printed. Use the FIELDS abbreviation to include information about the fields of a type.\n\n\n\n"
+},
+
+{
+    "location": "index.html#DocStringExtensions.@template-Tuple{Any}",
+    "page": "Home",
+    "title": "DocStringExtensions.@template",
+    "category": "Macro",
+    "text": "@template(ex)\n\n\nDefines a docstring template that will be applied to all docstrings in a module that match the specified category or tuple of categories.\n\nExamples\n\n@template DEFAULT =\n    \"\"\"\n    $(SIGNATURES)\n    $(DOCSTRING)\n    \"\"\"\n\nDEFAULT is the default template that is applied to a docstring if no other template definitions match the documented expression. The DOCSTRING abbreviation is used to mark the location in the template where the actual docstring body will be spliced into each docstring.\n\n@template (FUNCTIONS, METHODS, MACROS) =\n    \"\"\"\n    $(SIGNATURES)\n    $(DOCSTRING)\n    $(METHODLIST)\n    \"\"\"\n\nA tuple of categories can be specified when a docstring template should be used for several different categories.\n\n@template MODULES = ModName\n\nThe template definition above will define a template for module docstrings based on the template for modules found in module ModName.\n\nnote: Note\nSupported categories are DEFAULT, FUNCTIONS, METHODS, MACROS, TYPES, MODULES, and CONSTANTS.\n\n\n\n"
 },
 
 {
@@ -153,6 +169,22 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
+    "location": "index.html#DocStringExtensions.hook!-Tuple{Any}",
+    "page": "Home",
+    "title": "DocStringExtensions.hook!",
+    "category": "Method",
+    "text": "hook!(func)\n\n\nSet the docstring expander function to first call func before calling the default expander.\n\nTo remove a hook that has been applied using this method call hook!().\n\n\n\n"
+},
+
+{
+    "location": "index.html#DocStringExtensions.hook!-Tuple{}",
+    "page": "Home",
+    "title": "DocStringExtensions.hook!",
+    "category": "Method",
+    "text": "hook!()\n\n\nReset the docstring expander to only call the default expander function. This clears any 'hook' that has been set using hook!(func).\n\n\n\n"
+},
+
+{
     "location": "index.html#DocStringExtensions.isabstracttype-Tuple{ANY}",
     "page": "Home",
     "title": "DocStringExtensions.isabstracttype",
@@ -217,6 +249,14 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
+    "location": "index.html#DocStringExtensions.DocStringTemplate",
+    "page": "Home",
+    "title": "DocStringExtensions.DocStringTemplate",
+    "category": "Type",
+    "text": "The singleton type for DOCSTRING abbreviations.\n\n\n\n"
+},
+
+{
     "location": "index.html#DocStringExtensions.MethodList",
     "page": "Home",
     "title": "DocStringExtensions.MethodList",
@@ -269,7 +309,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "Reference",
     "category": "section",
-    "text": "Modules = [DocStringExtensions]\nOrder = [:constant, :function, :type]"
+    "text": "Modules = [DocStringExtensions]\nOrder = [:constant, :function, :macro, :type]"
 },
 
 ]}
