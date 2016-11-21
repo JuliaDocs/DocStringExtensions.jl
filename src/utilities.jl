@@ -190,7 +190,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     return buffer
 end
 
-printmethod(b, f, m) = takebuf_string(printmethod(IOBuffer(), b, f, m))
+printmethod(b, f, m) = takebuf_str(printmethod(IOBuffer(), b, f, m))
 
 # Handle differences between Julia 0.5/0.6 where `LambdaInfo` is replaced with `CodeInfo`.
 if isdefined(Base, :LambdaInfo)

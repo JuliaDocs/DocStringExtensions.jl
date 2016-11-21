@@ -7,7 +7,7 @@ using Documenter, DocStringExtensions
 makedocs(
     sitename = "DocStringExtensions.jl",
     modules = [DocStringExtensions],
-    format = Documenter.Formats.HTML,
+    format = :html,
     clean = false,
     pages = Any["Home" => "index.md"],
 )

@@ -1,6 +1,8 @@
 
 const DSE = DocStringExtensions
 
+include("templates.jl")
+
 module M
 
 export f
@@ -52,13 +54,13 @@ end
                 :typesig => Union{},
             )
             DSE.format(IMPORTS, buf, doc)
-            str = takebuf_string(buf)
+            str = DSE.takebuf_str(buf)
             @test contains(str, "\n  - `Base`\n")
             @test contains(str, "\n  - `Core`\n")
 
             # Module exports.
             DSE.format(EXPORTS, buf, doc)
-            str = takebuf_string(buf)
+            str = DSE.takebuf_str(buf)
             @test contains(str, "\n  - [`f`](@ref)\n")
         end
 
@@ -71,7 +73,7 @@ end
                 ),
             )
             DSE.format(FIELDS, buf, doc)
-            str = takebuf_string(buf)
+            str = DSE.takebuf_str(buf)
             @test contains(str, "  - `a`")
             @test contains(str, "  - `b`")
             @test contains(str, "  - `c`")
@@ -86,7 +88,7 @@ end
                 :module => M,
             )
             DSE.format(METHODLIST, buf, doc)
-            str = takebuf_string(buf)
+            str = DSE.takebuf_str(buf)
             @test contains(str, "```julia")
             @test contains(str, "f(x)")
             @test contains(str, "[`$(joinpath("DocStringExtensions", "test", "tests.jl"))")
@@ -99,7 +101,7 @@ end
                 :module => M,
             )
             DSE.format(SIGNATURES, buf, doc)
-            str = takebuf_string(buf)
+            str = DSE.takebuf_str(buf)
             @test contains(str, "\n```julia\n")
             @test contains(str, "\nf(x)\n")
             @test contains(str, "\n```\n")
@@ -110,7 +112,7 @@ end
                 :module => M,
             )
             DSE.format(SIGNATURES, buf, doc)
-            str = takebuf_string(buf)
+            str = DSE.takebuf_str(buf)
             @test contains(str, "\n```julia\n")
             @test contains(str, "\ng()\n")
             @test contains(str, "\ng(x)\n")
@@ -122,7 +124,7 @@ end
                 :module => M,
             )
             DSE.format(SIGNATURES, buf, doc)
-            str = takebuf_string(buf)
+            str = DSE.takebuf_str(buf)
             @test contains(str, "\n```julia\n")
             @test contains(str, "\ng()\n")
             @test contains(str, "\ng(x)\n")
@@ -138,7 +140,7 @@ end
                 :module => M,
             )
             DSE.format(TYPEDEF, buf, doc)
-            str = takebuf_string(buf)
+            str = DSE.takebuf_str(buf)
             @test contains(str, "\n```julia\n")
             @test contains(str, "\nabstract AbstractType <: Integer\n")
             @test contains(str, "\n```\n")
@@ -149,7 +151,7 @@ end
                 :module => M,
             )
             DSE.format(TYPEDEF, buf, doc)
-            str = takebuf_string(buf)
+            str = DSE.takebuf_str(buf)
             @test contains(str, "\n```julia\n")
             @test contains(str, "\nimmutable CustomType{S, T<:Integer} <: Integer\n")
             @test contains(str, "\n```\n")
@@ -160,7 +162,7 @@ end
                 :module => M,
             )
             DSE.format(TYPEDEF, buf, doc)
-            str = takebuf_string(buf)
+            str = DSE.takebuf_str(buf)
             @test contains(str, "\n```julia\n")
             @test contains(str, "\nbitstype 8 BitType8\n")
             @test contains(str, "\n```\n")
@@ -171,10 +173,27 @@ end
                 :module => M,
             )
             DSE.format(TYPEDEF, buf, doc)
-            str = takebuf_string(buf)
+            str = DSE.takebuf_str(buf)
             @test contains(str, "\n```julia\n")
             @test contains(str, "\nbitstype 32 BitType32 <: Real")
             @test contains(str, "\n```\n")
+        end
+    end
+    @testset "templates" begin
+        let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))
+            @test contains(fmt(:(TemplateTests.K)), "(DEFAULT)")
+            @test contains(fmt(:(TemplateTests.T)), "(TYPES)")
+            @test contains(fmt(:(TemplateTests.f)), "(METHODS, MACROS)")
+            @test contains(fmt(:(TemplateTests.@m)), "(METHODS, MACROS)")
+
+            @test contains(fmt(:(TemplateTests.InnerModule.K)), "(DEFAULT)")
+            @test contains(fmt(:(TemplateTests.InnerModule.T)), "(DEFAULT)")
+            @test contains(fmt(:(TemplateTests.InnerModule.f)), "(METHODS, MACROS)")
+            @test contains(fmt(:(TemplateTests.InnerModule.@m)), "(MACROS)")
+
+            @test contains(fmt(:(TemplateTests.OtherModule.T)), "(TYPES)")
+            @test contains(fmt(:(TemplateTests.OtherModule.@m)), "(MACROS)")
+            @test fmt(:(TemplateTests.OtherModule.f)) == "method `f`\n"
         end
     end
     @testset "utilities" begin
