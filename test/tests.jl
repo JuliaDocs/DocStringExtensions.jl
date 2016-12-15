@@ -305,9 +305,9 @@ end
             @test length(DSE.methodgroups(M.h_2, Tuple{M.A{Int}}, M)[1]) == 1
         end
         @testset "alltypesigs" begin
-            @test DSE.alltypesigs(Union{}) == Core.svec()
-            @test DSE.alltypesigs(Union{Tuple{}}) == Core.svec(Tuple{})
-            @test DSE.alltypesigs(Tuple{}) == Core.svec(Tuple{})
+            @test DSE.alltypesigs(Union{}) == Any[]
+            @test DSE.alltypesigs(Union{Tuple{}}) == Any[Tuple{}]
+            @test DSE.alltypesigs(Tuple{}) == Any[Tuple{}]
         end
         @testset "groupby" begin
             let groups = DSE.groupby(Int, Vector{Int}, collect(1:10)) do each

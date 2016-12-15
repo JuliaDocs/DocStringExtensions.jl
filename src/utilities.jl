@@ -53,6 +53,23 @@ function comparemethods(a::Method, b::Method)
     comp == 0 ? a.line < b.line : comp < 0
 end
 
+if isdefined(Base, :UnionAll)
+    uniontypes(T) = uniontypes!(Any[], T)
+    function uniontypes!(out, T)
+        if isa(T, Union)
+            push!(out, T.a)
+            uniontypes!(out, T.b)
+        else
+            push!(out, T)
+        end
+        return out
+    end
+    gettype(T::UnionAll) = gettype(T.body)
+else
+    uniontypes(T) = collect(T.types)
+end
+gettype(other) = other
+
 """
 $(:SIGNATURES)
 
@@ -62,7 +79,7 @@ function getmethods!(results, f, sig)
     if sig == Union{}
         append!(results, methods(f))
     elseif isa(sig, Union)
-        for each in sig.types
+        for each in uniontypes(sig)
             append!(results, getmethods(f, each))
         end
     else
@@ -99,9 +116,9 @@ isabstracttype(t::ANY) = isa(t, DataType) && getfield(t, :abstract)
 """
 $(:SIGNATURES)
 
-Returns a `SimpleVector` of the `Tuple` types contained in `sig`.
+Returns a `Vector` of the `Tuple` types contained in `sig`.
 """
-alltypesigs(sig) = isa(sig, Union) ? sig.types : Core.svec(sig)
+alltypesigs(sig) = sig == Union{} ? Any[] : isa(sig, Union) ? uniontypes(sig) : Any[sig]
 
 """
 $(:SIGNATURES)

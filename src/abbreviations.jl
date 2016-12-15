@@ -351,7 +351,7 @@ const TYPEDEF = TypeDefinition()
 
 function format(::TypeDefinition, buf, doc)
     local binding = doc.data[:binding]
-    local object = Docs.resolve(binding)
+    local object = gettype(Docs.resolve(binding))
     if isa(object, DataType)
         println(buf, "\n```julia")
         if isbitstype(object)
