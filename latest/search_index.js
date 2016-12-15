@@ -101,7 +101,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "DocStringExtensions.alltypesigs",
     "category": "Method",
-    "text": "alltypesigs(sig)\n\n\nReturns a SimpleVector of the Tuple types contained in sig.\n\n\n\n"
+    "text": "alltypesigs(sig)\n\n\nReturns a Vector of the Tuple types contained in sig.\n\n\n\n"
 },
 
 {
