@@ -5,13 +5,15 @@ include("templates.jl")
 
 module M
 
+using Compat
+
 export f
 
 f(x) = x
 
 g(x = 1, y = 2, z = 3; kwargs...) = x
 
-typealias A{T} Union{Vector{T}, Matrix{T}}
+@compat const A{T} = Union{Vector{T}, Matrix{T}}
 
 h_1(x::A) = x
 h_2(x::A{Int}) = x
@@ -27,14 +29,14 @@ immutable K
 end
 
 
-abstract AbstractType <: Integer
+@compat abstract type AbstractType <: Integer end
 
 immutable CustomType{S, T <: Integer} <: Integer
 end
 
-bitstype 8 BitType8
+@compat primitive type BitType8 8 end
 
-bitstype 32 BitType32 <: Real
+@compat primitive type BitType32 <: Real 32 end
 
 end
 
