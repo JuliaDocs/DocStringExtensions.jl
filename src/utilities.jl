@@ -214,6 +214,10 @@ if isdefined(Base, :LambdaInfo)
     has_method_source(m::Method) = isdefined(m, :lambda_template)
     get_method_source(m::Method) = m.lambda_template
     nargs(m::Method) = m.lambda_template.nargs
+elseif VERSION >= v"0.6.0-pre.alpha.244"
+    has_method_source(m::Method) = true
+    get_method_source(m::Method) = Base.uncompressed_ast(m)
+    nargs(m::Method) = m.nargs
 else
     has_method_source(m::Method) = isdefined(m, :source)
     get_method_source(m::Method) = m.source
