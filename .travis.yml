@@ -7,6 +7,7 @@ os:
 julia:
   - 0.4
   - 0.5
+  - 0.6
   - nightly
 
 notifications:
@@ -20,4 +21,3 @@ after_success:
   - julia -e 'include(Pkg.dir("DocStringExtensions", "test", "coverage.jl"))'
   - julia -e 'Pkg.add("Documenter"); Pkg.checkout("Documenter")'
   - julia -e 'include(Pkg.dir("DocStringExtensions", "docs", "make.jl"))'
-
