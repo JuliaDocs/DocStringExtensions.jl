@@ -21,7 +21,7 @@ julia> Pkg.add("DocStringExtensions")
 
 ## Project Status
 
-The package is tested against Julia `0.5` and *current* `0.6-dev` on Linux, OS X, and Windows.
+The package is tested against Julia `0.5` and `0.6` on Linux, OS X, and Windows. The `0.7-dev` builds are currently failing.
 
 ## Contributing and Questions
 
