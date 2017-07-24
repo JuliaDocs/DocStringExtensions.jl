@@ -109,6 +109,11 @@ function template_hook(docstr, expr::Expr)
 end
 template_hook(args...) = args
 
+# The signature for the atdocs() calls changed in v0.7
+# On v0.6 and below it seems it was assumed to be (docstr::String, expr::Expr), but on v0.7
+# it is (source::LineNumberNode, mod::Module, docstr::String, expr::Expr)
+template_hook(source::LineNumberNode, mod::Module, args...) = (source, mod, template_hook(args...)...)
+
 interp_string(str::AbstractString) = Expr(:string, str)
 interp_string(other) = other
 
