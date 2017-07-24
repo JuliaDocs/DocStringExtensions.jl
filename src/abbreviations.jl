@@ -70,7 +70,10 @@ function format(::TypeFields, buf, doc)
     local docs = get(doc.data, :fields, Dict())
     local binding = doc.data[:binding]
     local object = Docs.resolve(binding)
-    local fields = fieldnames(object)
+    # On 0.7 fieldnames() on an abstract type throws an error. We then explicitly return
+    # and empty vector to be consistent with the behaviour on v0.6 and below.
+    # Compat necessary since Base.isabstract was introduced in v0.6.
+    local fields = Compat.TypeUtils.isabstract(object) ? Symbol[] : fieldnames(object)
     if !isempty(fields)
         println(buf)
         for field in fields
