@@ -24,14 +24,14 @@ type T
     c
 end
 
-immutable K
+struct K
     K(; a = 1) = new()
 end
 
 
 @compat abstract type AbstractType <: Integer end
 
-immutable CustomType{S, T <: Integer} <: Integer
+struct CustomType{S, T <: Integer} <: Integer
 end
 
 @compat primitive type BitType8 8 end
@@ -155,7 +155,7 @@ end
             DSE.format(TYPEDEF, buf, doc)
             str = DSE.takebuf_str(buf)
             @test contains(str, "\n```julia\n")
-            @test contains(str, "\nimmutable CustomType{S, T<:Integer} <: Integer\n")
+            @test contains(str, "\nstruct CustomType{S, T<:Integer} <: Integer\n")
             @test contains(str, "\n```\n")
 
             doc.data = Dict(
