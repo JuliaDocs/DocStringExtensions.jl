@@ -18,7 +18,7 @@ g(x = 1, y = 2, z = 3; kwargs...) = x
 h_1(x::A) = x
 h_2(x::A{Int}) = x
 
-type T
+mutable struct T
     a
     b
     c
