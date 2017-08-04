@@ -207,22 +207,11 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     return buffer
 end
 
-printmethod(b, f, m) = takebuf_str(printmethod(IOBuffer(), b, f, m))
+printmethod(b, f, m) = String(take!(printmethod(IOBuffer(), b, f, m)))
 
-# Handle differences between Julia 0.5/0.6 where `LambdaInfo` is replaced with `CodeInfo`.
-if isdefined(Base, :LambdaInfo)
-    has_method_source(m::Method) = isdefined(m, :lambda_template)
-    get_method_source(m::Method) = m.lambda_template
-    nargs(m::Method) = m.lambda_template.nargs
-elseif VERSION >= v"0.6.0-pre.alpha.244"
-    has_method_source(m::Method) = true
-    get_method_source(m::Method) = Base.uncompressed_ast(m)
-    nargs(m::Method) = m.nargs
-else
-    has_method_source(m::Method) = isdefined(m, :source)
-    get_method_source(m::Method) = m.source
-    nargs(m::Method) = m.nargs
-end
+get_method_source(m::Method) = Base.uncompressed_ast(m)
+nargs(m::Method) = m.nargs
+
 
 """
 $(:SIGNATURES)
@@ -243,19 +232,17 @@ function keywords(func, m::Method)
         local signature = Base.tuple_type_cons(Vector{Any}, m.sig)
         if method_exists(kwsorter, signature)
             local method = which(kwsorter, signature)
-            if has_method_source(method)
-                local template = get_method_source(method)
-                # `.slotnames` is a `Vector{Any}`. Convert it to the right type.
-                local args = map(Symbol, template.slotnames[(nargs(method) + 1):end])
-                # Only return the usable symbols, not ones that aren't identifiers.
-                filter!(arg -> !contains(string(arg), "#"), args)
-                # Keywords *may* not be sorted correctly. We move the vararg one to the end.
-                local index = findfirst(arg -> endswith(string(arg), "..."), args)
-                if index > 0
-                    args[index], args[end] = args[end], args[index]
-                end
-                return args
+            local template = get_method_source(method)
+            # `.slotnames` is a `Vector{Any}`. Convert it to the right type.
+            local args = map(Symbol, template.slotnames[(nargs(method) + 1):end])
+            # Only return the usable symbols, not ones that aren't identifiers.
+            filter!(arg -> !contains(string(arg), "#"), args)
+            # Keywords *may* not be sorted correctly. We move the vararg one to the end.
+            local index = findfirst(arg -> endswith(string(arg), "..."), args)
+            if index > 0
+                args[index], args[end] = args[end], args[index]
             end
+            return args
         end
     end
     return Symbol[]
@@ -275,14 +262,12 @@ args = arguments(first(methods(f)))
 ```
 """
 function arguments(m::Method)
-    if has_method_source(m)
-        local template = get_method_source(m)
-        if isdefined(template, :slotnames)
-            local args = map(template.slotnames[1:nargs(m)]) do arg
-                arg === Symbol("#unused#") ? "?" : arg
-            end
-            return filter(arg -> arg !== Symbol("#self#"), args)
+    local template = get_method_source(m)
+    if isdefined(template, :slotnames)
+        local args = map(template.slotnames[1:nargs(m)]) do arg
+            arg === Symbol("#unused#") ? "?" : arg
         end
+        return filter(arg -> arg !== Symbol("#self#"), args)
     end
     return Symbol[]
 end
@@ -306,41 +291,37 @@ on TravisCI as well.
 """
 url(m::Method) = url(m.module, string(m.file), m.line)
 
-if VERSION < v"0.5.0-dev"
-    url(mod, file, line) = ""
-else
-    function url(mod::Module, file::AbstractString, line::Integer)
-        file = is_windows() ? replace(file, '\\', '/') : file
-        if Base.inbase(mod) && !isabspath(file)
-            local base = "https://github.com/JuliaLang/julia/tree"
-            if isempty(Base.GIT_VERSION_INFO.commit)
-                return "$base/v$VERSION/base/$file#L$line"
-            else
-                local commit = Base.GIT_VERSION_INFO.commit
-                return "$base/$commit/base/$file#L$line"
-            end
+function url(mod::Module, file::AbstractString, line::Integer)
+    file = is_windows() ? replace(file, '\\', '/') : file
+    if Base.inbase(mod) && !isabspath(file)
+        local base = "https://github.com/JuliaLang/julia/tree"
+        if isempty(Base.GIT_VERSION_INFO.commit)
+            return "$base/v$VERSION/base/$file#L$line"
         else
-            if isfile(file)
-                local d = dirname(file)
-                return LibGit2.with(LibGit2.GitRepoExt(d)) do repo
-                    LibGit2.with(LibGit2.GitConfig(repo)) do cfg
-                        local u = LibGit2.get(cfg, "remote.origin.url", "")
-                        local m = match(LibGit2.GITHUB_REGEX, u)
-                        u = m === nothing ? get(ENV, "TRAVIS_REPO_SLUG", "") : m.captures[1]
-                        local commit = string(LibGit2.head_oid(repo))
-                        local root = LibGit2.path(repo)
-                        if startswith(file, root) || startswith(realpath(file), root)
-                            local base = "https://github.com/$u/tree"
-                            local filename = file[(length(root) + 1):end]
-                            return "$base/$commit/$filename#L$line"
-                        else
-                            return ""
-                        end
+            local commit = Base.GIT_VERSION_INFO.commit
+            return "$base/$commit/base/$file#L$line"
+        end
+    else
+        if isfile(file)
+            local d = dirname(file)
+            return LibGit2.with(LibGit2.GitRepoExt(d)) do repo
+                LibGit2.with(LibGit2.GitConfig(repo)) do cfg
+                    local u = LibGit2.get(cfg, "remote.origin.url", "")
+                    local m = match(LibGit2.GITHUB_REGEX, u)
+                    u = m === nothing ? get(ENV, "TRAVIS_REPO_SLUG", "") : m.captures[1]
+                    local commit = string(LibGit2.head_oid(repo))
+                    local root = LibGit2.path(repo)
+                    if startswith(file, root) || startswith(realpath(file), root)
+                        local base = "https://github.com/$u/tree"
+                        local filename = file[(length(root) + 1):end]
+                        return "$base/$commit/$filename#L$line"
+                    else
+                        return ""
                     end
                 end
-            else
-                return ""
             end
+        else
+            return ""
         end
     end
 end

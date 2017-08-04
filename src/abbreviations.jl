@@ -10,7 +10,7 @@ expanded automatically before parsing the text to markdown.
 
 $(:FIELDS)
 """
-@compat abstract type Abbreviation end
+abstract type Abbreviation end
 
 """
 $(:SIGNATURES)
