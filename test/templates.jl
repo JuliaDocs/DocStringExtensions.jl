@@ -32,8 +32,8 @@ using DocStringExtensions
 "constant `K`"
 const K = 1
 
-"type `T`"
-type T end
+"mutable struct `T`"
+mutable struct T end
 
 "method `f`"
 f(x) = x
@@ -63,8 +63,8 @@ module InnerModule
     "constant `K`"
     const K = 1
 
-    "type `T`"
-    type T end
+    "mutable struct `T`"
+    mutable struct T end
 
     "method `f`"
     f(x) = x
@@ -82,8 +82,8 @@ module OtherModule
     @template TYPES = TemplateTests
     @template MACROS = TemplateTests.InnerModule
 
-    "type `T`"
-    type T end
+    "mutable struct `T`"
+    mutable struct T end
 
     "macro `@m`"
     macro m(x) end

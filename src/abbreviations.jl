@@ -10,7 +10,7 @@ expanded automatically before parsing the text to markdown.
 
 $(:FIELDS)
 """
-@compat abstract type Abbreviation end
+abstract type Abbreviation end
 
 """
 $(:SIGNATURES)
@@ -39,7 +39,7 @@ The singleton type for [`FIELDS`](@ref) abbreviations.
 
 $(:FIELDS)
 """
-immutable TypeFields <: Abbreviation end
+struct TypeFields <: Abbreviation end
 
 """
 An [`Abbreviation`](@ref) to include the names of the fields of a type as well as any
@@ -102,7 +102,7 @@ The singleton type for [`EXPORTS`](@ref) abbreviations.
 
 $(:FIELDS)
 """
-immutable ModuleExports <: Abbreviation end
+struct ModuleExports <: Abbreviation end
 
 """
 An [`Abbreviation`](@ref) to include all the exported names of a module is a sorted list of
@@ -156,7 +156,7 @@ The singleton type for [`IMPORTS`](@ref) abbreviations.
 
 $(:FIELDS)
 """
-immutable ModuleImports <: Abbreviation end
+struct ModuleImports <: Abbreviation end
 
 """
 An [`Abbreviation`](@ref) to include all the imported modules in a sorted list.
@@ -198,7 +198,7 @@ The singleton type for [`METHODLIST`](@ref) abbreviations.
 
 $(:FIELDS)
 """
-immutable MethodList <: Abbreviation end
+struct MethodList <: Abbreviation end
 
 """
 An [`Abbreviation`](@ref) for including a list of all the methods that match a documented
@@ -265,7 +265,7 @@ The singleton type for [`SIGNATURES`](@ref) abbreviations.
 
 $(:FIELDS)
 """
-immutable MethodSignatures <: Abbreviation end
+struct MethodSignatures <: Abbreviation end
 
 """
 An [`Abbreviation`](@ref) for including a simplified representation of all the method
@@ -312,14 +312,14 @@ end
 """
 The singleton type for [`TYPEDEF`](@ref) abbreviations.
 """
-immutable TypeDefinition <: Abbreviation end
+struct TypeDefinition <: Abbreviation end
 
 """
 An [`Abbreviation`](@ref) for including a summary of the signature of a type definition.
 Some of the following information may be included in the output:
 
   * whether the object is an `abstract` type or a `bitstype`;
-  * mutability (either `type` or `immutable` is printed);
+  * mutability (either `type` or `struct` is printed);
   * the unqualified name of the type;
   * any type parameters;
   * the supertype of the type if it is not `Any`.
@@ -332,7 +332,7 @@ The generated output for a type definition such as:
 \"""
 \$(TYPEDEF)
 \"""
-immutable MyType{S, T <: Integer} <: AbstractArray
+struct MyType{S, T <: Integer} <: AbstractArray
     # ...
 end
 ```
@@ -341,7 +341,7 @@ will look similar to the following:
 
 ````markdown
 ```julia
-immutable MyType{S, T<:Integer} <: AbstractArray
+struct MyType{S, T<:Integer} <: AbstractArray
 ```
 ````
 
@@ -362,7 +362,7 @@ function format(::TypeDefinition, buf, doc)
         elseif isabstracttype(object)
             print(buf, "abstract ")
         else
-            print(buf, object.mutable ? "type " : "immutable ")
+            print(buf, object.mutable ? "type " : "struct ")
         end
         print(buf, object.name.name)
         if !isempty(object.parameters)
@@ -383,7 +383,7 @@ end
 """
 The singleton type for [`DOCSTRING`](@ref) abbreviations.
 """
-immutable DocStringTemplate <: Abbreviation end
+struct DocStringTemplate <: Abbreviation end
 
 """
 An [`Abbreviation`](@ref) used in [`@template`](@ref) definitions to represent the location

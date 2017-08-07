@@ -96,35 +96,6 @@ using Compat
 export @template, FIELDS, EXPORTS, METHODLIST, IMPORTS, SIGNATURES, TYPEDEF, DOCSTRING
 
 
-# Note:
-#
-# This package is installable on Julia 0.4, but will not provide any features. All the
-# exported "abbreviations" are just defined as `""` so that interpolating them into
-# docstrings will not be visible.
-#
-# Only on Julia 0.5 and above is the real package defined. "Abbreviations" will expand to
-# their correct definitions and all utility functions will be defined as well.
-#
-# This is done so that the package can be used with other packages that still support Julia
-# 0.4 without requiring this package as a "conditional" dependancy. The effects of this
-# package will be invisible to users on 0.4.
-#
-# Once `DocStringExtensions` drops support for Julia 0.4 this condition can be removed.
-#
-if VERSION < v"0.5.0-dev"
-
-include("mock.jl")
-
-else # VERSION < v"0.5.0-dev"
-
-# Compat.
-
-if VERSION < v"0.6.0-dev.1254"
-    takebuf_str(b) = takebuf_string(b)
-else
-    takebuf_str(b) = String(take!(b))
-end
-
 # Includes.
 
 include("utilities.jl")
@@ -152,7 +123,5 @@ let λ = s -> isa(s, Symbol) ? getfield(DocStringExtensions, s) : s
 end
 
 __init__() = (hook!(template_hook); nothing)
-
-end # VERSION < v"0.5.0-dev"
 
 end # module

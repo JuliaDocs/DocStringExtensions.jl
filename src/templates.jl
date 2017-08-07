@@ -1,7 +1,5 @@
-
-const (expander, setter!) = isdefined(Base, :DocBootStrap) ?
-    (Base.DocBootStrap._expand_, Base.DocBootStrap.setexpand!) : # Julia 0.4
-    (Core.atdoc, Core.atdoc!)                                    # Julia 0.5+
+const expander = Core.atdoc
+const setter! = Core.atdoc!
 
 """
 $(:SIGNATURES)
