@@ -118,9 +118,12 @@ interp_string(other) = other
 get_template(t::Dict, k::Symbol) = haskey(t, k) ? t[k] : get(t, :DEFAULT, Any[DOCSTRING])
 
 function expression_type(ex::Expr)
-    if Meta.isexpr(ex, :module)
+    # Expression heads changed in JuliaLang/julia/pull/23157 to match the new keyword syntax.
+    if VERSION < v"0.7.0-DEV.1263" && Meta.isexpr(ex, [:type, :bitstype])
+        :TYPES
+    elseif Meta.isexpr(ex, :module)
         :MODULES
-    elseif Meta.isexpr(ex, [:type, :abstract, :typealias, :bitstype])
+    elseif Meta.isexpr(ex, [:struct, :abstract, :typealias, :primitive])
         :TYPES
     elseif Meta.isexpr(ex, :macro)
         :MACROS

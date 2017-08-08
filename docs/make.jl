@@ -16,5 +16,6 @@ deploydocs(
     deps = nothing,
     make = nothing,
     repo = "github.com/JuliaDocs/DocStringExtensions.jl.git",
+    julia = "0.6",
 )
 

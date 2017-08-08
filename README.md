@@ -21,7 +21,7 @@ julia> Pkg.add("DocStringExtensions")
 
 ## Project Status
 
-The package is tested against Julia `0.5` and `0.6` on Linux, OS X, and Windows. The `0.7-dev` builds are currently failing.
+The package is tested against Julia `0.6` and `0.7-dev` on Linux, OS X, and Windows.
 
 ## Contributing and Questions
 
@@ -38,8 +38,8 @@ Contributions are very welcome, as are feature requests and suggestions. Please 
 [travis-img]: https://travis-ci.org/JuliaDocs/DocStringExtensions.jl.svg?branch=master
 [travis-url]: https://travis-ci.org/JuliaDocs/DocStringExtensions.jl
 
-[appveyor-img]: https://ci.appveyor.com/api/projects/status/c9waagi69qu13s0p/branch/master?svg=true
-[appveyor-url]: https://ci.appveyor.com/project/MichaelHatherly/docstringextensions-jl/branch/master
+[appveyor-img]: https://ci.appveyor.com/api/projects/status/7bixd69chxps91wx/branch/master?svg=true
+[appveyor-url]: https://ci.appveyor.com/project/JuliaDocs/docstringextensions-jl/branch/master
 
 [codecov-img]: https://codecov.io/gh/JuliaDocs/DocStringExtensions.jl/branch/master/graph/badge.svg
 [codecov-url]: https://codecov.io/gh/JuliaDocs/DocStringExtensions.jl
