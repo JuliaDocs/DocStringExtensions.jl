@@ -21,7 +21,7 @@ groups = methodgroups(f, Union{Tuple{Any}, Tuple{Any, Integer}}, Main; exact = f
 """
 function methodgroups(func, typesig, modname; exact = true)
     # Group methods by file and line number.
-    local methods = Set{Method}(getmethods(func, typesig))
+    local methods = getmethods(func, typesig)
     local groups = groupby(Tuple{Symbol, Int}, Vector{Method}, methods) do m
         (m.file, m.line), m
     end
@@ -32,7 +32,7 @@ function methodgroups(func, typesig, modname; exact = true)
     for (key, group) in groups
         filter!(group) do m
             local ismod = m.module == modname
-            exact ? (ismod && Base.tuple_type_tail(m.sig) in typesigs) : ismod
+            exact ? (ismod && Base.rewrap_unionall(Base.tuple_type_tail(m.sig), m.sig) in typesigs) : ismod
         end
         isempty(group) || push!(results, group)
     end
@@ -80,8 +80,10 @@ function getmethods!(results, f, sig)
         append!(results, methods(f))
     elseif isa(sig, Union)
         for each in uniontypes(sig)
-            append!(results, getmethods(f, each))
+            getmethods!(results, f, each)
         end
+    elseif isa(sig, UnionAll)
+        getmethods!(results, f, Base.unwrap_unionall(sig))
     else
         append!(results, methods(f, sig))
     end
@@ -95,7 +97,7 @@ Collect and return all methods of function `f` matching signature `sig`.
 This is similar to `methods(f, sig)`, but handles type signatures found in `DocStr` objects
 more consistently that `methods`.
 """
-getmethods(f, sig) = getmethods!(Method[], f, sig)
+getmethods(f, sig) = unique(getmethods!(Method[], f, sig))
 
 
 """
@@ -118,7 +120,17 @@ $(:SIGNATURES)
 
 Returns a `Vector` of the `Tuple` types contained in `sig`.
 """
-alltypesigs(sig) = sig == Union{} ? Any[] : isa(sig, Union) ? uniontypes(sig) : Any[sig]
+function alltypesigs(sig)::Vector{Any}
+    if sig == Union{}
+        return Any[]
+    elseif isa(sig, Union)
+        uniontypes(sig)
+    elseif isa(sig, UnionAll)
+        Base.rewrap_unionall.(uniontypes(Base.unwrap_unionall(sig)), sig)
+    else
+        Any[sig]
+    end
+end
 
 """
 $(:SIGNATURES)
