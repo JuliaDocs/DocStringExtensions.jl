@@ -4,7 +4,7 @@
 #
 
 """
-Abbreviation objects are used to automatically generate context-dependant markdown content
+Abbreviation objects are used to automatically generate context-dependent markdown content
 within documentation strings. Objects of this type interpolated into docstrings will be
 expanded automatically before parsing the text to markdown.
 
@@ -71,7 +71,7 @@ function format(::TypeFields, buf, doc)
     local binding = doc.data[:binding]
     local object = Docs.resolve(binding)
     # On 0.7 fieldnames() on an abstract type throws an error. We then explicitly return
-    # and empty vector to be consistent with the behaviour on v0.6 and below.
+    # an empty vector to be consistent with the behaviour on v0.6.
     # Compat necessary since Base.isabstract was introduced in v0.6.
     local fields = Compat.TypeUtils.isabstract(object) ? Symbol[] : fieldnames(object)
     if !isempty(fields)
