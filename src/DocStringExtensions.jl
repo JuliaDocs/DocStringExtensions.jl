@@ -72,17 +72,6 @@ $(EXPORTS)
 # Imports
 $(IMPORTS)
 
-!!! note
-
-    This package is installable on Julia 0.4, but does not provide any features.
-    Abbreviations can still be interpolated into docstrings but will expand to an empty
-    string rather than the expected auto-generated content that it would on Julia 0.5 and
-    above.
-
-    This allows the package to be added as a dependancy for packages that still support
-    Julia 0.4 to allow them to begin using abbreviations without needing to conditionally
-    import this pacakage.
-
 """
 module DocStringExtensions
 
