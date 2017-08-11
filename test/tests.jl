@@ -187,6 +187,7 @@ end
             @test contains(fmt(:(TemplateTests.K)), "(DEFAULT)")
             @test contains(fmt(:(TemplateTests.T)), "(TYPES)")
             @test contains(fmt(:(TemplateTests.f)), "(METHODS, MACROS)")
+            @test contains(fmt(:(TemplateTests.g)), "(METHODS, MACROS)")
             @test contains(fmt(:(TemplateTests.@m)), "(METHODS, MACROS)")
 
             @test contains(fmt(:(TemplateTests.InnerModule.K)), "(DEFAULT)")

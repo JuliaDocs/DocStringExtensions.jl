@@ -127,7 +127,7 @@ function expression_type(ex::Expr)
         :TYPES
     elseif Meta.isexpr(ex, :macro)
         :MACROS
-    elseif Meta.isexpr(ex, [:function, :(=)]) && Meta.isexpr(ex.args[1], :call)
+    elseif Meta.isexpr(ex, [:function, :(=)]) && Meta.isexpr(ex.args[1], :call) || (Meta.isexpr(ex.args[1], :where) && Meta.isexpr(ex.args[1].args[1], :call))
         :METHODS
     elseif Meta.isexpr(ex, :function)
         :FUNCTIONS
