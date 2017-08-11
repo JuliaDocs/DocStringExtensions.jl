@@ -122,7 +122,7 @@ Returns a `Vector` of the `Tuple` types contained in `sig`.
 """
 function alltypesigs(sig)::Vector{Any}
     if sig == Union{}
-        return Any[]
+        Any[]
     elseif isa(sig, Union)
         uniontypes(sig)
     elseif isa(sig, UnionAll)
