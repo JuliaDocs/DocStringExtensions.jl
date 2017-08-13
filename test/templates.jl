@@ -38,6 +38,9 @@ mutable struct T end
 "method `f`"
 f(x) = x
 
+"method `g`"
+g(::Type{T}) where {T} = T # Issue 32
+
 "macro `@m`"
 macro m(x) end
 

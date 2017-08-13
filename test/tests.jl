@@ -17,6 +17,7 @@ const A{T} = Union{Vector{T}, Matrix{T}}
 
 h_1(x::A) = x
 h_2(x::A{Int}) = x
+h_3(x::A{T}) where {T} = x
 
 mutable struct T
     a
@@ -186,6 +187,7 @@ end
             @test contains(fmt(:(TemplateTests.K)), "(DEFAULT)")
             @test contains(fmt(:(TemplateTests.T)), "(TYPES)")
             @test contains(fmt(:(TemplateTests.f)), "(METHODS, MACROS)")
+            @test contains(fmt(:(TemplateTests.g)), "(METHODS, MACROS)")
             @test contains(fmt(:(TemplateTests.@m)), "(METHODS, MACROS)")
 
             @test contains(fmt(:(TemplateTests.InnerModule.K)), "(DEFAULT)")
@@ -297,6 +299,9 @@ end
             @test length(DSE.getmethods(M.f, Union{})) == 1
             @test length(DSE.getmethods(M.f, Tuple{})) == 0
             @test length(DSE.getmethods(M.f, Union{Tuple{}, Tuple{Any}})) == 1
+            @test length(DSE.getmethods(M.h_3, Tuple{M.A{Int}})) == 1
+            @test length(DSE.getmethods(M.h_3, Tuple{Vector{Int}})) == 1
+            @test length(DSE.getmethods(M.h_3, Tuple{Array{Int, 3}})) == 0
         end
         @testset "methodgroups" begin
             @test length(DSE.methodgroups(M.f, Tuple{Any}, M)) == 1
@@ -305,11 +310,13 @@ end
             @test length(DSE.methodgroups(M.h_1, Tuple{M.A}, M)[1]) == 1
             @test length(DSE.methodgroups(M.h_2, Tuple{M.A{Int}}, M)) == 1
             @test length(DSE.methodgroups(M.h_2, Tuple{M.A{Int}}, M)[1]) == 1
+            @test length(DSE.methodgroups(M.h_3, Tuple{M.A}, M)[1]) == 1
         end
         @testset "alltypesigs" begin
             @test DSE.alltypesigs(Union{}) == Any[]
             @test DSE.alltypesigs(Union{Tuple{}}) == Any[Tuple{}]
             @test DSE.alltypesigs(Tuple{}) == Any[Tuple{}]
+            @test DSE.alltypesigs(Type{T} where {T}) == Any[Type{T} where T]
         end
         @testset "groupby" begin
             let groups = DSE.groupby(Int, Vector{Int}, collect(1:10)) do each
