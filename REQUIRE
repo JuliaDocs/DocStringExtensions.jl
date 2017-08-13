@@ -1,2 +1,2 @@
 julia 0.6
-Compat 0.27 # for Sys.iswindows
+Compat 0.30 # @nospecialize
