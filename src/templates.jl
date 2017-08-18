@@ -64,19 +64,25 @@ template for modules found in module `ModName`.
     `MODULES`, and `CONSTANTS`.
 
 """
-macro template(ex) template(ex) end
+macro template(ex)
+    # JuliaLang/julia#22064 introduced the __module__ variable and deprecated current_module()
+    @static if VERSION >= v"0.7.0-DEV.484"
+        template(__source__, __module__, ex)
+    else
+        template(LineNumberNode(0), current_module(), ex)
+    end
+end
 
 const TEMP_SYM = gensym("templates")
 
-function template(ex::Expr)
+function template(src::LineNumberNode, mod::Module, ex::Expr)
     Meta.isexpr(ex, :(=), 2) || error("invalid `@template` syntax.")
-    template(ex.args[1], ex.args[2])
+    template(src, mod, ex.args[1], ex.args[2])
 end
 
-function template(tuple::Expr, docstr::Union{Symbol, Expr})
+function template(source::LineNumberNode, mod::Module, tuple::Expr, docstr::Union{Symbol, Expr})
     Meta.isexpr(tuple, :tuple) || error("invalid `@template` syntax on LHS.")
-    local curmod = current_module()
-    isdefined(curmod, TEMP_SYM) || eval(curmod, :(const $(TEMP_SYM) = $(Dict{Symbol, Vector}())))
+    isdefined(mod, TEMP_SYM) || eval(mod, :(const $(TEMP_SYM) = $(Dict{Symbol, Vector}())))
     local block = Expr(:block)
     for category in tuple.args
         local key = Meta.quot(category)
@@ -87,30 +93,35 @@ function template(tuple::Expr, docstr::Union{Symbol, Expr})
     push!(block.args, nothing)
     return esc(block)
 end
-template(sym::Symbol, docstr::Union{Symbol, Expr}) = template(Expr(:tuple, sym), docstr)
 
+function template(src::LineNumberNode, mod::Module, sym::Symbol, docstr::Union{Symbol, Expr})
+    template(src, mod, Expr(:tuple, sym), docstr)
+end
 
-function template_hook(docstr, expr::Expr)
-    local curmod = current_module()
+# The signature for the atdocs() calls changed in v0.7
+# On v0.6 and below it seems it was assumed to be (docstr::String, expr::Expr), but on v0.7
+# it is (source::LineNumberNode, mod::Module, docstr::String, expr::Expr)
+function template_hook(source::LineNumberNode, mod::Module, docstr, expr::Expr)
     local docex = interp_string(docstr)
-    if isdefined(curmod, TEMP_SYM) && Meta.isexpr(docex, :string)
-        local templates = getfield(curmod, TEMP_SYM)
+    if isdefined(mod, TEMP_SYM) && Meta.isexpr(docex, :string)
+        local templates = getfield(mod, TEMP_SYM)
         local template = get_template(templates, expression_type(expr))
         local out = Expr(:string)
         for t in template
             t == DOCSTRING ? append!(out.args, docex.args) : push!(out.args, t)
         end
-        return (out, expr)
+        return (source, mod, out, expr)
     else
-        return (docstr, expr)
+        return (source, mod, docstr, expr)
     end
 end
-template_hook(args...) = args
 
-# The signature for the atdocs() calls changed in v0.7
-# On v0.6 and below it seems it was assumed to be (docstr::String, expr::Expr), but on v0.7
-# it is (source::LineNumberNode, mod::Module, docstr::String, expr::Expr)
-template_hook(source::LineNumberNode, mod::Module, args...) = (source, mod, template_hook(args...)...)
+function template_hook(docstr, expr::Expr)
+    source, mod, docstr, expr::Expr = template_hook(LineNumberNode(0), current_module(), docstr, expr)
+    docstr, expr
+end
+
+template_hook(args...) = args
 
 interp_string(str::AbstractString) = Expr(:string, str)
 interp_string(other) = other
