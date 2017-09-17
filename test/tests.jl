@@ -19,6 +19,14 @@ h_1(x::A) = x
 h_2(x::A{Int}) = x
 h_3(x::A{T}) where {T} = x
 
+i_1(x; y = x) = x * y
+i_2(x::Int; y = x) = x * y
+i_3(x::T; y = x) where {T} = x * y
+i_4(x; y::T = zero(T), z::U = zero(U)) where {T, U} = x + y + z
+
+j_1(x, y) = x * y # two arguments, no keyword arguments
+j_1(x; y = x) = x * y # one argument, one keyword argument
+
 mutable struct T
     a
     b
@@ -41,7 +49,48 @@ primitive type BitType32 <: Real 32 end
 
 end
 
-@testset "" begin
+@testset "DocStringExtensions" begin
+    @testset "Base assumptions" begin
+        # The package heavily relies on type and docsystem-related methods and types from
+        # Base, which are generally undocumented and their behaviour might change at any
+        # time. This set of tests is tests and documents the assumptions the package makes
+        # about them.
+        #
+        # The testset is not comprehensive -- i.e. DocStringExtensions makes use of
+        # undocumented features that are not tested here. Should you come across anything
+        # like that, please add a test here.
+        #
+
+        # Getting keyword arguments of a method.
+        #
+        # Used in src/utilities.jl for the keywords() function.
+        #
+        # The methodology is based on a snippet in Base at base/replutil.jl:572-576
+        # (commit 3b45cdc9aab0). It uses the undocumented Base.kwarg_decl() function.
+        @test isdefined(Base, :kwarg_decl)
+        # Its signature is kwarg_decl(m::Method, kwtype::DataType). The second argument
+        # should be the type of the kwsorter from the corresponding MethodTable.
+        @test isa(methods(M.j_1), Base.MethodList)
+        @test isdefined(methods(M.j_1), :mt)
+        local mt = methods(M.j_1).mt
+        @test isa(mt, Base.MethodTable)
+        @test isdefined(mt, :kwsorter)
+        # .kwsorter is not always defined -- namely, it seems when none of the methods
+        # have keyword arguments:
+        @test isdefined(methods(M.f).mt, :kwsorter) === false
+        # M.j_1 has two methods. Fetch the single argument one..
+        local m = which(M.j_1, (Any,))
+        @test isa(m, Method)
+        # .. which should have a single keyword argument, :y
+        # Base.kwarg_decl returns a Vector{Any} of the keyword arguments.
+        local kwargs = Base.kwarg_decl(m, typeof(mt.kwsorter))
+        @test isa(kwargs, Vector{Any})
+        @test kwargs == [:y]
+        # Base.kwarg_decl will return a Tuple{} for some reason when called on a method
+        # that does not have any arguments
+        m = which(M.j_1, (Any,Any)) # fetch the no-keyword method
+        @test Base.kwarg_decl(m, typeof(methods(M.j_1).mt.kwsorter)) == Tuple{}()
+    end
     @testset "format" begin
         # Setup.
         doc = Docs.DocStr(Core.svec(), Nullable(), Dict())
@@ -224,6 +273,19 @@ end
             let f = ((; a...) -> ()),
                 m = first(methods(f))
                 @test DSE.keywords(f, m) == [Symbol("a...")]
+            end
+            # Tests for #42
+            let f = M.i_1, m = first(methods(f))
+                @test DSE.keywords(f, m) == [:y]
+            end
+            let f = M.i_2, m = first(methods(f))
+                @test DSE.keywords(f, m) == [:y]
+            end
+            let f = M.i_3, m = first(methods(f))
+                @test DSE.keywords(f, m) == [:y]
+            end
+            let f = M.i_4, m = first(methods(f))
+                @test DSE.keywords(f, m) == [:y, :z]
             end
         end
         @testset "arguments" begin
