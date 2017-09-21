@@ -239,22 +239,20 @@ kws = keywords(f, first(methods(f)))
 """
 function keywords(func, m::Method)
     local table = methods(func).mt
+    # table is a MethodTable object. For some reason, the :kwsorter field is not always
+    # defined. An undefined kwsorter seems to imply that there are no methods in the
+    # MethodTable with keyword arguments.
     if isdefined(table, :kwsorter)
-        local kwsorter = table.kwsorter
-        local signature = Base.tuple_type_cons(Vector{Any}, m.sig)
-        if method_exists(kwsorter, signature)
-            local method = which(kwsorter, signature)
-            local template = get_method_source(method)
-            # `.slotnames` is a `Vector{Any}`. Convert it to the right type.
-            local args = map(Symbol, template.slotnames[(nargs(method) + 1):end])
-            # Only return the usable symbols, not ones that aren't identifiers.
-            filter!(arg -> !contains(string(arg), "#"), args)
+        # Fetching method keywords stolen from base/replutil.jl:572-576 (commit 3b45cdc9aab0):
+        local kwargs = Base.kwarg_decl(m, typeof(table.kwsorter))
+        if isa(kwargs, Vector) && length(kwargs) > 0
+            filter!(arg -> !contains(string(arg), "#"), kwargs)
             # Keywords *may* not be sorted correctly. We move the vararg one to the end.
-            local index = findfirst(arg -> endswith(string(arg), "..."), args)
+            local index = findfirst(arg -> endswith(string(arg), "..."), kwargs)
             if index > 0
-                args[index], args[end] = args[end], args[index]
+                kwargs[index], kwargs[end] = kwargs[end], kwargs[index]
             end
-            return args
+            return kwargs
         end
     end
     return Symbol[]
