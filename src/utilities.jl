@@ -105,7 +105,7 @@ $(:SIGNATURES)
 
 Is the type `t` a `bitstype`?
 """
-isbitstype(@nospecialize(t)) = isleaftype(t) && sizeof(t) > 0 && isbits(t)
+isbitstype(@nospecialize(t)) = isconcrete(t) && sizeof(t) > 0 && isbits(t)
 
 """
 $(:SIGNATURES)
