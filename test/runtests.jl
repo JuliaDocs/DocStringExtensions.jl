@@ -1,4 +1,4 @@
 using DocStringExtensions
-using Base.Test
+using Compat.Test
 
 include("tests.jl")

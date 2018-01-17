@@ -105,7 +105,7 @@ $(:SIGNATURES)
 
 Is the type `t` a `bitstype`?
 """
-isbitstype(@nospecialize(t)) = isleaftype(t) && sizeof(t) > 0 && isbits(t)
+isbitstype(@nospecialize(t)) = isconcrete(t) && sizeof(t) > 0 && isbits(t)
 
 """
 $(:SIGNATURES)
@@ -249,7 +249,7 @@ function keywords(func, m::Method)
             filter!(arg -> !contains(string(arg), "#"), kwargs)
             # Keywords *may* not be sorted correctly. We move the vararg one to the end.
             local index = findfirst(arg -> endswith(string(arg), "..."), kwargs)
-            if index > 0
+            if index != nothing && index > 0 # TODO: use Compat.findfirst later on
                 kwargs[index], kwargs[end] = kwargs[end], kwargs[index]
             end
             return kwargs
