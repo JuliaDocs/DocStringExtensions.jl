@@ -93,7 +93,7 @@ end
     end
     @testset "format" begin
         # Setup.
-        doc = Docs.DocStr(Core.svec(), Nullable(), Dict())
+        doc = Docs.DocStr(Core.svec(), nothing, Dict())
         buf = IOBuffer()
 
         # Errors.
@@ -378,7 +378,11 @@ end
             @test DSE.alltypesigs(Union{}) == Any[]
             @test DSE.alltypesigs(Union{Tuple{}}) == Any[Tuple{}]
             @test DSE.alltypesigs(Tuple{}) == Any[Tuple{}]
-            @test DSE.alltypesigs(Type{T} where {T}) == Any[Type{T} where T]
+
+            # TODO: Clean me up
+            T = Type{T} where {T}
+            @test DSE.alltypesigs(T) ==
+                Base.rewrap_unionall.(DSE.uniontypes(Base.unwrap_unionall(T)), T)
         end
         @testset "groupby" begin
             let groups = DSE.groupby(Int, Vector{Int}, collect(1:10)) do each
