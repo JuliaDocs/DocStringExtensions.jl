@@ -134,12 +134,12 @@ function format(::ModuleExports, buf, doc)
     if !isempty(exports)
         println(buf)
         # Sorting ignores the `@` in macro names and sorts them in with others.
-        for name in sort(exports, by = s -> lstrip(string(s), '@'))
+        for sym in sort(exports, by = s -> lstrip(string(s), '@'))
             # Skip the module itself, since that's always exported.
-            name === module_name(object) && continue
+            sym === module_name(object) && continue
             # We print linked names using Documenter.jl cross-reference syntax
             # for ease of integration with that package.
-            println(buf, "  - [`", name, "`](@ref)")
+            println(buf, "  - [`", sym, "`](@ref)")
         end
         println(buf)
     end
