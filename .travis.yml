@@ -4,6 +4,8 @@ os:
   - linux
   - osx
 
+sudo: false
+
 julia:
   - 0.6
   - nightly
