@@ -4,6 +4,8 @@ os:
   - linux
   - osx
 
+sudo: false
+
 julia:
   - 0.6
   - nightly
@@ -17,5 +19,12 @@ git:
 
 after_success:
   - julia -e 'include(Pkg.dir("DocStringExtensions", "test", "coverage.jl"))'
-  - julia -e 'Pkg.add("Documenter"); Pkg.checkout("Documenter")'
-  - julia -e 'include(Pkg.dir("DocStringExtensions", "docs", "make.jl"))'
+
+jobs:
+  include:
+    - stage: "Deploy docs"
+      julia: 0.6
+      os: linux
+      script: julia -e 'Pkg.add("Documenter"); Pkg.checkout("Documenter")'
+        && julia ${TRAVIS_BUILD_DIR}/docs/make.jl
+      after_success: skip
