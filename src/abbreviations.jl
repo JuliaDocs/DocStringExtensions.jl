@@ -73,7 +73,7 @@ function format(::TypeFields, buf, doc)
     # On 0.7 fieldnames() on an abstract type throws an error. We then explicitly return
     # an empty vector to be consistent with the behaviour on v0.6.
     # Compat necessary since Base.isabstract was introduced in v0.6.
-    local fields = Compat.TypeUtils.isabstract(object) ? Symbol[] : fieldnames(object)
+    local fields = isabstracttype(object) ? Symbol[] : fieldnames(object)
     if !isempty(fields)
         println(buf)
         for field in fields
@@ -136,7 +136,7 @@ function format(::ModuleExports, buf, doc)
         # Sorting ignores the `@` in macro names and sorts them in with others.
         for sym in sort(exports, by = s -> lstrip(string(s), '@'))
             # Skip the module itself, since that's always exported.
-            sym === module_name(object) && continue
+            sym === nameof(object) && continue
             # We print linked names using Documenter.jl cross-reference syntax
             # for ease of integration with that package.
             println(buf, "  - [`", sym, "`](@ref)")
