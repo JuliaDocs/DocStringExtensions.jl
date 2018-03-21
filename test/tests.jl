@@ -1,4 +1,6 @@
 
+using Compat
+
 const DSE = DocStringExtensions
 
 include("templates.jl")
@@ -73,7 +75,7 @@ end
         @test isa(methods(M.j_1), Base.MethodList)
         @test isdefined(methods(M.j_1), :mt)
         local mt = methods(M.j_1).mt
-        @test isa(mt, Base.MethodTable)
+        @test isa(mt, Core.MethodTable)
         @test isdefined(mt, :kwsorter)
         # .kwsorter is not always defined -- namely, it seems when none of the methods
         # have keyword arguments:
@@ -107,13 +109,13 @@ end
             )
             DSE.format(IMPORTS, buf, doc)
             str = String(take!(buf))
-            @test contains(str, "\n  - `Base`\n")
-            @test contains(str, "\n  - `Core`\n")
+            @test occursin("\n  - `Base`\n", str)
+            @test occursin("\n  - `Core`\n", str)
 
             # Module exports.
             DSE.format(EXPORTS, buf, doc)
             str = String(take!(buf))
-            @test contains(str, "\n  - [`f`](@ref)\n")
+            @test occursin("\n  - [`f`](@ref)\n", str)
         end
 
         @testset "type fields" begin
@@ -126,11 +128,11 @@ end
             )
             DSE.format(FIELDS, buf, doc)
             str = String(take!(buf))
-            @test contains(str, "  - `a`")
-            @test contains(str, "  - `b`")
-            @test contains(str, "  - `c`")
-            @test contains(str, "one")
-            @test contains(str, "two")
+            @test occursin("  - `a`", str)
+            @test occursin("  - `b`", str)
+            @test occursin("  - `c`", str)
+            @test occursin("one", str)
+            @test occursin("two", str)
         end
 
         @testset "method lists" begin
@@ -141,9 +143,9 @@ end
             )
             DSE.format(METHODLIST, buf, doc)
             str = String(take!(buf))
-            @test contains(str, "```julia")
-            @test contains(str, "f(x)")
-            @test contains(str, "[`$(joinpath("DocStringExtensions", "test", "tests.jl"))")
+            @test occursin("```julia", str)
+            @test occursin("f(x)", str)
+            @test occursin("[`$(joinpath("DocStringExtensions", "test", "tests.jl"))", str)
         end
 
         @testset "method signatures" begin
@@ -154,9 +156,9 @@ end
             )
             DSE.format(SIGNATURES, buf, doc)
             str = String(take!(buf))
-            @test contains(str, "\n```julia\n")
-            @test contains(str, "\nf(x)\n")
-            @test contains(str, "\n```\n")
+            @test occursin("\n```julia\n", str)
+            @test occursin("\nf(x)\n", str)
+            @test occursin("\n```\n", str)
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :g),
@@ -165,10 +167,10 @@ end
             )
             DSE.format(SIGNATURES, buf, doc)
             str = String(take!(buf))
-            @test contains(str, "\n```julia\n")
-            @test contains(str, "\ng()\n")
-            @test contains(str, "\ng(x)\n")
-            @test contains(str, "\n```\n")
+            @test occursin("\n```julia\n", str)
+            @test occursin("\ng()\n", str)
+            @test occursin("\ng(x)\n", str)
+            @test occursin("\n```\n", str)
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :g),
@@ -177,12 +179,12 @@ end
             )
             DSE.format(SIGNATURES, buf, doc)
             str = String(take!(buf))
-            @test contains(str, "\n```julia\n")
-            @test contains(str, "\ng()\n")
-            @test contains(str, "\ng(x)\n")
-            @test contains(str, "\ng(x, y)\n")
-            @test contains(str, "\ng(x, y, z; kwargs...)\n")
-            @test contains(str, "\n```\n")
+            @test occursin("\n```julia\n", str)
+            @test occursin("\ng()\n", str)
+            @test occursin("\ng(x)\n", str)
+            @test occursin("\ng(x, y)\n", str)
+            @test occursin("\ng(x, y, z; kwargs...)\n", str)
+            @test occursin("\n```\n", str)
         end
 
         @testset "type definitions" begin
@@ -193,9 +195,9 @@ end
             )
             DSE.format(TYPEDEF, buf, doc)
             str = String(take!(buf))
-            @test contains(str, "\n```julia\n")
-            @test contains(str, "\nabstract AbstractType <: Integer\n")
-            @test contains(str, "\n```\n")
+            @test occursin("\n```julia\n", str)
+            @test occursin("\nabstract AbstractType <: Integer\n", str)
+            @test occursin("\n```\n", str)
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :CustomType),
@@ -204,9 +206,9 @@ end
             )
             DSE.format(TYPEDEF, buf, doc)
             str = String(take!(buf))
-            @test contains(str, "\n```julia\n")
-            @test contains(str, "\nstruct CustomType{S, T<:Integer} <: Integer\n")
-            @test contains(str, "\n```\n")
+            @test occursin("\n```julia\n", str)
+            @test occursin("\nstruct CustomType{S, T<:Integer} <: Integer\n", str)
+            @test occursin("\n```\n", str)
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :BitType8),
@@ -215,9 +217,9 @@ end
             )
             DSE.format(TYPEDEF, buf, doc)
             str = String(take!(buf))
-            @test contains(str, "\n```julia\n")
-            @test contains(str, "\nbitstype 8 BitType8\n")
-            @test contains(str, "\n```\n")
+            @test occursin("\n```julia\n", str)
+            @test occursin("\nbitstype 8 BitType8\n", str)
+            @test occursin("\n```\n", str)
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :BitType32),
@@ -226,26 +228,26 @@ end
             )
             DSE.format(TYPEDEF, buf, doc)
             str = String(take!(buf))
-            @test contains(str, "\n```julia\n")
-            @test contains(str, "\nbitstype 32 BitType32 <: Real")
-            @test contains(str, "\n```\n")
+            @test occursin("\n```julia\n", str)
+            @test occursin("\nbitstype 32 BitType32 <: Real", str)
+            @test occursin("\n```\n", str)
         end
     end
     @testset "templates" begin
         let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))
-            @test contains(fmt(:(TemplateTests.K)), "(DEFAULT)")
-            @test contains(fmt(:(TemplateTests.T)), "(TYPES)")
-            @test contains(fmt(:(TemplateTests.f)), "(METHODS, MACROS)")
-            @test contains(fmt(:(TemplateTests.g)), "(METHODS, MACROS)")
-            @test contains(fmt(:(TemplateTests.@m)), "(METHODS, MACROS)")
+            @test occursin("(DEFAULT)", fmt(:(TemplateTests.K)))
+            @test occursin("(TYPES)", fmt(:(TemplateTests.T)))
+            @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.f)))
+            @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.g)))
+            @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.@m)))
 
-            @test contains(fmt(:(TemplateTests.InnerModule.K)), "(DEFAULT)")
-            @test contains(fmt(:(TemplateTests.InnerModule.T)), "(DEFAULT)")
-            @test contains(fmt(:(TemplateTests.InnerModule.f)), "(METHODS, MACROS)")
-            @test contains(fmt(:(TemplateTests.InnerModule.@m)), "(MACROS)")
+            @test occursin("(DEFAULT)", fmt(:(TemplateTests.InnerModule.K)))
+            @test occursin("(DEFAULT)", fmt(:(TemplateTests.InnerModule.T)))
+            @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.InnerModule.f)))
+            @test occursin("(MACROS)", fmt(:(TemplateTests.InnerModule.@m)))
 
-            @test contains(fmt(:(TemplateTests.OtherModule.T)), "(TYPES)")
-            @test contains(fmt(:(TemplateTests.OtherModule.@m)), "(MACROS)")
+            @test occursin("(TYPES)", fmt(:(TemplateTests.OtherModule.T)))
+            @test occursin("(MACROS)", fmt(:(TemplateTests.OtherModule.@m)))
             @test fmt(:(TemplateTests.OtherModule.f)) == "method `f`\n"
         end
     end
