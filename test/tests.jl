@@ -75,7 +75,7 @@ end
         @test isa(methods(M.j_1), Base.MethodList)
         @test isdefined(methods(M.j_1), :mt)
         local mt = methods(M.j_1).mt
-        @test isa(mt, Base.MethodTable)
+        @test isa(mt, Core.MethodTable)
         @test isdefined(mt, :kwsorter)
         # .kwsorter is not always defined -- namely, it seems when none of the methods
         # have keyword arguments:
