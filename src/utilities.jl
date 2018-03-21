@@ -246,7 +246,7 @@ function keywords(func, m::Method)
         # Fetching method keywords stolen from base/replutil.jl:572-576 (commit 3b45cdc9aab0):
         local kwargs = Base.kwarg_decl(m, typeof(table.kwsorter))
         if isa(kwargs, Vector) && length(kwargs) > 0
-            filter!(arg -> !contains(string(arg), "#"), kwargs)
+            filter!(arg -> !occursin("#", string(arg)), kwargs)
             # Keywords *may* not be sorted correctly. We move the vararg one to the end.
             local index = findfirst(arg -> endswith(string(arg), "..."), kwargs)
             if index != nothing && index > 0 # TODO: use Compat.findfirst later on
@@ -300,6 +300,8 @@ Note that this is based on the implementation of `Base.url`, but handles URLs co
 on TravisCI as well.
 """
 url(m::Method) = url(m.module, string(m.file), m.line)
+
+import Compat.LibGit2
 
 function url(mod::Module, file::AbstractString, line::Integer)
     file = Compat.Sys.iswindows() ? replace(file, '\\', '/') : file
