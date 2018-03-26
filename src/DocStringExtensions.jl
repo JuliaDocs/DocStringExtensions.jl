@@ -78,7 +78,6 @@ module DocStringExtensions
 # Imports.
 
 using Compat
-@static if VERSION >= v"0.7.0-DEV.3656" using Pkg end
 
 
 # Exports.
