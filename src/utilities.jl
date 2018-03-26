@@ -169,7 +169,7 @@ $(:SIGNATURES)
 Remove the `Pkg.dir` part of a file `path` if it exists.
 """
 function cleanpath(path::AbstractString)
-    local pkgdir = joinpath(Pkg.dir(), "")
+    local pkgdir = joinpath(Compat.Pkg.dir(), "")
     return startswith(path, pkgdir) ? first(split(path, pkgdir; keep = false)) : path
 end
 

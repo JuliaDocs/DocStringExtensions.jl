@@ -234,7 +234,7 @@ end
         end
     end
     @testset "templates" begin
-        let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))
+        let fmt = expr -> Compat.Markdown.plain(eval(:(@doc $expr)))
             @test occursin("(DEFAULT)", fmt(:(TemplateTests.K)))
             @test occursin("(TYPES)", fmt(:(TemplateTests.T)))
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.f)))
