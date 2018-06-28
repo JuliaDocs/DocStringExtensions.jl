@@ -82,7 +82,7 @@ end
 
 function template(source::LineNumberNode, mod::Module, tuple::Expr, docstr::Union{Symbol, Expr})
     Meta.isexpr(tuple, :tuple) || error("invalid `@template` syntax on LHS.")
-    isdefined(mod, TEMP_SYM) || eval(mod, :(const $(TEMP_SYM) = $(Dict{Symbol, Vector}())))
+    isdefined(mod, TEMP_SYM) || Core.eval(mod, :(const $(TEMP_SYM) = $(Dict{Symbol, Vector}())))
     local block = Expr(:block)
     for category in tuple.args
         local key = Meta.quot(category)
