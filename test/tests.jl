@@ -145,7 +145,7 @@ end
             str = String(take!(buf))
             @test occursin("```julia", str)
             @test occursin("f(x)", str)
-            @test occursin("[`$(joinpath("DocStringExtensions", "test", "tests.jl"))", str)
+            @test occursin(joinpath("test", "tests.jl"), str)
         end
 
         @testset "method signatures" begin
