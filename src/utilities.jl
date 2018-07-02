@@ -169,8 +169,16 @@ $(:SIGNATURES)
 Remove the `Pkg.dir` part of a file `path` if it exists.
 """
 function cleanpath(path::AbstractString)
-    local pkgdir = joinpath(Compat.Pkg.dir(), "")
-    return startswith(path, pkgdir) ? first(split(path, pkgdir; keep = false)) : path
+    @static if VERSION >= v"0.7.0-DEV.5183"
+        for depot in DEPOT_PATH
+            pkgdir = joinpath(depot, "")
+            startswith(path, pkgdir) && return first(split(path, pkgdir, keepempty=false))
+        end
+        return path
+    else
+        pkgdir = joinpath(Compat.Pkg.dir(), "")
+        return startswith(path, pkgdir) ? first(split(path, pkgdir; keep = false)) : path
+    end
 end
 
 """
