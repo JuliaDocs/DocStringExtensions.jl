@@ -195,9 +195,7 @@ end
             )
             DSE.format(TYPEDEF, buf, doc)
             str = String(take!(buf))
-            @test occursin("\n```julia\n", str)
-            @test occursin("\nabstract AbstractType <: Integer\n", str)
-            @test occursin("\n```\n", str)
+            @test str == "\n```julia\nabstract type AbstractType <: Integer\n```\n\n"
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :CustomType),
@@ -206,9 +204,7 @@ end
             )
             DSE.format(TYPEDEF, buf, doc)
             str = String(take!(buf))
-            @test occursin("\n```julia\n", str)
-            @test occursin("\nstruct CustomType{S, T<:Integer} <: Integer\n", str)
-            @test occursin("\n```\n", str)
+            @test str == "\n```julia\nstruct CustomType{S, T<:Integer} <: Integer\n```\n\n"
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :BitType8),
@@ -217,9 +213,7 @@ end
             )
             DSE.format(TYPEDEF, buf, doc)
             str = String(take!(buf))
-            @test occursin("\n```julia\n", str)
-            @test occursin("\nbitstype 8 BitType8\n", str)
-            @test occursin("\n```\n", str)
+            @test str == "\n```julia\nprimitive type BitType8 8\n```\n\n"
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :BitType32),
@@ -228,9 +222,7 @@ end
             )
             DSE.format(TYPEDEF, buf, doc)
             str = String(take!(buf))
-            @test occursin("\n```julia\n", str)
-            @test occursin("\nbitstype 32 BitType32 <: Real", str)
-            @test occursin("\n```\n", str)
+            @test str == "\n```julia\nprimitive type BitType32 <: Real 32\n```\n\n"
         end
     end
     @testset "templates" begin
