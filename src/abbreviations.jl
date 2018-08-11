@@ -352,26 +352,56 @@ struct MyType{S, T<:Integer} <: AbstractArray
 """
 const TYPEDEF = TypeDefinition()
 
+function print_supertype(buf, object)
+    super = supertype(object)
+    super != Any && print(buf, " <: ", super)
+end
+
+function print_params(buf, object)
+    if !isempty(object.parameters)
+        print(buf, "{")
+        join(buf, object.parameters, ", ")
+        print(buf, "}")
+    end
+end
+
+function print_primitive_type(buf, object)
+    print(buf, "primitive type ", object.name.name)
+    print_supertype(buf, object)
+    print(buf, " ", sizeof(object) * 8)
+    println(buf)
+end
+
+function print_abstract_type(buf, object)
+    print(buf, "abstract type ", object.name.name)
+    print_supertype(buf, object)
+    println(buf)
+end
+
+function print_mutable_struct_or_struct(buf, object)
+    object.mutable && print(buf, "mutable ")
+    print(buf, "struct ", object.name.name)
+    print_params(buf, object)
+    print_supertype(buf, object)
+    println(buf)
+end
+
+@static if VERSION < v"0.7.0"
+    isprimitivetype(x) = isbitstype(x)
+end
+
 function format(::TypeDefinition, buf, doc)
     local binding = doc.data[:binding]
     local object = gettype(Docs.resolve(binding))
     if isa(object, DataType)
         println(buf, "\n```julia")
-        if isbitstype(object)
-            print(buf, "bitstype ", sizeof(object) * 8, " ")
+        if isprimitivetype(object)
+            print_primitive_type(buf, object)
         elseif isabstracttype(object)
-            print(buf, "abstract ")
+            print_abstract_type(buf, object)
         else
-            print(buf, object.mutable ? "type " : "struct ")
+            print_mutable_struct_or_struct(buf, object)
         end
-        print(buf, object.name.name)
-        if !isempty(object.parameters)
-            print(buf, "{")
-            join(buf, object.parameters, ", ")
-            print(buf, "}")
-        end
-        local super = supertype(object)
-        super == Any ? println(buf) : println(buf, " <: ", super)
         println(buf, "```\n")
     end
 end

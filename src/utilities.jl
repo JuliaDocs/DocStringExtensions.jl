@@ -312,7 +312,7 @@ url(m::Method) = url(m.module, string(m.file), m.line)
 import Compat.LibGit2
 
 function url(mod::Module, file::AbstractString, line::Integer)
-    file = Compat.Sys.iswindows() ? replace(file, '\\', '/') : file
+    file = Compat.Sys.iswindows() ? replace(file, '\\' => '/') : file
     if Base.inbase(mod) && !isabspath(file)
         local base = "https://github.com/JuliaLang/julia/tree"
         if isempty(Base.GIT_VERSION_INFO.commit)
