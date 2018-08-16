@@ -75,11 +75,6 @@ $(IMPORTS)
 """
 module DocStringExtensions
 
-# Imports.
-
-using Compat
-
-
 # Exports.
 
 export @template, FIELDS, EXPORTS, METHODLIST, IMPORTS, SIGNATURES, TYPEDEF, DOCSTRING
