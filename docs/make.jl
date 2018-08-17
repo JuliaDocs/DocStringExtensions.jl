@@ -1,6 +1,3 @@
-
-# Don't build docs on version 0.4 since they will fail.
-
 using Documenter, DocStringExtensions
 
 makedocs(
@@ -16,6 +13,6 @@ deploydocs(
     deps = nothing,
     make = nothing,
     repo = "github.com/JuliaDocs/DocStringExtensions.jl.git",
-    julia = "0.6",
+    julia = "1.0",
 )
 

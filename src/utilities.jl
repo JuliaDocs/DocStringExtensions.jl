@@ -169,16 +169,11 @@ $(:SIGNATURES)
 Remove the `Pkg.dir` part of a file `path` if it exists.
 """
 function cleanpath(path::AbstractString)
-    @static if VERSION >= v"0.7.0-DEV.5183"
-        for depot in DEPOT_PATH
-            pkgdir = joinpath(depot, "")
-            startswith(path, pkgdir) && return first(split(path, pkgdir, keepempty=false))
-        end
-        return path
-    else
-        pkgdir = joinpath(Compat.Pkg.dir(), "")
-        return startswith(path, pkgdir) ? first(split(path, pkgdir; keep = false)) : path
+    for depot in DEPOT_PATH
+        pkgdir = joinpath(depot, "")
+        startswith(path, pkgdir) && return first(split(path, pkgdir, keepempty=false))
     end
+    return path
 end
 
 """
@@ -257,7 +252,7 @@ function keywords(func, m::Method)
             filter!(arg -> !occursin("#", string(arg)), kwargs)
             # Keywords *may* not be sorted correctly. We move the vararg one to the end.
             local index = findfirst(arg -> endswith(string(arg), "..."), kwargs)
-            if index != nothing && index > 0 # TODO: use Compat.findfirst later on
+            if index != nothing
                 kwargs[index], kwargs[end] = kwargs[end], kwargs[index]
             end
             return kwargs
@@ -309,10 +304,10 @@ on TravisCI as well.
 """
 url(m::Method) = url(m.module, string(m.file), m.line)
 
-import Compat.LibGit2
+import LibGit2
 
 function url(mod::Module, file::AbstractString, line::Integer)
-    file = Compat.Sys.iswindows() ? replace(file, '\\' => '/') : file
+    file = Sys.iswindows() ? replace(file, '\\' => '/') : file
     if Base.inbase(mod) && !isabspath(file)
         local base = "https://github.com/JuliaLang/julia/tree"
         if isempty(Base.GIT_VERSION_INFO.commit)

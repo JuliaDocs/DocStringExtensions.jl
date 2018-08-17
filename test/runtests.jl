@@ -1,4 +1,5 @@
 using DocStringExtensions
-using Compat.Test
+using Test
+import Markdown
 
 include("tests.jl")
