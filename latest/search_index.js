@@ -13,7 +13,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "DocStringExtensions",
     "category": "module",
-    "text": "Extensions for the Julia docsystem.\n\nIntroduction\n\nThis package provides a collection of useful extensions for Julia\'s built-in docsystem. These are features that are still regarded as \"experimental\" and not yet mature enough to be considered for inclusion in Base, or that have sufficiently niche use cases that including them with the default Julia installation is not seen as valuable enough at this time.\n\nCurrently DocStringExtensions.jl exports a collection of so-called \"abbreviations\", which can be used to add useful automatically generated information to docstrings. These include information such as:\n\nsimplified method signatures;\ndocumentation for the individual fields of composite types;\nimport and export lists for modules;\nand source-linked lists of methods applicable to a particular docstring.\n\nUsers are most welcome to suggest additional abbreviation ideas, or implement and submit them themselves. Julia\'s strong support for program introspection makes this a reasonably straight forward process.\n\nDetails of the currently available abbreviations can be viewed in their individual docstrings listed below in the \"Exports\" section.\n\nExamples\n\nIn simple terms an abbreviation can be used by simply interpolating it into a suitable docstring. For example:\n\nusing DocStringExtensions\n\n\"\"\"\nA short summary of `func`...\n\n$(SIGNATURES)\n\nwhere `x` and `y` should both be positive.\n\n# Details\n\nSome details about `func`...\n\"\"\"\nfunc(x, y) = x + y\n\n$(SIGNATURES) will be replaced in the above docstring with\n\n# Signatures\n\n```julia\nfunc(x, y)\n```\n\nThe resulting generated content can be viewed via Julia\'s ? mode or, if Documenter.jl is set up, the generated external documentation.\n\nThe advantage of using SIGNATURES (and other abbreviations) is that docstrings are less likely to become out-of-sync with the surrounding code. Note though that references to the argument names x and y that have been manually embedded within the docstring are, of course, not updated automatically.\n\nExports\n\nDOCSTRING\nEXPORTS\nFIELDS\nIMPORTS\nMETHODLIST\nSIGNATURES\nTYPEDEF\n@template\n\nImports\n\nBase\nCore\n\n\n\n\n\n"
+    "text": "Extensions for the Julia docsystem.\n\nIntroduction\n\nThis package provides a collection of useful extensions for Julia\'s built-in docsystem. These are features that are still regarded as \"experimental\" and not yet mature enough to be considered for inclusion in Base, or that have sufficiently niche use cases that including them with the default Julia installation is not seen as valuable enough at this time.\n\nCurrently DocStringExtensions.jl exports a collection of so-called \"abbreviations\", which can be used to add useful automatically generated information to docstrings. These include information such as:\n\nsimplified method signatures;\ndocumentation for the individual fields of composite types;\nimport and export lists for modules;\nand source-linked lists of methods applicable to a particular docstring.\n\nUsers are most welcome to suggest additional abbreviation ideas, or implement and submit them themselves. Julia\'s strong support for program introspection makes this a reasonably straight forward process.\n\nDetails of the currently available abbreviations can be viewed in their individual docstrings listed below in the \"Exports\" section.\n\nExamples\n\nIn simple terms an abbreviation can be used by simply interpolating it into a suitable docstring. For example:\n\nusing DocStringExtensions\n\n\"\"\"\nA short summary of `func`...\n\n$(SIGNATURES)\n\nwhere `x` and `y` should both be positive.\n\n# Details\n\nSome details about `func`...\n\"\"\"\nfunc(x, y) = x + y\n\n$(SIGNATURES) will be replaced in the above docstring with\n\n# Signatures\n\n```julia\nfunc(x, y)\n```\n\nThe resulting generated content can be viewed via Julia\'s ? mode or, if Documenter.jl is set up, the generated external documentation.\n\nThe advantage of using SIGNATURES (and other abbreviations) is that docstrings are less likely to become out-of-sync with the surrounding code. Note though that references to the argument names x and y that have been manually embedded within the docstring are, of course, not updated automatically.\n\nExports\n\nDOCSTRING\nEXPORTS\nFIELDS\nFUNCTIONNAME\nIMPORTS\nMETHODLIST\nSIGNATURES\nTYPEDEF\n@template\n\nImports\n\nBase\nCore\n\n\n\n\n\n"
 },
 
 {
@@ -54,6 +54,14 @@ var documenterSearchIndex = {"docs": [
     "title": "DocStringExtensions.FIELDS",
     "category": "constant",
     "text": "An Abbreviation to include the names of the fields of a type as well as any documentation that may be attached to the fields.\n\nExamples\n\nThe generated markdown text should look similar to to following example where a type has three fields (x, y, and z) and the last two have documentation attached.\n\n\n  - `x`\n\n  - `y`\n\n    Unlike the `x` field this field has been documented.\n\n  - `z`\n\n    Another documented field.\n\n\n\n\n\n"
+},
+
+{
+    "location": "index.html#DocStringExtensions.FUNCTIONNAME",
+    "page": "Home",
+    "title": "DocStringExtensions.FUNCTIONNAME",
+    "category": "constant",
+    "text": "An Abbreviation for including the function name matching the method of the docstring.\n\nUsage\n\nThis is mostly useful for not repeating the function name in docstrings where the user wants to retain full control of the argument list, or the latter does not exist (eg generic functions).\n\nNote that the generated docstring snippet is not quoted, use indentation or explicit quoting.\n\nExample\n\n\"\"\"\n    $(FUNCTIONNAME)(d, θ)\n\nCalculate the logdensity `d` at `θ`.\n\nUsers should define their own methods for `FUNCTIONNAME`.\n\"\"\"\nfunction logdensity end\n\n\n\n\n\n"
 },
 
 {
@@ -254,6 +262,14 @@ var documenterSearchIndex = {"docs": [
     "title": "DocStringExtensions.DocStringTemplate",
     "category": "type",
     "text": "The singleton type for DOCSTRING abbreviations.\n\n\n\n\n\n"
+},
+
+{
+    "location": "index.html#DocStringExtensions.FunctionName",
+    "page": "Home",
+    "title": "DocStringExtensions.FunctionName",
+    "category": "type",
+    "text": "The singleton type for FUNCTIONNAME abbreviations.\n\n\n\n\n\n"
 },
 
 {
