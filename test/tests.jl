@@ -182,6 +182,17 @@ end
             @test occursin("\n```\n", str)
         end
 
+        @testset "function names" begin
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :f),
+                :typesig => Tuple{Any},
+                :module => M,
+            )
+            DSE.format(FUNCTIONNAME, buf, doc)
+            str = String(take!(buf))
+            @test str == "f"
+        end
+
         @testset "type definitions" begin
             doc.data = Dict(
                 :binding => Docs.Binding(M, :AbstractType),
