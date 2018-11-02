@@ -230,6 +230,16 @@ end
             str = String(take!(buf))
             @test str == "\n```julia\nprimitive type BitType32 <: Real 32\n```\n\n"
         end
+
+        @testset "README/LICENSE" begin
+            doc.data = Dict(:module => DocStringExtensions)
+            DSE.format(README, buf, doc)
+            str = String(take!(buf))
+            @test occursin("*Extensions for Julia's docsystem.*", str)
+            DSE.format(LICENSE, buf, doc)
+            str = String(take!(buf))
+            @test occursin("MIT \"Expat\" License", str)
+        end
     end
     @testset "templates" begin
         let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))

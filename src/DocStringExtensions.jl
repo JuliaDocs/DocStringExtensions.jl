@@ -78,6 +78,7 @@ module DocStringExtensions
 # Exports.
 
 export @template, FIELDS, EXPORTS, METHODLIST, IMPORTS, SIGNATURES, TYPEDEF, DOCSTRING, FUNCTIONNAME
+export README, LICENSE
 
 # Includes.
 

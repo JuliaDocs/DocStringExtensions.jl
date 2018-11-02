@@ -445,6 +445,58 @@ function format(::TypeDefinition, buf, doc)
     end
 end
 
+"""
+The singleton type for [`README`](@ref) abbreviations.
+"""
+struct Readme <: Abbreviation end
+"""
+    README
+
+An [`Abbreviation`](@ref) for including the package README.md.
+
+!!! note
+    The README.md file is interpreted using Julias markdown parser, which
+    has some differences compared to GitHub flavored markdown, and,
+    for example, [][] link shortcuts is not supported.
+"""
+const README = Readme()
+"""
+The singleton type for [`LICENSE`](@ref) abbreviations.
+"""
+struct License <: Abbreviation end
+"""
+    LICENSE
+
+An [`Abbreviation`](@ref) for including the package LICENSE.md.
+
+!!! note
+    The LICENSE.md file is interpreted using Julias markdown parser, which
+    has some differences compared to GitHub flavored markdown, and,
+    for example, [][] link shortcuts is not supported.
+"""
+const LICENSE = License()
+
+function format(::T, buf, doc) where T <: Union{Readme,License}
+    m = get(doc.data, :module, nothing)
+    m === nothing && return
+    path = pathof(m)
+    path === nothing && return
+    try # wrap in try/catch since we shouldn't error in case some IO operation goes wrong
+        r = T === Readme ? r"(?i)readme(?-i)" : r"(?i)license(?-i)"
+        # assume README/LICENSE is located in the root of the repo
+        root = normpath(joinpath(path, "..", ".."))
+        for file in readdir(root)
+            if occursin(r, file)
+                str = read(joinpath(root, file), String)
+                write(buf, str)
+                return
+            end
+        end
+    catch
+    end
+end
+
+
 #
 # `DocStringTemplate`
 #
