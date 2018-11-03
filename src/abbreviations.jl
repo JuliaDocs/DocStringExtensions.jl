@@ -455,9 +455,10 @@ struct Readme <: Abbreviation end
 An [`Abbreviation`](@ref) for including the package README.md.
 
 !!! note
-    The README.md file is interpreted using Julias markdown parser, which
-    has some differences compared to GitHub flavored markdown, and,
-    for example, [][] link shortcuts is not supported.
+    The README.md file is interpreted as ["Julia flavored Markdown"]
+    (https://docs.julialang.org/en/v1/manual/documentation/#Markdown-syntax-1),
+    which has some differences compared to GitHub flavored markdown, and,
+    for example, [][] link shortcuts are not supported.
 """
 const README = Readme()
 """
@@ -470,9 +471,10 @@ struct License <: Abbreviation end
 An [`Abbreviation`](@ref) for including the package LICENSE.md.
 
 !!! note
-    The LICENSE.md file is interpreted using Julias markdown parser, which
-    has some differences compared to GitHub flavored markdown, and,
-    for example, [][] link shortcuts is not supported.
+    The LICENSE.md file is interpreted as ["Julia flavored Markdown"]
+    (https://docs.julialang.org/en/v1/manual/documentation/#Markdown-syntax-1),
+    which has some differences compared to GitHub flavored markdown, and,
+    for example, [][] link shortcuts are not supported.
 """
 const LICENSE = License()
 

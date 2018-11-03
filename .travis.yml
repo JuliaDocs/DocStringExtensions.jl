@@ -19,10 +19,11 @@ after_success:
 
 jobs:
   include:
-    - stage: "Deploy docs"
+    - stage: "Documentation"
       julia: 1.0
       os: linux
       script:
-        - julia -e 'using Pkg; Pkg.add([PackageSpec("Documenter"), PackageSpec(path=pwd())])'
-        - julia docs/make.jl
+        - julia --project=docs/ -e 'using Pkg; Pkg.add(PackageSpec(path=pwd()));
+                                    Pkg.instantiate()'
+        - julia --project=docs/ docs/make.jl
       after_success: skip
