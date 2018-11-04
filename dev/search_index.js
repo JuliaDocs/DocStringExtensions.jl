@@ -1,7 +1,7 @@
 var documenterSearchIndex = {"docs": [
 
 {
-    "location": "index.html#",
+    "location": "#",
     "page": "Home",
     "title": "Home",
     "category": "page",
@@ -9,15 +9,15 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions",
+    "location": "#DocStringExtensions",
     "page": "Home",
     "title": "DocStringExtensions",
     "category": "module",
-    "text": "Extensions for the Julia docsystem.\n\nIntroduction\n\nThis package provides a collection of useful extensions for Julia\'s built-in docsystem. These are features that are still regarded as \"experimental\" and not yet mature enough to be considered for inclusion in Base, or that have sufficiently niche use cases that including them with the default Julia installation is not seen as valuable enough at this time.\n\nCurrently DocStringExtensions.jl exports a collection of so-called \"abbreviations\", which can be used to add useful automatically generated information to docstrings. These include information such as:\n\nsimplified method signatures;\ndocumentation for the individual fields of composite types;\nimport and export lists for modules;\nand source-linked lists of methods applicable to a particular docstring.\n\nUsers are most welcome to suggest additional abbreviation ideas, or implement and submit them themselves. Julia\'s strong support for program introspection makes this a reasonably straight forward process.\n\nDetails of the currently available abbreviations can be viewed in their individual docstrings listed below in the \"Exports\" section.\n\nExamples\n\nIn simple terms an abbreviation can be used by simply interpolating it into a suitable docstring. For example:\n\nusing DocStringExtensions\n\n\"\"\"\nA short summary of `func`...\n\n$(SIGNATURES)\n\nwhere `x` and `y` should both be positive.\n\n# Details\n\nSome details about `func`...\n\"\"\"\nfunc(x, y) = x + y\n\n$(SIGNATURES) will be replaced in the above docstring with\n\n# Signatures\n\n```julia\nfunc(x, y)\n```\n\nThe resulting generated content can be viewed via Julia\'s ? mode or, if Documenter.jl is set up, the generated external documentation.\n\nThe advantage of using SIGNATURES (and other abbreviations) is that docstrings are less likely to become out-of-sync with the surrounding code. Note though that references to the argument names x and y that have been manually embedded within the docstring are, of course, not updated automatically.\n\nExports\n\nDOCSTRING\nEXPORTS\nFIELDS\nFUNCTIONNAME\nIMPORTS\nMETHODLIST\nSIGNATURES\nTYPEDEF\n@template\n\nImports\n\nBase\nCore\n\n\n\n\n\n"
+    "text": "Extensions for the Julia docsystem.\n\nIntroduction\n\nThis package provides a collection of useful extensions for Julia\'s built-in docsystem. These are features that are still regarded as \"experimental\" and not yet mature enough to be considered for inclusion in Base, or that have sufficiently niche use cases that including them with the default Julia installation is not seen as valuable enough at this time.\n\nCurrently DocStringExtensions.jl exports a collection of so-called \"abbreviations\", which can be used to add useful automatically generated information to docstrings. These include information such as:\n\nsimplified method signatures;\ndocumentation for the individual fields of composite types;\nimport and export lists for modules;\nand source-linked lists of methods applicable to a particular docstring.\n\nUsers are most welcome to suggest additional abbreviation ideas, or implement and submit them themselves. Julia\'s strong support for program introspection makes this a reasonably straight forward process.\n\nDetails of the currently available abbreviations can be viewed in their individual docstrings listed below in the \"Exports\" section.\n\nExamples\n\nIn simple terms an abbreviation can be used by simply interpolating it into a suitable docstring. For example:\n\nusing DocStringExtensions\n\n\"\"\"\nA short summary of `func`...\n\n$(SIGNATURES)\n\nwhere `x` and `y` should both be positive.\n\n# Details\n\nSome details about `func`...\n\"\"\"\nfunc(x, y) = x + y\n\n$(SIGNATURES) will be replaced in the above docstring with\n\n# Signatures\n\n```julia\nfunc(x, y)\n```\n\nThe resulting generated content can be viewed via Julia\'s ? mode or, if Documenter.jl is set up, the generated external documentation.\n\nThe advantage of using SIGNATURES (and other abbreviations) is that docstrings are less likely to become out-of-sync with the surrounding code. Note though that references to the argument names x and y that have been manually embedded within the docstring are, of course, not updated automatically.\n\nExports\n\nDOCSTRING\nEXPORTS\nFIELDS\nFUNCTIONNAME\nIMPORTS\nLICENSE\nMETHODLIST\nREADME\nSIGNATURES\nTYPEDEF\n@template\n\nImports\n\nBase\nCore\n\n\n\n\n\n"
 },
 
 {
-    "location": "index.html#DocStringExtensions-1",
+    "location": "#DocStringExtensions-1",
     "page": "Home",
     "title": "DocStringExtensions",
     "category": "section",
@@ -25,7 +25,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#Index-1",
+    "location": "#Index-1",
     "page": "Home",
     "title": "Index",
     "category": "section",
@@ -33,7 +33,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.DOCSTRING",
+    "location": "#DocStringExtensions.DOCSTRING",
     "page": "Home",
     "title": "DocStringExtensions.DOCSTRING",
     "category": "constant",
@@ -41,7 +41,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.EXPORTS",
+    "location": "#DocStringExtensions.EXPORTS",
     "page": "Home",
     "title": "DocStringExtensions.EXPORTS",
     "category": "constant",
@@ -49,7 +49,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.FIELDS",
+    "location": "#DocStringExtensions.FIELDS",
     "page": "Home",
     "title": "DocStringExtensions.FIELDS",
     "category": "constant",
@@ -57,7 +57,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.FUNCTIONNAME",
+    "location": "#DocStringExtensions.FUNCTIONNAME",
     "page": "Home",
     "title": "DocStringExtensions.FUNCTIONNAME",
     "category": "constant",
@@ -65,7 +65,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.IMPORTS",
+    "location": "#DocStringExtensions.IMPORTS",
     "page": "Home",
     "title": "DocStringExtensions.IMPORTS",
     "category": "constant",
@@ -73,7 +73,15 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.METHODLIST",
+    "location": "#DocStringExtensions.LICENSE",
+    "page": "Home",
+    "title": "DocStringExtensions.LICENSE",
+    "category": "constant",
+    "text": "LICENSE\n\nAn Abbreviation for including the package LICENSE.md.\n\nnote: Note\nThe LICENSE.md file is interpreted as \"Julia flavored Markdown\", which has some differences compared to GitHub flavored markdown, and, for example, [][] link shortcuts are not supported.\n\n\n\n\n\n"
+},
+
+{
+    "location": "#DocStringExtensions.METHODLIST",
     "page": "Home",
     "title": "DocStringExtensions.METHODLIST",
     "category": "constant",
@@ -81,7 +89,15 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.SIGNATURES",
+    "location": "#DocStringExtensions.README",
+    "page": "Home",
+    "title": "DocStringExtensions.README",
+    "category": "constant",
+    "text": "README\n\nAn Abbreviation for including the package README.md.\n\nnote: Note\nThe README.md file is interpreted as \"Julia flavored Markdown\", which has some differences compared to GitHub flavored markdown, and, for example, [][] link shortcuts are not supported.\n\n\n\n\n\n"
+},
+
+{
+    "location": "#DocStringExtensions.SIGNATURES",
     "page": "Home",
     "title": "DocStringExtensions.SIGNATURES",
     "category": "constant",
@@ -89,7 +105,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.TYPEDEF",
+    "location": "#DocStringExtensions.TYPEDEF",
     "page": "Home",
     "title": "DocStringExtensions.TYPEDEF",
     "category": "constant",
@@ -97,7 +113,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.@template-Tuple{Any}",
+    "location": "#DocStringExtensions.@template-Tuple{Any}",
     "page": "Home",
     "title": "DocStringExtensions.@template",
     "category": "macro",
@@ -105,7 +121,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.alltypesigs-Tuple{Any}",
+    "location": "#DocStringExtensions.alltypesigs-Tuple{Any}",
     "page": "Home",
     "title": "DocStringExtensions.alltypesigs",
     "category": "method",
@@ -113,7 +129,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.arguments-Tuple{Method}",
+    "location": "#DocStringExtensions.arguments-Tuple{Method}",
     "page": "Home",
     "title": "DocStringExtensions.arguments",
     "category": "method",
@@ -121,7 +137,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.cleanpath-Tuple{AbstractString}",
+    "location": "#DocStringExtensions.cleanpath-Tuple{AbstractString}",
     "page": "Home",
     "title": "DocStringExtensions.cleanpath",
     "category": "method",
@@ -129,7 +145,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.comparemethods-Tuple{Method,Method}",
+    "location": "#DocStringExtensions.comparemethods-Tuple{Method,Method}",
     "page": "Home",
     "title": "DocStringExtensions.comparemethods",
     "category": "method",
@@ -137,7 +153,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.format-Tuple{Any,Any,Any}",
+    "location": "#DocStringExtensions.format-Tuple{Any,Any,Any}",
     "page": "Home",
     "title": "DocStringExtensions.format",
     "category": "method",
@@ -145,7 +161,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.getmethods!-Tuple{Any,Any,Any}",
+    "location": "#DocStringExtensions.getmethods!-Tuple{Any,Any,Any}",
     "page": "Home",
     "title": "DocStringExtensions.getmethods!",
     "category": "method",
@@ -153,7 +169,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.getmethods-Tuple{Any,Any}",
+    "location": "#DocStringExtensions.getmethods-Tuple{Any,Any}",
     "page": "Home",
     "title": "DocStringExtensions.getmethods",
     "category": "method",
@@ -161,7 +177,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.groupby!-Tuple{Any,Any,Any}",
+    "location": "#DocStringExtensions.groupby!-Tuple{Any,Any,Any}",
     "page": "Home",
     "title": "DocStringExtensions.groupby!",
     "category": "method",
@@ -169,7 +185,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.groupby-NTuple{4,Any}",
+    "location": "#DocStringExtensions.groupby-NTuple{4,Any}",
     "page": "Home",
     "title": "DocStringExtensions.groupby",
     "category": "method",
@@ -177,7 +193,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.hook!-Tuple{Any}",
+    "location": "#DocStringExtensions.hook!-Tuple{Any}",
     "page": "Home",
     "title": "DocStringExtensions.hook!",
     "category": "method",
@@ -185,7 +201,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.hook!-Tuple{}",
+    "location": "#DocStringExtensions.hook!-Tuple{}",
     "page": "Home",
     "title": "DocStringExtensions.hook!",
     "category": "method",
@@ -193,7 +209,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.isabstracttype-Tuple{Any}",
+    "location": "#DocStringExtensions.isabstracttype-Tuple{Any}",
     "page": "Home",
     "title": "DocStringExtensions.isabstracttype",
     "category": "method",
@@ -201,7 +217,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.isbitstype-Tuple{Any}",
+    "location": "#DocStringExtensions.isbitstype-Tuple{Any}",
     "page": "Home",
     "title": "DocStringExtensions.isbitstype",
     "category": "method",
@@ -209,7 +225,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.keywords-Tuple{Any,Method}",
+    "location": "#DocStringExtensions.keywords-Tuple{Any,Method}",
     "page": "Home",
     "title": "DocStringExtensions.keywords",
     "category": "method",
@@ -217,7 +233,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.methodgroups-Tuple{Any,Any,Any}",
+    "location": "#DocStringExtensions.methodgroups-Tuple{Any,Any,Any}",
     "page": "Home",
     "title": "DocStringExtensions.methodgroups",
     "category": "method",
@@ -225,7 +241,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.parsedocs-Tuple{Module}",
+    "location": "#DocStringExtensions.parsedocs-Tuple{Module}",
     "page": "Home",
     "title": "DocStringExtensions.parsedocs",
     "category": "method",
@@ -233,7 +249,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.printmethod-Tuple{Base.GenericIOBuffer{Array{UInt8,1}},Base.Docs.Binding,Any,Method}",
+    "location": "#DocStringExtensions.printmethod-Tuple{Base.GenericIOBuffer{Array{UInt8,1}},Base.Docs.Binding,Any,Method}",
     "page": "Home",
     "title": "DocStringExtensions.printmethod",
     "category": "method",
@@ -241,7 +257,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.url-Tuple{Method}",
+    "location": "#DocStringExtensions.url-Tuple{Method}",
     "page": "Home",
     "title": "DocStringExtensions.url",
     "category": "method",
@@ -249,7 +265,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.Abbreviation",
+    "location": "#DocStringExtensions.Abbreviation",
     "page": "Home",
     "title": "DocStringExtensions.Abbreviation",
     "category": "type",
@@ -257,7 +273,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.DocStringTemplate",
+    "location": "#DocStringExtensions.DocStringTemplate",
     "page": "Home",
     "title": "DocStringExtensions.DocStringTemplate",
     "category": "type",
@@ -265,7 +281,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.FunctionName",
+    "location": "#DocStringExtensions.FunctionName",
     "page": "Home",
     "title": "DocStringExtensions.FunctionName",
     "category": "type",
@@ -273,7 +289,15 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.MethodList",
+    "location": "#DocStringExtensions.License",
+    "page": "Home",
+    "title": "DocStringExtensions.License",
+    "category": "type",
+    "text": "The singleton type for LICENSE abbreviations.\n\n\n\n\n\n"
+},
+
+{
+    "location": "#DocStringExtensions.MethodList",
     "page": "Home",
     "title": "DocStringExtensions.MethodList",
     "category": "type",
@@ -281,7 +305,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.MethodSignatures",
+    "location": "#DocStringExtensions.MethodSignatures",
     "page": "Home",
     "title": "DocStringExtensions.MethodSignatures",
     "category": "type",
@@ -289,7 +313,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.ModuleExports",
+    "location": "#DocStringExtensions.ModuleExports",
     "page": "Home",
     "title": "DocStringExtensions.ModuleExports",
     "category": "type",
@@ -297,7 +321,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.ModuleImports",
+    "location": "#DocStringExtensions.ModuleImports",
     "page": "Home",
     "title": "DocStringExtensions.ModuleImports",
     "category": "type",
@@ -305,7 +329,15 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.TypeDefinition",
+    "location": "#DocStringExtensions.Readme",
+    "page": "Home",
+    "title": "DocStringExtensions.Readme",
+    "category": "type",
+    "text": "The singleton type for README abbreviations.\n\n\n\n\n\n"
+},
+
+{
+    "location": "#DocStringExtensions.TypeDefinition",
     "page": "Home",
     "title": "DocStringExtensions.TypeDefinition",
     "category": "type",
@@ -313,7 +345,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#DocStringExtensions.TypeFields",
+    "location": "#DocStringExtensions.TypeFields",
     "page": "Home",
     "title": "DocStringExtensions.TypeFields",
     "category": "type",
@@ -321,7 +353,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "index.html#Reference-1",
+    "location": "#Reference-1",
     "page": "Home",
     "title": "Reference",
     "category": "section",
