@@ -4,8 +4,6 @@ os:
   - linux
   - osx
 
-sudo: false
-
 julia:
   - 0.7
   - 1.0
