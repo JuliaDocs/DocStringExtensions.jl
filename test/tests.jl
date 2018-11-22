@@ -1,49 +1,20 @@
 const DSE = DocStringExtensions
 
 include("templates.jl")
+include("TestModule/M.jl")
 
-module M
-
-export f
-
-f(x) = x
-
-g(x = 1, y = 2, z = 3; kwargs...) = x
-
-const A{T} = Union{Vector{T}, Matrix{T}}
-
-h_1(x::A) = x
-h_2(x::A{Int}) = x
-h_3(x::A{T}) where {T} = x
-
-i_1(x; y = x) = x * y
-i_2(x::Int; y = x) = x * y
-i_3(x::T; y = x) where {T} = x * y
-i_4(x; y::T = zero(T), z::U = zero(U)) where {T, U} = x + y + z
-
-j_1(x, y) = x * y # two arguments, no keyword arguments
-j_1(x; y = x) = x * y # one argument, one keyword argument
-
-mutable struct T
-    a
-    b
-    c
-end
-
-struct K
-    K(; a = 1) = new()
-end
-
-
-abstract type AbstractType <: Integer end
-
-struct CustomType{S, T <: Integer} <: Integer
-end
-
-primitive type BitType8 8 end
-
-primitive type BitType32 <: Real 32 end
-
+# initialize a test repo in test/TestModule which is needed for some tests
+function with_test_repo(f)
+    repo = LibGit2.init(joinpath(@__DIR__, "TestModule"))
+    LibGit2.add!(repo, "M.jl")
+    sig = LibGit2.Signature("zeptodoctor", "zeptodoctor@zeptodoctor.com", round(time()), 0)
+    LibGit2.commit(repo, "M.jl", committer = sig, author = sig)
+    LibGit2.GitRemote(repo, "origin", "https://github.com/JuliaDocs/NonExistent.jl.git")
+    try
+        f()
+    finally
+        rm(joinpath(@__DIR__, "TestModule", ".git"); force = true, recursive = true)
+    end
 end
 
 @testset "DocStringExtensions" begin
@@ -136,11 +107,13 @@ end
                 :typesig => Tuple{Any},
                 :module => M,
             )
-            DSE.format(METHODLIST, buf, doc)
+            with_test_repo() do
+                DSE.format(METHODLIST, buf, doc)
+            end
             str = String(take!(buf))
             @test occursin("```julia", str)
             @test occursin("f(x)", str)
-            @test occursin(joinpath("test", "tests.jl"), str)
+            @test occursin(joinpath("test", "TestModule", "M.jl"), str)
         end
 
         @testset "method signatures" begin
@@ -407,9 +380,10 @@ end
         end
         @testset "url" begin
             @test !isempty(DSE.url(first(methods(sin))))
-            @test !isempty(DSE.url(first(methods(DSE.parsedocs))))
-            @test !isempty(DSE.url(first(methods(M.f))))
-            @test !isempty(DSE.url(first(methods(M.K))))
+            with_test_repo() do
+                @test occursin("github.com/JuliaDocs/NonExistent", DSE.url(first(methods(M.f))))
+                @test occursin("github.com/JuliaDocs/NonExistent", DSE.url(first(methods(M.K))))
+            end
         end
         @testset "comparemethods" begin
             let f = first(methods(M.f)),
