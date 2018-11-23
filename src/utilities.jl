@@ -319,21 +319,26 @@ function url(mod::Module, file::AbstractString, line::Integer)
     else
         if isfile(file)
             local d = dirname(file)
-            return LibGit2.with(LibGit2.GitRepoExt(d)) do repo
-                LibGit2.with(LibGit2.GitConfig(repo)) do cfg
-                    local u = LibGit2.get(cfg, "remote.origin.url", "")
-                    local m = match(LibGit2.GITHUB_REGEX, u)
-                    u = m === nothing ? get(ENV, "TRAVIS_REPO_SLUG", "") : m.captures[1]
-                    local commit = string(LibGit2.head_oid(repo))
-                    local root = LibGit2.path(repo)
-                    if startswith(file, root) || startswith(realpath(file), root)
-                        local base = "https://github.com/$u/tree"
-                        local filename = file[(length(root) + 1):end]
-                        return "$base/$commit/$filename#L$line"
-                    else
-                        return ""
+            try # might not be in a git repo
+                LibGit2.with(LibGit2.GitRepoExt(d)) do repo
+                    LibGit2.with(LibGit2.GitConfig(repo)) do cfg
+                        local u = LibGit2.get(cfg, "remote.origin.url", "")
+                        local m = match(LibGit2.GITHUB_REGEX, u)
+                        u = m === nothing ? get(ENV, "TRAVIS_REPO_SLUG", "") : m.captures[1]
+                        local commit = string(LibGit2.head_oid(repo))
+                        local root = LibGit2.path(repo)
+                        if startswith(file, root) || startswith(realpath(file), root)
+                            local base = "https://github.com/$u/tree"
+                            local filename = file[(length(root) + 1):end]
+                            return "$base/$commit/$filename#L$line"
+                        else
+                            return ""
+                        end
                     end
                 end
+            catch err
+                isa(err, LibGit2.GitError) || rethrow()
+                return ""
             end
         else
             return ""
