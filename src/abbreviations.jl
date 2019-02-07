@@ -303,6 +303,69 @@ function format(::MethodSignatures, buf, doc)
     end
 end
 
+
+#
+# `TypedMethodSignatures`
+#
+
+"""
+The singleton type for [`TYPEDSIGNATURES`](@ref) abbreviations.
+
+$(:FIELDS)
+"""
+struct TypedMethodSignatures <: Abbreviation end
+
+"""
+An [`Abbreviation`](@ref) for including a simplified representation of all the method
+signatures with types that match the given docstring. See [`printmethod`](@ref) for details on
+the simplifications that are applied.
+
+# Examples
+
+The generated markdown text will look similar to the following example where a function `f`
+defines method taking two positional arguments, `x` and `y`, and two keywords, `a` and the `b`.
+
+````markdown
+```julia
+f(x::Int, y::Int; a, b...)
+```
+````
+"""
+const TYPEDSIGNATURES = TypedMethodSignatures()
+
+function format(::TypedMethodSignatures, buf, doc)
+    local binding = doc.data[:binding]
+    local typesig = doc.data[:typesig]
+    local modname = doc.data[:module]
+    local func = Docs.resolve(binding)
+    local groups = methodgroups(func, typesig, modname)
+    if !isempty(groups)
+        println(buf)
+        println(buf, "```julia")
+        for group in groups
+            if length(group) == 1
+                for method in group
+                    printmethod(buf, binding, func, method, typesig)
+                    println(buf)
+                end
+            else
+                # If function has default arguments, revert to default printmethod
+                for (i, method) in enumerate(group)
+                    if i == length(group)
+                        t = typesig
+                    else
+                        t = typesig.a
+                        typesig = typesig.b
+                    end
+                    printmethod(buf, binding, func, method, t)
+                    println(buf)
+                end
+            end
+        end
+        println(buf, "\n```\n")
+    end
+end
+
 #
 # `FunctionName`
 #

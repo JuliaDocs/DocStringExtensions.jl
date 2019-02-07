@@ -6,6 +6,8 @@ f(x) = x
 
 g(x = 1, y = 2, z = 3; kwargs...) = x
 
+h(x::Int, y::Int = 2, z::Int = 3; kwargs...) = x
+
 const A{T} = Union{Vector{T}, Matrix{T}}
 
 h_1(x::A) = x
