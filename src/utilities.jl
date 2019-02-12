@@ -259,7 +259,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     print(buffer, ")")
     rt = Base.return_types(func, typesig)[1]
     if rt !== Nothing
-        print(buffer, "::$rt")
+        print(buffer, " -> $rt")
     end
     return buffer
 end
