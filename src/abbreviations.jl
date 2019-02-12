@@ -349,7 +349,6 @@ function format(::TypedMethodSignatures, buf, doc)
                     println(buf)
                 end
             else
-                # If function has default arguments, revert to default printmethod
                 for (i, method) in enumerate(group)
                     if i == length(group)
                         t = typesig
