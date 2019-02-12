@@ -185,6 +185,21 @@ end
                 @test occursin("\nh(x::Int32, y::Int32, z::Int32; kwargs...) -> Int32\n", str)
             end
             @test occursin("\n```\n", str)
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :h),
+                :typesig => Tuple{Int},
+                :module => M,
+            )
+            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            if typeof(1) === Int64
+                @test occursin("\nh(x::Int64) -> Int64\n", str)
+            else
+                @test occursin("\nh(x::Int32) -> Int32\n", str)
+            end
+            @test occursin("\n```\n", str)
         end
 
         @testset "function names" begin
