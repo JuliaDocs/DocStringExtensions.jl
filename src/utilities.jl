@@ -246,7 +246,12 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     print(buffer, "(")
     local args = arguments(method)
     for (i, sym) in enumerate(args)
-        print(buffer, "$sym::$(typesig.types[i])")
+        if typesig isa UnionAll
+            t = typesig.body.a.types[1]
+        else
+            t = typesig.types[i]
+        end
+        print(buffer, "$sym::$t")
         if i != length(args)
             print(buffer, ", ")
         end
@@ -257,7 +262,12 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         join(buffer, kws, ", ")
     end
     print(buffer, ")")
-    rt = Base.return_types(func, typesig)[1]
+    if typesig isa UnionAll
+        t = typesig.body.a
+    else
+        t = typesig
+    end
+    rt = Base.return_types(func, t)[1]
     if rt !== Nothing
         print(buffer, " -> $rt")
     end
