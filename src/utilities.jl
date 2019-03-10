@@ -267,9 +267,9 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     else
         t = typesig
     end
-    rt = Base.return_types(func, t)[1]
-    if rt !== Nothing
-        print(buffer, " -> $rt")
+    rt = Base.return_types(func, t)
+    if length(rt) >= 1 && rt[1] !== Nothing && rt[1] !== Union{}
+        print(buffer, " -> $(rt[1])")
     end
     return buffer
 end
