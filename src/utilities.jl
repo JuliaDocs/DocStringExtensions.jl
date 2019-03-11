@@ -222,6 +222,58 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     return buffer
 end
 
+"""
+$(:TYPEDSIGNATURES)
+
+Print a simplified representation of a method signature to `buffer`. Some of these
+simplifications include:
+
+  * no `TypeVar`s;
+  * no types;
+  * no keyword default values;
+  * `?` printed where `#unused#` arguments are found.
+
+# Examples
+
+```julia
+f(x::Int; a = 1, b...) = x
+sig = printmethod(Docs.Binding(Main, :f), f, first(methods(f)))
+```
+"""
+function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method, typesig)
+    # TODO: print qualified?
+    print(buffer, binding.var)
+    print(buffer, "(")
+    local args = arguments(method)
+    for (i, sym) in enumerate(args)
+        if typesig isa UnionAll
+            t = typesig.body.a.types[1]
+        else
+            t = typesig.types[i]
+        end
+        print(buffer, "$sym::$t")
+        if i != length(args)
+            print(buffer, ", ")
+        end
+    end
+    local kws = keywords(func, method)
+    if !isempty(kws)
+        print(buffer, "; ")
+        join(buffer, kws, ", ")
+    end
+    print(buffer, ")")
+    if typesig isa UnionAll
+        t = typesig.body.a
+    else
+        t = typesig
+    end
+    rt = Base.return_types(func, t)
+    if length(rt) >= 1 && rt[1] !== Nothing && rt[1] !== Union{}
+        print(buffer, " -> $(rt[1])")
+    end
+    return buffer
+end
+
 printmethod(b, f, m) = String(take!(printmethod(IOBuffer(), b, f, m)))
 
 get_method_source(m::Method) = Base.uncompressed_ast(m)

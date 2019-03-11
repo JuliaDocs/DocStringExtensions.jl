@@ -155,6 +155,53 @@ end
             @test occursin("\n```\n", str)
         end
 
+        @testset "method signatures with types" begin
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :h_1),
+                :typesig => Tuple{M.A},
+                :module => M,
+            )
+            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            if Sys.iswindows()
+                @test occursin("h_1(x::Union{Array{T,2}, Array{T,1}} where T) -> Union{Array{T,2}, Array{T,1}} where T", str)
+            else
+                @test occursin("h_1(x::Union{Array{T,1}, Array{T,2}} where T) -> Union{Array{T,1}, Array{T,2}} where T", str)
+            end
+            @test occursin("\n```\n", str)
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :h),
+                :typesig => Tuple{Int, Int, Int},
+                :module => M,
+            )
+            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            if typeof(1) === Int64
+                @test occursin("\nh(x::Int64, y::Int64, z::Int64; kwargs...) -> Int64\n", str)
+            else
+                @test occursin("\nh(x::Int32, y::Int32, z::Int32; kwargs...) -> Int32\n", str)
+            end
+            @test occursin("\n```\n", str)
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :h),
+                :typesig => Tuple{Int},
+                :module => M,
+            )
+            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            if typeof(1) === Int64
+                @test occursin("\nh(x::Int64) -> Int64\n", str)
+            else
+                @test occursin("\nh(x::Int32) -> Int32\n", str)
+            end
+            @test occursin("\n```\n", str)
+        end
+
         @testset "function names" begin
             doc.data = Dict(
                 :binding => Docs.Binding(M, :f),
