@@ -13,7 +13,7 @@ var documenterSearchIndex = {"docs": [
     "page": "Home",
     "title": "DocStringExtensions",
     "category": "module",
-    "text": "Extensions for the Julia docsystem.\n\nIntroduction\n\nThis package provides a collection of useful extensions for Julia\'s built-in docsystem. These are features that are still regarded as \"experimental\" and not yet mature enough to be considered for inclusion in Base, or that have sufficiently niche use cases that including them with the default Julia installation is not seen as valuable enough at this time.\n\nCurrently DocStringExtensions.jl exports a collection of so-called \"abbreviations\", which can be used to add useful automatically generated information to docstrings. These include information such as:\n\nsimplified method signatures;\ndocumentation for the individual fields of composite types;\nimport and export lists for modules;\nand source-linked lists of methods applicable to a particular docstring.\n\nUsers are most welcome to suggest additional abbreviation ideas, or implement and submit them themselves. Julia\'s strong support for program introspection makes this a reasonably straight forward process.\n\nDetails of the currently available abbreviations can be viewed in their individual docstrings listed below in the \"Exports\" section.\n\nExamples\n\nIn simple terms an abbreviation can be used by simply interpolating it into a suitable docstring. For example:\n\nusing DocStringExtensions\n\n\"\"\"\nA short summary of `func`...\n\n$(SIGNATURES)\n\nwhere `x` and `y` should both be positive.\n\n# Details\n\nSome details about `func`...\n\"\"\"\nfunc(x, y) = x + y\n\n$(SIGNATURES) will be replaced in the above docstring with\n\n# Signatures\n\n```julia\nfunc(x, y)\n```\n\nThe resulting generated content can be viewed via Julia\'s ? mode or, if Documenter.jl is set up, the generated external documentation.\n\nThe advantage of using SIGNATURES (and other abbreviations) is that docstrings are less likely to become out-of-sync with the surrounding code. Note though that references to the argument names x and y that have been manually embedded within the docstring are, of course, not updated automatically.\n\nExports\n\nDOCSTRING\nEXPORTS\nFIELDS\nFUNCTIONNAME\nIMPORTS\nLICENSE\nMETHODLIST\nREADME\nSIGNATURES\nTYPEDEF\n@template\n\nImports\n\nBase\nCore\n\n\n\n\n\n"
+    "text": "Extensions for the Julia docsystem.\n\nIntroduction\n\nThis package provides a collection of useful extensions for Julia\'s built-in docsystem. These are features that are still regarded as \"experimental\" and not yet mature enough to be considered for inclusion in Base, or that have sufficiently niche use cases that including them with the default Julia installation is not seen as valuable enough at this time.\n\nCurrently DocStringExtensions.jl exports a collection of so-called \"abbreviations\", which can be used to add useful automatically generated information to docstrings. These include information such as:\n\nsimplified method signatures;\ndocumentation for the individual fields of composite types;\nimport and export lists for modules;\nand source-linked lists of methods applicable to a particular docstring.\n\nUsers are most welcome to suggest additional abbreviation ideas, or implement and submit them themselves. Julia\'s strong support for program introspection makes this a reasonably straight forward process.\n\nDetails of the currently available abbreviations can be viewed in their individual docstrings listed below in the \"Exports\" section.\n\nExamples\n\nIn simple terms an abbreviation can be used by simply interpolating it into a suitable docstring. For example:\n\nusing DocStringExtensions\n\n\"\"\"\nA short summary of `func`...\n\n$(SIGNATURES)\n\nwhere `x` and `y` should both be positive.\n\n# Details\n\nSome details about `func`...\n\"\"\"\nfunc(x, y) = x + y\n\n$(SIGNATURES) will be replaced in the above docstring with\n\n# Signatures\n\n```julia\nfunc(x, y)\n```\n\nThe resulting generated content can be viewed via Julia\'s ? mode or, if Documenter.jl is set up, the generated external documentation.\n\nThe advantage of using SIGNATURES (and other abbreviations) is that docstrings are less likely to become out-of-sync with the surrounding code. Note though that references to the argument names x and y that have been manually embedded within the docstring are, of course, not updated automatically.\n\nExports\n\nDOCSTRING\nEXPORTS\nFIELDS\nFUNCTIONNAME\nIMPORTS\nLICENSE\nMETHODLIST\nREADME\nSIGNATURES\nTYPEDEF\nTYPEDSIGNATURES\n@template\n\nImports\n\nBase\nCore\n\n\n\n\n\n"
 },
 
 {
@@ -110,6 +110,14 @@ var documenterSearchIndex = {"docs": [
     "title": "DocStringExtensions.TYPEDEF",
     "category": "constant",
     "text": "An Abbreviation for including a summary of the signature of a type definition. Some of the following information may be included in the output:\n\nwhether the object is an abstract type or a bitstype;\nmutability (either type or struct is printed);\nthe unqualified name of the type;\nany type parameters;\nthe supertype of the type if it is not Any.\n\nExamples\n\nThe generated output for a type definition such as:\n\n\"\"\"\n$(TYPEDEF)\n\"\"\"\nstruct MyType{S, T <: Integer} <: AbstractArray\n    # ...\nend\n\nwill look similar to the following:\n\n```julia\nstruct MyType{S, T<:Integer} <: AbstractArray\n```\n\nnote: Note\nNo information about the fields of the type is printed. Use the FIELDS abbreviation to include information about the fields of a type.\n\n\n\n\n\n"
+},
+
+{
+    "location": "#DocStringExtensions.TYPEDSIGNATURES",
+    "page": "Home",
+    "title": "DocStringExtensions.TYPEDSIGNATURES",
+    "category": "constant",
+    "text": "An Abbreviation for including a simplified representation of all the method signatures with types that match the given docstring. See printmethod for details on the simplifications that are applied.\n\nExamples\n\nThe generated markdown text will look similar to the following example where a function f defines method taking two positional arguments, x and y, and two keywords, a and the b.\n\n```julia\nf(x::Int, y::Int; a, b...)\n```\n\n\n\n\n\n"
 },
 
 {
@@ -249,6 +257,14 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
+    "location": "#DocStringExtensions.printmethod-Tuple{Base.GenericIOBuffer{Array{UInt8,1}},Base.Docs.Binding,Any,Method,Any}",
+    "page": "Home",
+    "title": "DocStringExtensions.printmethod",
+    "category": "method",
+    "text": "printmethod(buffer::Base.GenericIOBuffer{Array{UInt8,1}}, binding::Base.Docs.Binding, func::Any, method::Method, typesig::Any) -> Base.GenericIOBuffer{Array{UInt8,1}}\n\n\nPrint a simplified representation of a method signature to buffer. Some of these simplifications include:\n\nno TypeVars;\nno types;\nno keyword default values;\n? printed where #unused# arguments are found.\n\nExamples\n\nf(x::Int; a = 1, b...) = x\nsig = printmethod(Docs.Binding(Main, :f), f, first(methods(f)))\n\n\n\n\n\n"
+},
+
+{
     "location": "#DocStringExtensions.printmethod-Tuple{Base.GenericIOBuffer{Array{UInt8,1}},Base.Docs.Binding,Any,Method}",
     "page": "Home",
     "title": "DocStringExtensions.printmethod",
@@ -350,6 +366,14 @@ var documenterSearchIndex = {"docs": [
     "title": "DocStringExtensions.TypeFields",
     "category": "type",
     "text": "The singleton type for FIELDS abbreviations.\n\n\n\n\n\n"
+},
+
+{
+    "location": "#DocStringExtensions.TypedMethodSignatures",
+    "page": "Home",
+    "title": "DocStringExtensions.TypedMethodSignatures",
+    "category": "type",
+    "text": "The singleton type for TYPEDSIGNATURES abbreviations.\n\n\n\n\n\n"
 },
 
 {
