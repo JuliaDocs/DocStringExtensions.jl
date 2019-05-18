@@ -5,6 +5,9 @@ makedocs(
     modules = [DocStringExtensions],
     clean = false,
     pages = Any["Home" => "index.md"],
+    format = HTML(
+        assets = ["assets/favicon.ico"],
+    ),
 )
 
 deploydocs(
