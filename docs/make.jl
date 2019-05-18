@@ -5,7 +5,7 @@ makedocs(
     modules = [DocStringExtensions],
     clean = false,
     pages = Any["Home" => "index.md"],
-    format = HTML(
+    format = Documenter.HTML(
         assets = ["assets/favicon.ico"],
     ),
 )
