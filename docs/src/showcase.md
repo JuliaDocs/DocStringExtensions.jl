@@ -5,7 +5,7 @@ CurrentModule = Showcase
 ```
 
 This page shows how the various abbreviations look.
-The docstrings themselse can be found in `docs/Showcase/src/Showcase.jl`.
+The docstrings themselves can be found in `docs/Showcase/src/Showcase.jl`.
 
 ## Modules
 
