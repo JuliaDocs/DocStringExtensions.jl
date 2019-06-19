@@ -99,6 +99,14 @@ end
             @test occursin("  - `c`", str)
             @test occursin("one", str)
             @test occursin("two", str)
+
+            DSE.format(TYPEDFIELDS, buf, doc)
+            str = String(take!(buf))
+            @test occursin("  - `a::Any`", str)
+            @test occursin("  - `b::Any`", str)
+            @test occursin("  - `c::Any`", str)
+            @test occursin("one", str)
+            @test occursin("two", str)
         end
 
         @testset "method lists" begin

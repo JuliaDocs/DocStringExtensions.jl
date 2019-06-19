@@ -35,11 +35,13 @@ Docs.formatdoc(buf::IOBuffer, doc::Docs.DocStr, part::Abbreviation) = format(par
 #
 
 """
-The singleton type for [`FIELDS`](@ref) abbreviations.
+The type for [`FIELDS`](@ref) abbreviations.
 
 $(:FIELDS)
 """
-struct TypeFields <: Abbreviation end
+struct TypeFields <: Abbreviation
+    types::Bool
+end
 
 """
 An [`Abbreviation`](@ref) to include the names of the fields of a type as well as any
@@ -64,9 +66,33 @@ attached.
     Another documented field.
 ```
 """
-const FIELDS = TypeFields()
+const FIELDS = TypeFields(false)
 
-function format(::TypeFields, buf, doc)
+"""
+Identical to [`FIELDS`](@ref) except that it includes the field types.
+
+# Examples
+
+The generated markdown text should look similar to to following example where
+a type has three fields; `x` of type `String`, `y` of type `Int`, and `z` of
+type `Vector{Any}`.
+
+```markdown
+
+  - `x::String`
+
+  - `y::Int`
+
+    Unlike the `x` field this field has been documented.
+
+  - `z::Array{Any, 1}`
+
+    Another documented field.
+```
+"""
+const TYPEDFIELDS = TypeFields(true)
+
+function format(abbrv::TypeFields, buf, doc)
     local docs = get(doc.data, :fields, Dict())
     local binding = doc.data[:binding]
     local object = Docs.resolve(binding)
@@ -76,7 +102,11 @@ function format(::TypeFields, buf, doc)
     if !isempty(fields)
         println(buf)
         for field in fields
-            print(buf, "  - `", field, "`\n")
+            if abbrv.types
+                println(buf, "  - `", field, "::", fieldtype(object, field), "`")
+            else
+                println(buf, "  - `", field, "`")
+            end
             # Print the field docs if they exist and aren't a `doc"..."` docstring.
             if haskey(docs, field) && isa(docs[field], AbstractString)
                 println(buf)
