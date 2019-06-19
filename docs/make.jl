@@ -6,8 +6,6 @@ end
 using Documenter, DocStringExtensions
 import Showcase
 
-@show pathof(Showcase)
-
 makedocs(
     sitename = "DocStringExtensions.jl",
     modules = [DocStringExtensions, Showcase],
