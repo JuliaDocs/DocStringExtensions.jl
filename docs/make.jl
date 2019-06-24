@@ -16,6 +16,7 @@ makedocs(
     ],
     format = Documenter.HTML(
         assets = ["assets/favicon.ico"],
+        analytics = "UA-136089579-3",
     ),
 )
 
