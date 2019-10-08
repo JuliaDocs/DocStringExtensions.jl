@@ -51,13 +51,17 @@ end
         @test isa(m, Method)
         # .. which should have a single keyword argument, :y
         # Base.kwarg_decl returns a Vector{Any} of the keyword arguments.
-        local kwargs = Base.kwarg_decl(m, typeof(mt.kwsorter))
+        local kwargs = VERSION < v"1.4.0-DEV.215" ? Base.kwarg_decl(m, typeof(mt.kwsorter)) : Base.kwarg_decl(m)
         @test isa(kwargs, Vector{Any})
         @test kwargs == [:y]
         # Base.kwarg_decl will return a Tuple{} for some reason when called on a method
         # that does not have any arguments
         m = which(M.j_1, (Any,Any)) # fetch the no-keyword method
-        @test Base.kwarg_decl(m, typeof(methods(M.j_1).mt.kwsorter)) == Tuple{}()
+        if VERSION < v"1.4.0-DEV.215"
+            @test Base.kwarg_decl(m, typeof(methods(M.j_1).mt.kwsorter)) == Tuple{}()
+        else
+            @test Base.kwarg_decl(m) == []
+        end
     end
     @testset "format" begin
         # Setup.
