@@ -246,8 +246,10 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     print(buffer, "(")
     local args = arguments(method)
     for (i, sym) in enumerate(args)
-        if typesig isa UnionAll
+        if typesig isa UnionAll && !(typesig.body isa UnionAll)
             t = typesig.body.a.types[1]
+        elseif typesig isa UnionAll && typesig.body isa UnionAll
+            t = typesig.body.body.a.types[1]
         else
             t = typesig.types[i]
         end
@@ -262,8 +264,10 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         join(buffer, kws, ", ")
     end
     print(buffer, ")")
-    if typesig isa UnionAll
+    if typesig isa UnionAll && !(typesig.body isa UnionAll)
         t = typesig.body.a
+    elseif typesig isa UnionAll && (typesig.body isa UnionAll)
+        t = typesig.body.body.a
     else
         t = typesig
     end
