@@ -382,9 +382,11 @@ function format(::TypedMethodSignatures, buf, doc)
                 for (i, method) in enumerate(group)
                     if i == length(group)
                         t = typesig
-                    else
+                    elseif !(typesig isa UnionAll)
                         t = typesig.a
                         typesig = typesig.b
+                    else
+                        t = typesig
                     end
                     printmethod(buf, binding, func, method, t)
                     println(buf)
