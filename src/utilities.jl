@@ -232,6 +232,26 @@ function find_tuples(typesig)
     end
 end
 
+function find_vars(typesig)
+    if typesig isa UnionAll
+        return [typesig.var, find_vars(typesig.body)...]
+    else
+        return []
+    end
+end
+
+function typevar_to_string(typevar::TypeVar)
+    s = ""
+    if typevar.lb != Union{}
+        s = "$(typevar.lb) <: "
+    end
+    s = "$s$(string(typevar.name))"
+    if typevar.ub != Union{}
+        s = "$s <: $(typevar.ub)"
+    end
+    return "where $s"
+end
+
 """
 $(:TYPEDSIGNATURES)
 
@@ -268,6 +288,11 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         join(buffer, kws, ", ")
     end
     print(buffer, ")")
+    # TODO: Should we optionally support the `where` syntax?
+    # if typesig isa UnionAll
+    #    s = join(typevar_to_string.(find_vars(typesig)), " ")
+    #    print(buffer, " ", s)
+    # end
     t = find_tuples(typesig)[end]
     rt = Base.return_types(func, t)
     if length(rt) >= 1 && rt[1] !== Nothing && rt[1] !== Union{}
