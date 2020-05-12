@@ -259,6 +259,22 @@ end
                 @test occursin("\nk_3(x::Int32) -> Any\n", str)
             end
             @test occursin("\n```\n", str)
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_4),
+                :typesig => Union{Tuple{String}, Tuple{String, Int}},
+                :module => M,
+            )
+            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            @test occursin("\nk_4(::String)\n", str)
+            if typeof(1) === Int64
+                @test occursin("\nk_4(::String, ::Int64)\n", str)
+            else
+                @test occursin("\nk_4(::String, ::Int32)\n", str)
+            end
+            @test occursin("\n```\n", str)
         end
 
         @testset "function names" begin
