@@ -268,11 +268,18 @@ end
             DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
-            @test occursin("\nk_4(::String)\n", str)
-            if typeof(1) === Int64
-                @test occursin("\nk_4(::String, ::Int64)\n", str)
+            if VERSION > v"1.3.0"
+                @test occursin("\nk_4(::String)\n", str)
+                if typeof(1) === Int64
+                    @test occursin("\nk_4(::String, ::Int64)\n", str)
+                else
+                    @test occursin("\nk_4(::String, ::Int32)\n", str)
+                end
             else
-                @test occursin("\nk_4(::String, ::Int32)\n", str)
+                # TODO: remove this test when julia 1.0.0 support is dropped.
+                # older versions of julia seem to return this
+                # str = "\n```julia\nk_4(#temp#::String)\nk_4(#temp#::String, #temp#::Int64)\n\n```\n\n"
+                @test occursin("\nk_4", str)
             end
             @test occursin("\n```\n", str)
         end
