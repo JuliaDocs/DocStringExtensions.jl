@@ -222,6 +222,16 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     return buffer
 end
 
+function find_tuples(typesig)
+    if typesig isa UnionAll
+        return find_tuples(typesig.body)
+    elseif typesig isa Union
+        return [typesig.a, find_tuples(typesig.b)...]
+    else
+        return [typesig,]
+    end
+end
+
 """
 $(:TYPEDSIGNATURES)
 
@@ -246,13 +256,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     print(buffer, "(")
     local args = arguments(method)
     for (i, sym) in enumerate(args)
-        if typesig isa UnionAll && !(typesig.body isa UnionAll)
-            t = typesig.body.a.types[1]
-        elseif typesig isa UnionAll && typesig.body isa UnionAll
-            t = typesig.body.body.a.types[1]
-        else
-            t = typesig.types[i]
-        end
+        t = find_tuples(typesig)[end].types[i]
         print(buffer, "$sym::$t")
         if i != length(args)
             print(buffer, ", ")
@@ -264,13 +268,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         join(buffer, kws, ", ")
     end
     print(buffer, ")")
-    if typesig isa UnionAll && !(typesig.body isa UnionAll)
-        t = typesig.body.a
-    elseif typesig isa UnionAll && (typesig.body isa UnionAll)
-        t = typesig.body.body.a
-    else
-        t = typesig
-    end
+    t = find_tuples(typesig)[end]
     rt = Base.return_types(func, t)
     if length(rt) >= 1 && rt[1] !== Nothing && rt[1] !== Union{}
         print(buffer, " -> $(rt[1])")
