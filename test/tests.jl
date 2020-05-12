@@ -212,6 +212,53 @@ end
                 @test occursin("\nh(x::Int32) -> Int32\n", str)
             end
             @test occursin("\n```\n", str)
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_1),
+                :typesig => Union{Tuple{String}, Tuple{String, Int}, Tuple{String, Int, T}, Tuple{T}} where T <: Number,
+                :module => M,
+            )
+            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            @test occursin("\nk_1(x::String) -> String\n", str)
+            if typeof(1) === Int64
+                @test occursin("k_1(x::String, y::Int64) -> String", str)
+                @test occursin("k_1(x::String, y::Int64, z::T<:Number) -> String", str)
+            else
+                @test occursin("k_1(x::String, y::Int32) -> String", str)
+                @test occursin("k_1(x::String, y::Int32, z::T<:Number) -> String", str)
+            end
+            @test occursin("\n```\n", str)
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_2),
+                :typesig => (Union{Tuple{String}, Tuple{String, U}, Tuple{String, U, T}, Tuple{T}, Tuple{U}} where T <: Number) where U <: Complex,
+                :module => M,
+            )
+
+            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            @test occursin("k_2(x::String) -> String", str)
+            @test occursin("k_2(x::String, y::U<:Complex) -> String", str)
+            @test occursin("k_2(x::String, y::U<:Complex, z::T<:Number) -> String", str)
+            @test occursin("\n```\n", str)
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_3),
+                :typesig => Union{Tuple{Int}, Tuple{Int, T}, Tuple{Int, T, U}, Tuple{U}, Tuple{T}} where U <: Any where T <: Any,
+                :module => M,
+            )
+            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            if typeof(1) === Int64
+                @test occursin("\nk_3(x::Int64) -> Any\n", str)
+            else
+                @test occursin("\nk_3(x::Int32) -> Any\n", str)
+            end
+            @test occursin("\n```\n", str)
         end
 
         @testset "function names" begin
