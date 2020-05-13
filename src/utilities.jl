@@ -298,6 +298,9 @@ $(:SIGNATURES)
 This function takes a UnionAll and converts it to a string
 """
 function type_to_string(t::UnionAll)
+    # TODO: implement better stringification of UnionAll
+    # Current implementation defaults to Julia's show method
+    # This takes `Array{<:Number, 1}` and `returns Array{var"#s2",1} where var"#s2"<:Number`
     return "$(t)"
 end
 
