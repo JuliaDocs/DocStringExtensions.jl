@@ -222,6 +222,16 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     return buffer
 end
 
+"""
+$(:SIGNATURES)
+
+Find the tuples that represent all the types of all the method arguments and return a DataType Vector
+
+Tuple{String,Number,Int} -> DataType[Tuple{String,Number,Int}]
+
+Union{Tuple{Int64}, Tuple{U}, Tuple{T}, Tuple{Int64,T}, Tuple{Int64,T,U}} where U where
+T -> DataType[Tuple{Int64}, Tuple{U}, Tuple{T}, Tuple{Int64,T}, Tuple{Int64,T,U}]
+"""
 function find_tuples(typesig)
     if typesig isa UnionAll
         return find_tuples(typesig.body)
@@ -232,6 +242,11 @@ function find_tuples(typesig)
     end
 end
 
+"""
+$(:SIGNATURES)
+
+This function takes any type signature that returns an Vector of `TypeVar`
+"""
 function find_vars(typesig)
     if typesig isa UnionAll
         return [typesig.var, find_vars(typesig.body)...]
@@ -240,6 +255,11 @@ function find_vars(typesig)
     end
 end
 
+"""
+$(:SIGNATURES)
+
+This function converts a typevar element to a string
+"""
 function typevar_to_string(typevar::TypeVar)
     s = ""
     if typevar.lb != Union{}
@@ -276,7 +296,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     print(buffer, "(")
     local args = arguments(method)
     for (i, sym) in enumerate(args)
-        t = find_tuples(typesig)[end].types[i]
+        t = typesig.types[i]
         print(buffer, "$sym::$t")
         if i != length(args)
             print(buffer, ", ")
@@ -293,8 +313,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     #    s = join(typevar_to_string.(find_vars(typesig)), " ")
     #    print(buffer, " ", s)
     # end
-    t = find_tuples(typesig)[end]
-    rt = Base.return_types(func, t)
+    rt = Base.return_types(func, typesig)
     if length(rt) >= 1 && rt[1] !== Nothing && rt[1] !== Union{}
         print(buffer, " -> $(rt[1])")
     end

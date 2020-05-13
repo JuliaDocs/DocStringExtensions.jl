@@ -368,30 +368,24 @@ function format(::TypedMethodSignatures, buf, doc)
     local typesig = doc.data[:typesig]
     local modname = doc.data[:module]
     local func = Docs.resolve(binding)
+    # TODO: why is methodgroups returning invalid methods?
+    # the methodgroups always appears to return a Vector and the size depends on where parametric types are used
+    # the last element is the only element that is of interest
+    # since the last element of this array is an array equal to the number of methods available in the func
     local groups = methodgroups(func, typesig, modname)
     if !isempty(groups)
+        group = groups[end]
         println(buf)
         println(buf, "```julia")
-        for group in groups
-            if length(group) == 1
-                for method in group
-                    printmethod(buf, binding, func, method, typesig)
-                    println(buf)
-                end
+        for (i, method) in enumerate(group)
+            if i == length(group) || typesig isa UnionAll
+                t = find_tuples(typesig)[end]
             else
-                for (i, method) in enumerate(group)
-                    if i == length(group)
-                        t = typesig
-                    elseif !(typesig isa UnionAll)
-                        t = typesig.a
-                        typesig = typesig.b
-                    else
-                        t = typesig
-                    end
-                    printmethod(buf, binding, func, method, t)
-                    println(buf)
-                end
+                t = typesig.a
+                typesig = typesig.b
             end
+            printmethod(buf, binding, func, method, t)
+            println(buf)
         end
         println(buf, "\n```\n")
     end
