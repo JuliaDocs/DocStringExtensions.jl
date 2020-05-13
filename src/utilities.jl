@@ -313,7 +313,6 @@ simplifications include:
   * no `TypeVar`s;
   * no types;
   * no keyword default values;
-  * `?` printed where `#unused#` arguments are found.
 
 # Examples
 
