@@ -224,10 +224,10 @@ end
             @test occursin("\nk_1(x::String) -> String\n", str)
             if typeof(1) === Int64
                 @test occursin("k_1(x::String, y::Int64) -> String", str)
-                @test occursin("k_1(x::String, y::Int64, z::T<:Number) -> String", str)
+                @test occursin("k_1(x::String, y::Int64, z::T) where T<:Number -> String", str)
             else
                 @test occursin("k_1(x::String, y::Int32) -> String", str)
-                @test occursin("k_1(x::String, y::Int32, z::T<:Number) -> String", str)
+                @test occursin("k_1(x::String, y::Int32, z::T) where T<:Number -> String", str)
             end
             @test occursin("\n```\n", str)
 
@@ -241,8 +241,8 @@ end
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
             @test occursin("k_2(x::String) -> String", str)
-            @test occursin("k_2(x::String, y::U<:Complex) -> String", str)
-            @test occursin("k_2(x::String, y::U<:Complex, z::T<:Number) -> String", str)
+            @test occursin("k_2(x::String, y::U) where U<:Complex -> String", str)
+            @test occursin("k_2(x::String, y::U, z::T) where T<:Number where U<:Complex -> String", str)
             @test occursin("\n```\n", str)
 
             doc.data = Dict(

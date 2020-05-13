@@ -249,7 +249,9 @@ This function takes any type signature that returns an Vector of `TypeVar`
 """
 function find_vars(typesig)
     if typesig isa UnionAll
-        return [typesig.var, find_vars(typesig.body)...]
+        return [find_vars(typesig.body)...]
+    elseif typesig isa TypeVar
+        return [typesig]
     else
         return []
     end
@@ -263,13 +265,40 @@ This function converts a typevar element to a string
 function typevar_to_string(typevar::TypeVar)
     s = ""
     if typevar.lb != Union{}
-        s = "$(typevar.lb) <: "
+        s = "$(typevar.lb)<:"
     end
     s = "$s$(string(typevar.name))"
     if typevar.ub != Union{}
-        s = "$s <: $(typevar.ub)"
+        s = "$s<:$(typevar.ub)"
     end
     return "where $s"
+end
+
+"""
+$(:SIGNATURES)
+
+This function takes a DataType and converts it to a string
+"""
+function type_to_string(d::DataType)
+    return "$d"
+end
+
+"""
+$(:SIGNATURES)
+
+This function takes a TypeVar and converts it to a string
+"""
+function type_to_string(tv::TypeVar)
+    return "$(tv.name)"
+end
+
+"""
+$(:SIGNATURES)
+
+This function takes a UnionAll and converts it to a string
+"""
+function type_to_string(t::UnionAll)
+    return "$(t)"
 end
 
 """
@@ -295,8 +324,12 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     print(buffer, binding.var)
     print(buffer, "(")
     local args = arguments(method)
+    local where_syntax = []
     for (i, sym) in enumerate(args)
-        t = typesig.types[i]
+        if typesig.types[i] isa TypeVar
+            push!(where_syntax, typesig.types[i])
+        end
+        t = type_to_string(typesig.types[i])
         print(buffer, "$sym::$t")
         if i != length(args)
             print(buffer, ", ")
@@ -308,11 +341,10 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         join(buffer, kws, ", ")
     end
     print(buffer, ")")
-    # TODO: Should we optionally support the `where` syntax?
-    # if typesig isa UnionAll
-    #    s = join(typevar_to_string.(find_vars(typesig)), " ")
-    #    print(buffer, " ", s)
-    # end
+    for t in reverse(where_syntax)
+        s = typevar_to_string(t)
+        print(buffer, " ", s)
+    end
     rt = Base.return_types(func, typesig)
     if length(rt) >= 1 && rt[1] !== Nothing && rt[1] !== Union{}
         print(buffer, " -> $(rt[1])")
