@@ -70,6 +70,60 @@ $(TYPEDSIGNATURES)
 foo(x::AbstractString) = nothing
 
 
+## Methods with type parameters
+
+"""
+A method for [`$(FUNCTIONNAME)`](@ref), with type parameters. Original declaration:
+
+```julia
+bar(x::AbstractArray{T}, y::T) where {T <: Integer} = nothing
+```
+
+And the result from [`TYPEDSIGNATURES`](@ref) abbreviation:
+
+$(TYPEDSIGNATURES)
+
+For comparison, [`SIGNATURES`](@ref) abbreviation:
+
+$(SIGNATURES)
+"""
+bar(x::AbstractArray{T}, y::T) where {T <: Integer} = nothing
+
+"""
+A method for [`$(FUNCTIONNAME)`](@ref), with type parameters. Original declaration:
+
+```julia
+bar(x::AbstractArray{T}, ::String) where {T <: Integer} = x
+```
+
+And the result from [`TYPEDSIGNATURES`](@ref) abbreviation:
+
+$(TYPEDSIGNATURES)
+
+For comparison, [`SIGNATURES`](@ref) abbreviation:
+
+$(SIGNATURES)
+"""
+bar(x::AbstractArray{T}, ::String) where {T <: Integer} = x
+
+"""
+A method for [`$(FUNCTIONNAME)`](@ref), with type parameters. Original declaration:
+
+```julia
+bar(x::AbstractArray{T}, y::U) where {T <: Integer, U <: AbstractString} = 0
+```
+
+And the result from [`TYPEDSIGNATURES`](@ref) abbreviation:
+
+$(TYPEDSIGNATURES)
+
+For comparison, [`SIGNATURES`](@ref) abbreviation:
+
+$(SIGNATURES)
+"""
+bar(x::AbstractArray{T}, y::U) where {T <: Integer, U <: AbstractString} = 0
+
+
 """
 The [`TYPEDEF`](@ref) abbreviation includes the type signature:
 
