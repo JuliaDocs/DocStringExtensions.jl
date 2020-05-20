@@ -272,21 +272,6 @@ end
 """
 $(:SIGNATURES)
 
-This function takes any type signature that returns an Vector of `TypeVar`
-"""
-function find_vars(typesig)
-    if typesig isa UnionAll
-        return [find_vars(typesig.body)...]
-    elseif typesig isa TypeVar
-        return [typesig]
-    else
-        return []
-    end
-end
-
-"""
-$(:SIGNATURES)
-
 This function converts a typevar element to a string
 """
 function typevar_to_string(typevar::TypeVar)
