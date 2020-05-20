@@ -272,23 +272,6 @@ end
 """
 $(:SIGNATURES)
 
-This function converts a typevar element to a string
-"""
-function typevar_to_string(typevar::TypeVar)
-    s = ""
-    if typevar.lb != Union{}
-        s = "$(typevar.lb)<:"
-    end
-    s = "$s$(string(typevar.name))"
-    if typevar.ub != Union{}
-        s = "$s<:$(typevar.ub)"
-    end
-    return "where $s"
-end
-
-"""
-$(:SIGNATURES)
-
 This function takes a DataType and converts it to a string
 """
 function type_to_string(d::DataType)
