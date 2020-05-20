@@ -371,7 +371,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     end
     print(buffer, ")")
     for t in reverse(where_syntax)
-        s = typevar_to_string(t)
+        s = "where $t" # t is a TypeVar
         print(buffer, " ", s)
     end
     rt = Base.return_types(func, typesig)
