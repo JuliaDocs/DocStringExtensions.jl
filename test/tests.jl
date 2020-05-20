@@ -293,6 +293,21 @@ end
                 @test occursin("\nk_4", str)
             end
             @test occursin("\n```\n", str)
+
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_5),
+                :typesig => Union{Tuple{Type{T}, String}, Tuple{Type{T}, String, Union{Nothing, Function}}, Tuple{T}} where T <: Number,
+                :module => M,
+            )
+            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            if VERSION > v"1.3.0"
+                @test occursin("\nk_5(_::Type{T<:Number}, x::String)\n", str)
+                @test occursin("\nk_5(_::Type{T<:Number}, x::String, func::Union{Nothing, Function})\n", str)
+            end
+            @test occursin("\n```\n", str)
         end
 
         @testset "function names" begin

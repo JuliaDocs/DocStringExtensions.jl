@@ -300,6 +300,15 @@ function type_to_string(t::UnionAll)
 end
 
 """
+$(:SIGNATURES)
+
+This function takes a Union and converts it to a string
+"""
+function type_to_string(t::Union)
+    return "$(t)"
+end
+
+"""
 $(:TYPEDSIGNATURES)
 
 Print a simplified representation of a method signature to `buffer`. Some of these
@@ -323,6 +332,8 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     local args = arguments(method)
     local where_syntax = []
     for (i, sym) in enumerate(args)
+        # TODO: parametric types may not be just `TypeVar`
+        # Current implementation will only add where clauses for arguments that are `TypeVar`
         if typesig.types[i] isa TypeVar
             push!(where_syntax, typesig.types[i])
         end
