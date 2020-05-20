@@ -13,6 +13,7 @@ makedocs(
     pages = Any[
         "Home" => "index.md",
         "Showcase" => "showcase.md",
+        "Internals" => "internals.md",
     ],
     format = Documenter.HTML(
         assets = ["assets/favicon.ico"],
