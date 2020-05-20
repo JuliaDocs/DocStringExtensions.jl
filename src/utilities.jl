@@ -225,7 +225,13 @@ end
 """
 $(:SIGNATURES)
 
-Find the tuples that represent all the types of all the method arguments and return a DataType Vector
+Converts a method signature (or a union of several signatures) in a vector of (single)
+signatures.
+
+This is used for decoding the method signature that a docstring is paired with. In the case
+when the docstring applies to multiple methods (e.g. when default positional argument values
+are used and define multiple methods at once), they are combined together as union of `Tuple`
+types.
 
 Tuple{String,Number,Int} -> DataType[Tuple{String,Number,Int}]
 
