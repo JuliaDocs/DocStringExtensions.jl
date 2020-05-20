@@ -13,6 +13,7 @@ const A{T} = Union{Vector{T}, Matrix{T}}
 h_1(x::A) = x
 h_2(x::A{Int}) = x
 h_3(x::A{T}) where {T} = x
+h_4(x, ::Int, z) = x
 
 i_1(x; y = x) = x * y
 i_2(x::Int; y = x) = x * y

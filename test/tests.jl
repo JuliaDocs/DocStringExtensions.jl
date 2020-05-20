@@ -165,6 +165,17 @@ end
             @test occursin("\ng(x, y)\n", str)
             @test occursin("\ng(x, y, z; kwargs...)\n", str)
             @test occursin("\n```\n", str)
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :h_4),
+                :typesig => Union{Tuple{Any, Int, Any}},
+                :module => M,
+            )
+            DSE.format(SIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            @test occursin("\nh_4(x, _, z)\n", str)
+            @test occursin("\n```\n", str)
         end
 
         @testset "method signatures with types" begin
