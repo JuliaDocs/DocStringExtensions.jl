@@ -233,10 +233,31 @@ when the docstring applies to multiple methods (e.g. when default positional arg
 are used and define multiple methods at once), they are combined together as union of `Tuple`
 types.
 
-Tuple{String,Number,Int} -> DataType[Tuple{String,Number,Int}]
+```jldoctest; setup = :(using DocStringExtensions)
+julia> DocStringExtensions.find_tuples(Tuple{String,Number,Int})
+1-element Array{DataType,1}:
+ Tuple{String,Number,Int64}
 
-Union{Tuple{Int64}, Tuple{U}, Tuple{T}, Tuple{Int64,T}, Tuple{Int64,T,U}} where U where
-T -> DataType[Tuple{Int64}, Tuple{U}, Tuple{T}, Tuple{Int64,T}, Tuple{Int64,T,U}]
+julia> DocStringExtensions.find_tuples(Tuple{T} where T <: Integer)
+1-element Array{DataType,1}:
+ Tuple{T<:Integer}
+
+julia> s = Union{
+         Tuple{Int64},
+         Tuple{U},
+         Tuple{T},
+         Tuple{Int64,T},
+         Tuple{Int64,T,U}
+       } where U where T;
+
+julia> DocStringExtensions.find_tuples(s)
+5-element Array{DataType,1}:
+ Tuple{Int64}
+ Tuple{U}
+ Tuple{T}
+ Tuple{Int64,T}
+ Tuple{Int64,T,U}
+```
 """
 function find_tuples(typesig)
     if typesig isa UnionAll
