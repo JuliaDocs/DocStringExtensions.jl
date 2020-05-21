@@ -7,13 +7,16 @@ DocStringExtensions
 ## Index
 
 ```@index
-Modules = [DocStringExtensions]
+Pages = ["index.md"]
 ```
 
 ## Reference
 
 ```@autodocs
 Modules = [DocStringExtensions]
-Order = [:constant, :function, :macro, :type]
+Order = [:constant]
 ```
 
+```@docs
+DocStringExtensions.@template
+```
