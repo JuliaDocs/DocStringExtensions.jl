@@ -174,7 +174,7 @@ end
             DSE.format(SIGNATURES, buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
-            @test occursin("\nh_4(x, _, z)\n", str)
+            @test occursin("\nh_4(x, , z)\n", str)
             @test occursin("\n```\n", str)
         end
 
@@ -304,8 +304,8 @@ end
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
             if VERSION > v"1.3.0"
-                @test occursin("\nk_5(_::Type{T<:Number}, x::String)\n", str)
-                @test occursin("\nk_5(_::Type{T<:Number}, x::String, func::Union{Nothing, Function})\n", str)
+                @test occursin("\nk_5(::Type{T<:Number}, x::String)\n", str)
+                @test occursin("\nk_5(::Type{T<:Number}, x::String, func::Union{Nothing, Function})\n", str)
             end
             @test occursin("\n```\n", str)
         end
