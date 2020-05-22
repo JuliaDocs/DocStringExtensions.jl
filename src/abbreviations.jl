@@ -369,9 +369,8 @@ function format(::TypedMethodSignatures, buf, doc)
     local modname = doc.data[:module]
     local func = Docs.resolve(binding)
     # TODO: why is methodgroups returning invalid methods?
-    # the methodgroups always appears to return a Vector and the size depends on where parametric types are used
-    # the last element is the only element that is of interest
-    # since the last element of this array is an array equal to the number of methods available in the func
+    # the methodgroups always appears to return a Vector and the size depends on whether parametric types are used
+    # and whether default arguments are used
     local groups = methodgroups(func, typesig, modname)
     if !isempty(groups)
         group = groups[end]
@@ -379,14 +378,15 @@ function format(::TypedMethodSignatures, buf, doc)
         println(buf, "```julia")
         for (i, method) in enumerate(group)
             N = length(arguments(method))
+            # return a list of tuples that represent type signatures
             tuples = find_tuples(typesig)
+            # The following will find the tuple that matches the number of arguments in the function
+            # ideally we would check that the method signature matches the Tuple{...} signature
+            # but that is not straightforward because of how expressive Julia can be
             if Sys.iswindows()
                 t = tuples[findlast(t -> t isa DataType && string(t.name) == "Tuple" && length(t.types) == N, tuples)]
             else
                 t = tuples[findfirst(t -> t isa DataType && string(t.name) == "Tuple" && length(t.types) == N, tuples)]
-            end
-            if t == nothing
-                t = typesig
             end
             printmethod(buf, binding, func, method, t)
             println(buf)
