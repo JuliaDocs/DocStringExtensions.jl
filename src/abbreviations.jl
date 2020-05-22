@@ -378,11 +378,11 @@ function format(::TypedMethodSignatures, buf, doc)
         println(buf)
         println(buf, "```julia")
         for (i, method) in enumerate(group)
-            if i == length(group) || typesig isa UnionAll
-                t = find_tuples(typesig)[end]
-            else
-                t = typesig.a
-                typesig = typesig.b
+            N = length(arguments(method))
+            tuples = find_tuples(typesig)
+            t = tuples[findfirst(t -> t isa DataType && string(t.name) == "Tuple" && length(t.types) == N, tuples)]
+            if t == nothing
+                t = typesig
             end
             printmethod(buf, binding, func, method, t)
             println(buf)
