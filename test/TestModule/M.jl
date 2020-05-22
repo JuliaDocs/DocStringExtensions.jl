@@ -27,7 +27,8 @@ k_1(x::String, y::Int = 0, z::T = zero(T)) where T <: Number = x
 k_2(x::String, y::U = 0, z::T = zero(T)) where T <: Number where U <: Complex = x
 k_3(x, y::T = zero(T), z::U = zero(U)) where {T, U} = x + y + z
 k_4(::String, ::Int = 0) = nothing
-k_5(::Type{T}, x::String, func::Union{Nothing, Function} = nothing) where T <: Number = nothing
+k_5(::Type{T}, x::String, func::Union{Nothing, Function} = nothing) where T <: Number = x
+k_6(x::Vector{T}) where T <: Number = x
 
 mutable struct T
     a
