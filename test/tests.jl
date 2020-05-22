@@ -244,31 +244,25 @@ end
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :k_2),
-                :typesig => (Union{Tuple{String}, Tuple{String, U}, Tuple{String, U, T}, Tuple{T}, Tuple{U}} where T <: Number) where U <: Complex,
+                :typesig => (Union{Tuple{String, U, T}, Tuple{T}, Tuple{U}} where T <: Number) where U <: Complex,
                 :module => M,
             )
 
             DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
-            @test occursin("k_2(x::String) -> String", str)
-            @test occursin("k_2(x::String, y::U) where U<:Complex -> String", str)
             @test occursin("k_2(x::String, y::U, z::T) where T<:Number where U<:Complex -> String", str)
             @test occursin("\n```\n", str)
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :k_3),
-                :typesig => Union{Tuple{Int}, Tuple{Int, T}, Tuple{Int, T, U}, Tuple{U}, Tuple{T}} where U <: Any where T <: Any,
+                :typesig => (Union{Tuple{Any, T, U}, Tuple{U}, Tuple{T}} where U <: Any) where T <: Any,
                 :module => M,
             )
             DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
-            if typeof(1) === Int64
-                @test occursin("\nk_3(x::Int64) -> Any\n", str)
-            else
-                @test occursin("\nk_3(x::Int32) -> Any\n", str)
-            end
+            @test occursin("\nk_3(x::Any, y::T, z::U) where U where T -> Any\n", str)
             @test occursin("\n```\n", str)
 
             doc.data = Dict(
