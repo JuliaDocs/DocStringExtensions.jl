@@ -226,20 +226,15 @@ end
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :k_1),
-                :typesig => Union{Tuple{String}, Tuple{String, Int}, Tuple{String, Int, T}, Tuple{T}} where T <: Number,
+                :typesig => Union{Tuple{String}, Tuple{String, T}, Tuple{String, T, T}, Tuple{T}} where T <: Number,
                 :module => M,
             )
             DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
             @test occursin("\nk_1(x::String) -> String\n", str)
-            if typeof(1) === Int64
-                @test occursin("k_1(x::String, y::Int64) -> String", str)
-                @test occursin("k_1(x::String, y::Int64, z::T) where T<:Number -> String", str)
-            else
-                @test occursin("k_1(x::String, y::Int32) -> String", str)
-                @test occursin("k_1(x::String, y::Int32, z::T) where T<:Number -> String", str)
-            end
+            @test occursin("\nk_1(x::String, y::T) where T<:Number -> String\n", str)
+            @test occursin("\nk_1(x::String, y::T, z::T) where T<:Number -> String\n", str)
             @test occursin("\n```\n", str)
 
             doc.data = Dict(
