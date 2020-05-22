@@ -350,7 +350,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         join(buffer, kws, ", ")
     end
     print(buffer, ")")
-    for t in reverse(where_syntax)
+    for t in reverse(unique(where_syntax))
         s = "where $t" # t is a TypeVar
         print(buffer, " ", s)
     end
