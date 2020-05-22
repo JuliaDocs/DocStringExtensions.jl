@@ -380,7 +380,11 @@ function format(::TypedMethodSignatures, buf, doc)
         for (i, method) in enumerate(group)
             N = length(arguments(method))
             tuples = find_tuples(typesig)
-            t = tuples[findfirst(t -> t isa DataType && string(t.name) == "Tuple" && length(t.types) == N, tuples)]
+            if Sys.iswindows()
+                t = tuples[findlast(t -> t isa DataType && string(t.name) == "Tuple" && length(t.types) == N, tuples)]
+            else
+                t = tuples[findfirst(t -> t isa DataType && string(t.name) == "Tuple" && length(t.types) == N, tuples)]
+            end
             if t == nothing
                 t = typesig
             end
