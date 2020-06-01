@@ -270,45 +270,6 @@ function find_tuples(typesig)
 end
 
 """
-$(:SIGNATURES)
-
-This function takes a DataType and converts it to a string
-"""
-function type_to_string(d::DataType)
-    return "$d"
-end
-
-"""
-$(:SIGNATURES)
-
-This function takes a TypeVar and converts it to a string
-"""
-function type_to_string(tv::TypeVar)
-    return "$(tv.name)"
-end
-
-"""
-$(:SIGNATURES)
-
-This function takes a UnionAll and converts it to a string
-"""
-function type_to_string(t::UnionAll)
-    # TODO: implement better stringification of UnionAll
-    # Current implementation defaults to Julia's show method
-    # This takes `Array{<:Number, 1}` and `returns Array{var"#s2",1} where var"#s2"<:Number`
-    return "$(t)"
-end
-
-"""
-$(:SIGNATURES)
-
-This function takes a Union and converts it to a string
-"""
-function type_to_string(t::Union)
-    return "$(t)"
-end
-
-"""
 $(:TYPEDSIGNATURES)
 
 Print a simplified representation of a method signature to `buffer`. Some of these
@@ -333,12 +294,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     local args = arguments(method)
     local where_syntax = []
     for (i, sym) in enumerate(args)
-        # TODO: parametric types may not be just `TypeVar`
-        # Current implementation will only add where clauses for arguments that are `TypeVar`
-        if typesig.types[i] isa TypeVar
-            push!(where_syntax, typesig.types[i])
-        end
-        t = type_to_string(typesig.types[i])
+        t = typesig.types[i]
         print(buffer, "$sym::$t")
         if i != length(args)
             print(buffer, ", ")
@@ -350,10 +306,6 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         join(buffer, kws, ", ")
     end
     print(buffer, ")")
-    for t in reverse(unique(where_syntax))
-        s = "where $t" # t is a TypeVar
-        print(buffer, " ", s)
-    end
     rt = Base.return_types(func, typesig)
     if length(rt) >= 1 && rt[1] !== Nothing && rt[1] !== Union{}
         print(buffer, " -> $(rt[1])")

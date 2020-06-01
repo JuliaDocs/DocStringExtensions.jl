@@ -29,6 +29,7 @@ k_3(x, y::T, z::U) where {T, U} = x + y + z
 k_4(::String, ::Int = 0) = nothing
 k_5(::Type{T}, x::String, func::Union{Nothing, Function} = nothing) where T <: Number = x
 k_6(x::Vector{T}) where T <: Number = x
+k_7(x::Union{T,Nothing}, y::T = zero(T)) where {T <: Number} = x
 
 mutable struct T
     a

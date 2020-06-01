@@ -233,8 +233,8 @@ end
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
             @test occursin("\nk_1(x::String) -> String\n", str)
-            @test occursin("\nk_1(x::String, y::T) where T<:Number -> String\n", str)
-            @test occursin("\nk_1(x::String, y::T, z::T) where T<:Number -> String\n", str)
+            @test occursin("\nk_1(x::String, y::T<:Number) -> String\n", str)
+            @test occursin("\nk_1(x::String, y::T<:Number, z::T<:Number) -> String\n", str)
             @test occursin("\n```\n", str)
 
             doc.data = Dict(
@@ -246,7 +246,7 @@ end
             DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
-            @test occursin("k_2(x::String, y::U, z::T) where T<:Number where U<:Complex -> String", str)
+            @test occursin("k_2(x::String, y::U<:Complex, z::T<:Number) -> String", str)
             @test occursin("\n```\n", str)
 
             doc.data = Dict(
@@ -257,7 +257,7 @@ end
             DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
-            @test occursin("\nk_3(x::Any, y::T, z::U) where U where T -> Any\n", str)
+            @test occursin("\nk_3(x::Any, y::T, z::U) -> Any\n", str)
             @test occursin("\n```\n", str)
 
             doc.data = Dict(
@@ -308,6 +308,20 @@ end
             @test occursin("\n```julia\n", str)
             if VERSION > v"1.3.0"
                 @test occursin("\nk_6(x::Array{T<:Number,1}) -> Array{T<:Number,1}\n", str)
+            end
+            @test occursin("\n```\n", str)
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_7),
+                :typesig => Union{Tuple{Union{T, Nothing}}, Tuple{Union{T, Nothing}, T}, Tuple{T}} where T <: Number,
+                :module => M,
+            )
+            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            if VERSION > v"1.3.0"
+                @test occursin("\nk_7(x::Union{Nothing, T<:Number}) -> Union{Nothing, Number}\n", str)
+                @test occursin("\nk_7(x::Union{Nothing, T<:Number}, y::T<:Number) -> Union{Nothing, T<:Number}\n", str)
             end
             @test occursin("\n```\n", str)
         end
