@@ -350,6 +350,19 @@ end
                 @test occursin("\nk_9(x::Any) -> Any\n", str)
             end
             @test occursin("\n```\n", str)
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_10),
+                :typesig => Union{Tuple{T}, Tuple{T}} where T,
+                :module => M,
+            )
+            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test_broken occursin("\n```julia\n", str)
+            if VERSION > v"1.3.0"
+                @test_broken occursin("\nk_10(x::T) -> Any\n", str)
+            end
+            @test_broken occursin("\n```\n", str)
         end
 
         @testset "function names" begin

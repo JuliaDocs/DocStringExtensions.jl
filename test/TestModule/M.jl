@@ -32,6 +32,7 @@ k_6(x::Vector{T}) where T <: Number = x
 k_7(x::Union{T,Nothing}, y::T = zero(T)) where {T <: Number} = x
 k_8(x) = x
 k_9(x::T where T<:Any) = x
+k_10(x::T) where T = x
 
 mutable struct T
     a
