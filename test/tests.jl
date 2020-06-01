@@ -324,6 +324,32 @@ end
                 @test occursin("\nk_7(x::Union{Nothing, T<:Number}, y::T<:Number) -> Union{Nothing, T<:Number}\n", str)
             end
             @test occursin("\n```\n", str)
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_8),
+                :typesig => Union{Tuple{Any}},
+                :module => M,
+            )
+            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            if VERSION > v"1.3.0"
+                @test occursin("\nk_8(x::Any) -> Any\n", str)
+            end
+            @test occursin("\n```\n", str)
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_9),
+                :typesig => Union{Tuple{T where T}},
+                :module => M,
+            )
+            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            if VERSION > v"1.3.0"
+                @test occursin("\nk_9(x::Any) -> Any\n", str)
+            end
+            @test occursin("\n```\n", str)
         end
 
         @testset "function names" begin

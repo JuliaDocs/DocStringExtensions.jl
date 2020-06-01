@@ -30,6 +30,8 @@ k_4(::String, ::Int = 0) = nothing
 k_5(::Type{T}, x::String, func::Union{Nothing, Function} = nothing) where T <: Number = x
 k_6(x::Vector{T}) where T <: Number = x
 k_7(x::Union{T,Nothing}, y::T = zero(T)) where {T <: Number} = x
+k_8(x) = x
+k_9(x::T where T<:Any) = x
 
 mutable struct T
     a
