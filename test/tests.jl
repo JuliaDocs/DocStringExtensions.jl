@@ -292,9 +292,16 @@ end
             DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
-            @test occursin("\nk_5(::Type{T<:Number}, x::String) -> String\n", str)
-            @test occursin("\nk_5(::Type{T<:Number}, x::String, func::Union{Nothing, Function}) -> String\n", str)
-            @test occursin("\n```\n", str)
+            if VERSION > v"1.3.0"
+                @test occursin("\nk_5(::Type{T<:Number}, x::String) -> String\n", str)
+                @test occursin("\nk_5(::Type{T<:Number}, x::String, func::Union{Nothing, Function}) -> String\n", str)
+                @test occursin("\n```\n", str)
+            else
+                # TODO: remove this test when julia 1.0.0 support is dropped.
+                # older versions of julia seem to return this
+                # str = "\n```julia\nk_5(#temp#::Type{T<:Number}, x::String) -> String\nk_5(#temp#::Type{T<:Number}, x::String, func::Union{Nothing, Function}) -> String\n\n```\n\n"
+                @test occursin("\nk_5", str)
+            end
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :k_6),
