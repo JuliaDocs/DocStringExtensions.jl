@@ -292,10 +292,8 @@ end
             DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
-            if VERSION > v"1.3.0"
-                @test occursin("\nk_5(::Type{T<:Number}, x::String) -> String\n", str)
-                @test occursin("\nk_5(::Type{T<:Number}, x::String, func::Union{Nothing, Function}) -> String\n", str)
-            end
+            @test occursin("\nk_5(::Type{T<:Number}, x::String) -> String\n", str)
+            @test occursin("\nk_5(::Type{T<:Number}, x::String, func::Union{Nothing, Function}) -> String\n", str)
             @test occursin("\n```\n", str)
 
             doc.data = Dict(
@@ -306,9 +304,7 @@ end
             DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
-            if VERSION > v"1.3.0"
-                @test occursin("\nk_6(x::Array{T<:Number,1}) -> Array{T<:Number,1}\n", str)
-            end
+            @test occursin("\nk_6(x::Array{T<:Number,1}) -> Array{T<:Number,1}\n", str)
             @test occursin("\n```\n", str)
 
             doc.data = Dict(
@@ -319,10 +315,8 @@ end
             DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
-            if VERSION > v"1.3.0"
-                @test occursin("\nk_7(x::Union{Nothing, T<:Number}) -> Union{Nothing, Number}\n", str)
-                @test occursin("\nk_7(x::Union{Nothing, T<:Number}, y::T<:Number) -> Union{Nothing, T<:Number}\n", str)
-            end
+            @test occursin("\nk_7(x::Union{Nothing, T<:Number}) -> Union{Nothing, Number}\n", str)
+            @test occursin("\nk_7(x::Union{Nothing, T<:Number}, y::T<:Number) -> Union{Nothing, T<:Number}\n", str)
             @test occursin("\n```\n", str)
 
             doc.data = Dict(
@@ -333,9 +327,7 @@ end
             DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
-            if VERSION > v"1.3.0"
-                @test occursin("\nk_8(x::Any) -> Any\n", str)
-            end
+            @test occursin("\nk_8(x::Any) -> Any\n", str)
             @test occursin("\n```\n", str)
 
             doc.data = Dict(
@@ -346,9 +338,7 @@ end
             DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
-            if VERSION > v"1.3.0"
-                @test occursin("\nk_9(x::Any) -> Any\n", str)
-            end
+            @test occursin("\nk_9(x::Any) -> Any\n", str)
             @test occursin("\n```\n", str)
 
             doc.data = Dict(
@@ -359,9 +349,7 @@ end
             DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
             str = String(take!(buf))
             @test_broken occursin("\n```julia\n", str)
-            if VERSION > v"1.3.0"
-                @test_broken occursin("\nk_10(x::T) -> Any\n", str)
-            end
+            @test_broken occursin("\nk_10(x::T) -> Any\n", str)
             @test_broken occursin("\n```\n", str)
         end
 
