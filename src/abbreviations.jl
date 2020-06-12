@@ -368,28 +368,28 @@ function format(::TypedMethodSignatures, buf, doc)
     local typesig = doc.data[:typesig]
     local modname = doc.data[:module]
     local func = Docs.resolve(binding)
+    # TODO: why is methodgroups returning invalid methods?
+    # the methodgroups always appears to return a Vector and the size depends on whether parametric types are used
+    # and whether default arguments are used
     local groups = methodgroups(func, typesig, modname)
     if !isempty(groups)
+        group = groups[end]
         println(buf)
         println(buf, "```julia")
-        for group in groups
-            if length(group) == 1
-                for method in group
-                    printmethod(buf, binding, func, method, typesig)
-                    println(buf)
-                end
+        for (i, method) in enumerate(group)
+            N = length(arguments(method))
+            # return a list of tuples that represent type signatures
+            tuples = find_tuples(typesig)
+            # The following will find the tuple that matches the number of arguments in the function
+            # ideally we would check that the method signature matches the Tuple{...} signature
+            # but that is not straightforward because of how expressive Julia can be
+            if Sys.iswindows()
+                t = tuples[findlast(t -> t isa DataType && string(t.name) == "Tuple" && length(t.types) == N, tuples)]
             else
-                for (i, method) in enumerate(group)
-                    if i == length(group)
-                        t = typesig
-                    else
-                        t = typesig.a
-                        typesig = typesig.b
-                    end
-                    printmethod(buf, binding, func, method, t)
-                    println(buf)
-                end
+                t = tuples[findfirst(t -> t isa DataType && string(t.name) == "Tuple" && length(t.types) == N, tuples)]
             end
+            printmethod(buf, binding, func, method, t)
+            println(buf)
         end
         println(buf, "\n```\n")
     end

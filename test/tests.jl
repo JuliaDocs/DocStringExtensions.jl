@@ -165,6 +165,17 @@ end
             @test occursin("\ng(x, y)\n", str)
             @test occursin("\ng(x, y, z; kwargs...)\n", str)
             @test occursin("\n```\n", str)
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :h_4),
+                :typesig => Union{Tuple{Any, Int, Any}},
+                :module => M,
+            )
+            DSE.format(SIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            @test occursin("\nh_4(x, ?, z)\n", str)
+            @test occursin("\n```\n", str)
         end
 
         @testset "method signatures with types" begin
@@ -212,6 +223,141 @@ end
                 @test occursin("\nh(x::Int32) -> Int32\n", str)
             end
             @test occursin("\n```\n", str)
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_1),
+                :typesig => Union{Tuple{String}, Tuple{String, T}, Tuple{String, T, T}, Tuple{T}} where T <: Number,
+                :module => M,
+            )
+            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            @test occursin("\nk_1(x::String) -> String\n", str)
+            @test occursin("\nk_1(x::String, y::T<:Number) -> String\n", str)
+            @test occursin("\nk_1(x::String, y::T<:Number, z::T<:Number) -> String\n", str)
+            @test occursin("\n```\n", str)
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_2),
+                :typesig => (Union{Tuple{String, U, T}, Tuple{T}, Tuple{U}} where T <: Number) where U <: Complex,
+                :module => M,
+            )
+
+            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            @test occursin("k_2(x::String, y::U<:Complex, z::T<:Number) -> String", str)
+            @test occursin("\n```\n", str)
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_3),
+                :typesig => (Union{Tuple{Any, T, U}, Tuple{U}, Tuple{T}} where U <: Any) where T <: Any,
+                :module => M,
+            )
+            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            @test occursin("\nk_3(x::Any, y::T, z::U) -> Any\n", str)
+            @test occursin("\n```\n", str)
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_4),
+                :typesig => Union{Tuple{String}, Tuple{String, Int}},
+                :module => M,
+            )
+            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            if VERSION > v"1.3.0"
+                @test occursin("\nk_4(::String)\n", str)
+                if typeof(1) === Int64
+                    @test occursin("\nk_4(::String, ::Int64)\n", str)
+                else
+                    @test occursin("\nk_4(::String, ::Int32)\n", str)
+                end
+            else
+                # TODO: remove this test when julia 1.0.0 support is dropped.
+                # older versions of julia seem to return this
+                # str = "\n```julia\nk_4(#temp#::String)\nk_4(#temp#::String, #temp#::Int64)\n\n```\n\n"
+                @test occursin("\nk_4", str)
+            end
+            @test occursin("\n```\n", str)
+
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_5),
+                :typesig => Union{Tuple{Type{T}, String}, Tuple{Type{T}, String, Union{Nothing, Function}}, Tuple{T}} where T <: Number,
+                :module => M,
+            )
+            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            if VERSION > v"1.3.0"
+                @test occursin("\nk_5(::Type{T<:Number}, x::String) -> String\n", str)
+                @test occursin("\nk_5(::Type{T<:Number}, x::String, func::Union{Nothing, Function}) -> String\n", str)
+                @test occursin("\n```\n", str)
+            else
+                # TODO: remove this test when julia 1.0.0 support is dropped.
+                # older versions of julia seem to return this
+                # str = "\n```julia\nk_5(#temp#::Type{T<:Number}, x::String) -> String\nk_5(#temp#::Type{T<:Number}, x::String, func::Union{Nothing, Function}) -> String\n\n```\n\n"
+                @test occursin("\nk_5", str)
+            end
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_6),
+                :typesig => Union{Tuple{Vector{T}}, Tuple{T}} where T <: Number,
+                :module => M,
+            )
+            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            @test occursin("\nk_6(x::Array{T<:Number,1}) -> Array{T<:Number,1}\n", str)
+            @test occursin("\n```\n", str)
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_7),
+                :typesig => Union{Tuple{Union{T, Nothing}}, Tuple{Union{T, Nothing}, T}, Tuple{T}} where T <: Number,
+                :module => M,
+            )
+            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            @test occursin("\nk_7(x::Union{Nothing, T<:Number}) -> Union{Nothing, Number}\n", str)
+            @test occursin("\nk_7(x::Union{Nothing, T<:Number}, y::T<:Number) -> Union{Nothing, T<:Number}\n", str)
+            @test occursin("\n```\n", str)
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_8),
+                :typesig => Union{Tuple{Any}},
+                :module => M,
+            )
+            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            @test occursin("\nk_8(x::Any) -> Any\n", str)
+            @test occursin("\n```\n", str)
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_9),
+                :typesig => Union{Tuple{T where T}},
+                :module => M,
+            )
+            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            @test occursin("\nk_9(x::Any) -> Any\n", str)
+            @test occursin("\n```\n", str)
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_10),
+                :typesig => Union{Tuple{T}, Tuple{T}} where T,
+                :module => M,
+            )
+            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test_broken occursin("\n```julia\n", str)
+            @test_broken occursin("\nk_10(x::T) -> Any\n", str)
+            @test_broken occursin("\n```\n", str)
         end
 
         @testset "function names" begin

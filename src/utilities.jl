@@ -223,6 +223,53 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
 end
 
 """
+$(:SIGNATURES)
+
+Converts a method signature (or a union of several signatures) in a vector of (single)
+signatures.
+
+This is used for decoding the method signature that a docstring is paired with. In the case
+when the docstring applies to multiple methods (e.g. when default positional argument values
+are used and define multiple methods at once), they are combined together as union of `Tuple`
+types.
+
+```jldoctest; setup = :(using DocStringExtensions)
+julia> DocStringExtensions.find_tuples(Tuple{String,Number,Int})
+1-element Array{DataType,1}:
+ Tuple{String,Number,Int64}
+
+julia> DocStringExtensions.find_tuples(Tuple{T} where T <: Integer)
+1-element Array{DataType,1}:
+ Tuple{T<:Integer}
+
+julia> s = Union{
+         Tuple{Int64},
+         Tuple{U},
+         Tuple{T},
+         Tuple{Int64,T},
+         Tuple{Int64,T,U}
+       } where U where T;
+
+julia> DocStringExtensions.find_tuples(s)
+5-element Array{DataType,1}:
+ Tuple{Int64}
+ Tuple{U}
+ Tuple{T}
+ Tuple{Int64,T}
+ Tuple{Int64,T,U}
+```
+"""
+function find_tuples(typesig)
+    if typesig isa UnionAll
+        return find_tuples(typesig.body)
+    elseif typesig isa Union
+        return [typesig.a, find_tuples(typesig.b)...]
+    else
+        return [typesig,]
+    end
+end
+
+"""
 $(:TYPEDSIGNATURES)
 
 Print a simplified representation of a method signature to `buffer`. Some of these
@@ -245,12 +292,9 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     print(buffer, binding.var)
     print(buffer, "(")
     local args = arguments(method)
+    local where_syntax = []
     for (i, sym) in enumerate(args)
-        if typesig isa UnionAll
-            t = typesig.body.a.types[1]
-        else
-            t = typesig.types[i]
-        end
+        t = typesig.types[i]
         print(buffer, "$sym::$t")
         if i != length(args)
             print(buffer, ", ")
@@ -262,12 +306,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         join(buffer, kws, ", ")
     end
     print(buffer, ")")
-    if typesig isa UnionAll
-        t = typesig.body.a
-    else
-        t = typesig
-    end
-    rt = Base.return_types(func, t)
+    rt = Base.return_types(func, typesig)
     if length(rt) >= 1 && rt[1] !== Nothing && rt[1] !== Union{}
         print(buffer, " -> $(rt[1])")
     end
