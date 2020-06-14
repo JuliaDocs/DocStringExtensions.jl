@@ -199,7 +199,7 @@ simplifications include:
   * no `TypeVar`s;
   * no types;
   * no keyword default values;
-  * `?` printed where `#unused#` arguments are found.
+  * `_` printed where `#unused#` arguments are found.
 
 # Examples
 
@@ -278,7 +278,6 @@ simplifications include:
   * no `TypeVar`s;
   * no types;
   * no keyword default values;
-  * `?` printed where `#unused#` arguments are found.
 
 # Examples
 
@@ -369,7 +368,7 @@ function arguments(m::Method)
     local template = get_method_source(m)
     if isdefined(template, :slotnames)
         local args = map(template.slotnames[1:nargs(m)]) do arg
-            arg === Symbol("#unused#") ? "?" : arg
+            arg === Symbol("#unused#") ? "_" : arg
         end
         return filter(arg -> arg !== Symbol("#self#"), args)
     end

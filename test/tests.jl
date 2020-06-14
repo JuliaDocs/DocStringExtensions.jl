@@ -174,7 +174,7 @@ end
             DSE.format(SIGNATURES, buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
-            @test occursin("\nh_4(x, ?, z)\n", str)
+            @test occursin("\nh_4(x, _, z)\n", str)
             @test occursin("\n```\n", str)
         end
 
