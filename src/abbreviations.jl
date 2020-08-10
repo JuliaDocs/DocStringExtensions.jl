@@ -384,9 +384,9 @@ function format(::TypedMethodSignatures, buf, doc)
             # ideally we would check that the method signature matches the Tuple{...} signature
             # but that is not straightforward because of how expressive Julia can be
             if Sys.iswindows()
-                t = tuples[findlast(t -> t isa DataType && string(t.name) == "Tuple" && length(t.types) == N, tuples)]
+                t = tuples[findlast(t -> t isa DataType && t <: Tuple && length(t.types) == N, tuples)]
             else
-                t = tuples[findfirst(t -> t isa DataType && string(t.name) == "Tuple" && length(t.types) == N, tuples)]
+                t = tuples[findfirst(t -> t isa DataType && t <: Tuple && length(t.types) == N, tuples)]
             end
             printmethod(buf, binding, func, method, t)
             println(buf)

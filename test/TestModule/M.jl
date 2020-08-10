@@ -8,7 +8,7 @@ g(x = 1, y = 2, z = 3; kwargs...) = x
 
 h(x::Int, y::Int = 2, z::Int = 3; kwargs...) = x
 
-const A{T} = Union{Vector{T}, Matrix{T}}
+const A{T} = Union{Array{T, 3}, Array{T, 4}}
 
 h_1(x::A) = x
 h_2(x::A{Int}) = x
@@ -29,7 +29,7 @@ k_3(x, y::T, z::U) where {T, U} = x + y + z
 k_4(::String, ::Int = 0) = nothing
 k_5(::Type{T}, x::String, func::Union{Nothing, Function} = nothing) where T <: Number = x
 k_6(x::Vector{T}) where T <: Number = x
-k_7(x::Union{T,Nothing}, y::T = zero(T)) where {T <: Number} = x
+k_7(x::Union{T,Nothing}, y::T = zero(T)) where {T <: Integer} = x
 k_8(x) = x
 k_9(x::T where T<:Any) = x
 k_10(x::T) where T = x
