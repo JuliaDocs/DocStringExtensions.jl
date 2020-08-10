@@ -423,12 +423,15 @@ end
         let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))
             @test occursin("(DEFAULT)", fmt(:(TemplateTests.K)))
             @test occursin("(TYPES)", fmt(:(TemplateTests.T)))
+            @test occursin("(TYPES)", fmt(:(TemplateTests.S)))
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.f)))
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.g)))
+            @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.h)))
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.@m)))
 
             @test occursin("(DEFAULT)", fmt(:(TemplateTests.InnerModule.K)))
             @test occursin("(DEFAULT)", fmt(:(TemplateTests.InnerModule.T)))
+            @test occursin("field docs for x", fmt(:(TemplateTests.InnerModule.T)))
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.InnerModule.f)))
             @test occursin("(MACROS)", fmt(:(TemplateTests.InnerModule.@m)))
 
