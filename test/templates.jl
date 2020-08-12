@@ -35,11 +35,17 @@ const K = 1
 "mutable struct `T`"
 mutable struct T end
 
+"`@kwdef` struct `S`"
+Base.@kwdef struct S end
+
 "method `f`"
 f(x) = x
 
 "method `g`"
 g(::Type{T}) where {T} = T # Issue 32
+
+"inlined method `h`"
+@inline h(x) = x
 
 "macro `@m`"
 macro m(x) end
@@ -66,8 +72,15 @@ module InnerModule
     "constant `K`"
     const K = 1
 
-    "mutable struct `T`"
-    mutable struct T end
+    """
+    mutable struct `T`
+
+    $(FIELDS)
+    """
+    mutable struct T
+        "field docs for x"
+        x
+    end
 
     "method `f`"
     f(x) = x

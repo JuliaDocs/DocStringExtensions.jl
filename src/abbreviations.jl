@@ -384,9 +384,9 @@ function format(::TypedMethodSignatures, buf, doc)
             # ideally we would check that the method signature matches the Tuple{...} signature
             # but that is not straightforward because of how expressive Julia can be
             if Sys.iswindows()
-                t = tuples[findlast(t -> t isa DataType && string(t.name) == "Tuple" && length(t.types) == N, tuples)]
+                t = tuples[findlast(t -> t isa DataType && t <: Tuple && length(t.types) == N, tuples)]
             else
-                t = tuples[findfirst(t -> t isa DataType && string(t.name) == "Tuple" && length(t.types) == N, tuples)]
+                t = tuples[findfirst(t -> t isa DataType && t <: Tuple && length(t.types) == N, tuples)]
             end
             printmethod(buf, binding, func, method, t)
             println(buf)
@@ -611,3 +611,63 @@ of the docstring body that should be spliced into a template.
 const DOCSTRING = DocStringTemplate()
 
 # NOTE: no `format` needed for this 'mock' abbreviation.
+
+is_docstr_template(::DocStringTemplate) = true
+is_docstr_template(other) = false
+
+"""
+Internal abbreviation type used to wrap templated docstrings.
+
+`Location` is a `Symbol`, either `:before` or `:after`. `dict` stores a
+reference to a module's templates.
+"""
+struct Template{Location} <: Abbreviation
+    dict::Dict{Symbol,Vector{Any}}
+end
+
+function format(abbr::Template, buf, doc)
+    # Find the applicable template based on the kind of docstr.
+    parts = get_template(abbr.dict, template_key(doc))
+    # Replace the abbreviation with either the parts of the template found
+    # before the `DOCSTRING` abbreviation, or after it. When no `DOCSTRING`
+    # exists in the template, which shouldn't really happen then nothing will
+    # get included here.
+    for index in included_range(abbr, parts)
+        # We don't call `DocStringExtensions.format` here since we need to be
+        # able to format any content in docstrings, rather than just
+        # abbreviations.
+        Docs.formatdoc(buf, doc, parts[index])
+    end
+end
+
+function included_range(abbr::Template, parts::Vector)
+    # Select the correct indexing depending on what we find.
+    build_range(::Template, ::Nothing) = 0:-1
+    build_range(::Template{:before}, index) = 1:(index - 1)
+    build_range(::Template{:after}, index) = (index + 1):lastindex(parts)
+    # Search for index from either the front or back.
+    find_index(::Template{:before}) = findfirst(is_docstr_template, parts)
+    find_index(::Template{:after}) = findlast(is_docstr_template, parts)
+    # Find and return the correct indices.
+    return build_range(abbr, find_index(abbr))
+end
+
+function template_key(doc::Docs.DocStr)
+    # Local helper methods for extracting the template key from a docstring.
+    ismacro(b::Docs.Binding) = startswith(string(b.var), '@')
+    objname(obj::Union{Function,Module,DataType,UnionAll,Core.IntrinsicFunction}, b::Docs.Binding) = nameof(obj)
+    objname(obj, b::Docs.Binding) = Symbol("") # Empty to force resolving to `:CONSTANTS` below.
+    # Select the key returned based on input argument types.
+    _key(::Module, sig, binding)                 = :MODULES
+    _key(::Function, ::typeof(Union{}), binding) = ismacro(binding) ? :MACROS : :FUNCTIONS
+    _key(::Function, sig, binding)               = ismacro(binding) ? :MACROS : :METHODS
+    _key(::DataType, ::typeof(Union{}), binding) = :TYPES
+    _key(::DataType, sig, binding)               = :METHODS
+    _key(other, sig, binding)                    = :DEFAULT
+
+    binding = doc.data[:binding]
+    obj = Docs.resolve(binding)
+    name = objname(obj, binding)
+    key = name === binding.var ? _key(obj, doc.data[:typesig], binding) : :CONSTANTS
+    return key
+end

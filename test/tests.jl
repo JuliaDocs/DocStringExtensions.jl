@@ -188,9 +188,9 @@ end
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
             if Sys.iswindows()
-                @test occursin("h_1(x::Union{Array{T,2}, Array{T,1}} where T) -> Union{Array{T,2}, Array{T,1}} where T", str)
+                @test occursin("h_1(x::Union{Array{T,4}, Array{T,3}} where T) -> Union{Array{T,4}, Array{T,3}} where T", str)
             else
-                @test occursin("h_1(x::Union{Array{T,1}, Array{T,2}} where T) -> Union{Array{T,1}, Array{T,2}} where T", str)
+                @test occursin("h_1(x::Union{Array{T,3}, Array{T,4}} where T) -> Union{Array{T,3}, Array{T,4}} where T", str)
             end
             @test occursin("\n```\n", str)
 
@@ -316,14 +316,14 @@ end
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :k_7),
-                :typesig => Union{Tuple{Union{T, Nothing}}, Tuple{Union{T, Nothing}, T}, Tuple{T}} where T <: Number,
+                :typesig => Union{Tuple{Union{T, Nothing}}, Tuple{Union{T, Nothing}, T}, Tuple{T}} where T <: Integer,
                 :module => M,
             )
             DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
-            @test occursin("\nk_7(x::Union{Nothing, T<:Number}) -> Union{Nothing, Number}\n", str)
-            @test occursin("\nk_7(x::Union{Nothing, T<:Number}, y::T<:Number) -> Union{Nothing, T<:Number}\n", str)
+            @test occursin("\nk_7(x::Union{Nothing, T<:Integer}) -> Union{Nothing, Integer}\n", str)
+            @test occursin("\nk_7(x::Union{Nothing, T<:Integer}, y::T<:Integer) -> Union{Nothing, T<:Integer}\n", str)
             @test occursin("\n```\n", str)
 
             doc.data = Dict(
@@ -423,12 +423,15 @@ end
         let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))
             @test occursin("(DEFAULT)", fmt(:(TemplateTests.K)))
             @test occursin("(TYPES)", fmt(:(TemplateTests.T)))
+            @test occursin("(TYPES)", fmt(:(TemplateTests.S)))
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.f)))
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.g)))
+            @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.h)))
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.@m)))
 
             @test occursin("(DEFAULT)", fmt(:(TemplateTests.InnerModule.K)))
             @test occursin("(DEFAULT)", fmt(:(TemplateTests.InnerModule.T)))
+            @test occursin("field docs for x", fmt(:(TemplateTests.InnerModule.T)))
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.InnerModule.f)))
             @test occursin("(MACROS)", fmt(:(TemplateTests.InnerModule.@m)))
 
@@ -550,8 +553,8 @@ end
             @test length(DSE.getmethods(M.f, Tuple{})) == 0
             @test length(DSE.getmethods(M.f, Union{Tuple{}, Tuple{Any}})) == 1
             @test length(DSE.getmethods(M.h_3, Tuple{M.A{Int}})) == 1
-            @test length(DSE.getmethods(M.h_3, Tuple{Vector{Int}})) == 1
-            @test length(DSE.getmethods(M.h_3, Tuple{Array{Int, 3}})) == 0
+            @test length(DSE.getmethods(M.h_3, Tuple{Array{Int, 3}})) == 1
+            @test length(DSE.getmethods(M.h_3, Tuple{Array{Int, 1}})) == 0
         end
         @testset "methodgroups" begin
             @test length(DSE.methodgroups(M.f, Tuple{Any}, M)) == 1

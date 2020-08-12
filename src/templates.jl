@@ -102,18 +102,21 @@ end
 # On v0.6 and below it seems it was assumed to be (docstr::String, expr::Expr), but on v0.7
 # it is (source::LineNumberNode, mod::Module, docstr::String, expr::Expr)
 function template_hook(source::LineNumberNode, mod::Module, docstr, expr::Expr)
-    local docex = interp_string(docstr)
-    if isdefined(mod, TEMP_SYM) && Meta.isexpr(docex, :string)
-        local templates = getfield(mod, TEMP_SYM)
-        local template = get_template(templates, expression_type(expr))
-        local out = Expr(:string)
-        for t in template
-            t == DOCSTRING ? append!(out.args, docex.args) : push!(out.args, t)
-        end
-        return (source, mod, out, expr)
-    else
-        return (source, mod, docstr, expr)
+    # During macro expansion we only need to wrap docstrings in special
+    # abbreviations that later print out what was before and after the
+    # docstring in it's specific template. This is only done when the module
+    # actually defines templates.
+    if isdefined(mod, TEMP_SYM)
+        dict = getfield(mod, TEMP_SYM)
+        # We unwrap interpolated strings so that we can add the `:before` and
+        # `:after` abbreviations. Otherwise they're just left as is.
+        unwrapped = Meta.isexpr(docstr, :string) ? docstr.args : [docstr]
+        before, after = Template{:before}(dict), Template{:after}(dict)
+        # Rebuild the original docstring, but with the template abbreviations
+        # surrounding it.
+        docstr = Expr(:string, before, unwrapped..., after)
     end
+    return (source, mod, docstr, expr)
 end
 
 function template_hook(docstr, expr::Expr)
@@ -123,29 +126,4 @@ end
 
 template_hook(args...) = args
 
-interp_string(str::AbstractString) = Expr(:string, str)
-interp_string(other) = other
-
 get_template(t::Dict, k::Symbol) = haskey(t, k) ? t[k] : get(t, :DEFAULT, Any[DOCSTRING])
-
-function expression_type(ex::Expr)
-    # Expression heads changed in JuliaLang/julia/pull/23157 to match the new keyword syntax.
-    if VERSION < v"0.7.0-DEV.1263" && Meta.isexpr(ex, [:type, :bitstype])
-        :TYPES
-    elseif Meta.isexpr(ex, :module)
-        :MODULES
-    elseif Meta.isexpr(ex, [:struct, :abstract, :typealias, :primitive])
-        :TYPES
-    elseif Meta.isexpr(ex, :macro)
-        :MACROS
-    elseif Meta.isexpr(ex, [:function, :(=)]) && Meta.isexpr(ex.args[1], :call) || (Meta.isexpr(ex.args[1], :where) && Meta.isexpr(ex.args[1].args[1], :call))
-        :METHODS
-    elseif Meta.isexpr(ex, :function)
-        :FUNCTIONS
-    elseif Meta.isexpr(ex, [:const, :(=)])
-        :CONSTANTS
-    else
-        :DEFAULT
-    end
-end
-expression_type(other) = :DEFAULT
