@@ -5,9 +5,11 @@ os:
   - osx
 
 julia:
-  - 0.7
-  - 1.0
   - nightly
+  - 1
+  - 1.4
+  - 1.0
+  - 0.7
 
 notifications:
   email: false
@@ -18,7 +20,7 @@ after_success:
 jobs:
   include:
     - stage: "Documentation"
-      julia: 1.0
+      julia: 1.5
       os: linux
       script:
         - julia --project=docs/ -e 'using Pkg; Pkg.add(PackageSpec(path=pwd()));
