@@ -505,6 +505,7 @@ end
 
 function print_abstract_type(buf, object)
     print(buf, "abstract type ", object.name.name)
+    print_params(buf, object)
     print_supertype(buf, object)
     println(buf)
 end

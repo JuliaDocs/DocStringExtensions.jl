@@ -45,7 +45,7 @@ struct K
 end
 
 
-abstract type AbstractType <: Integer end
+abstract type AbstractType{S, T <: Integer} <: Integer end
 
 struct CustomType{S, T <: Integer} <: Integer
 end
