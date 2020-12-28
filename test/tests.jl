@@ -52,7 +52,7 @@ end
         # .. which should have a single keyword argument, :y
         # Base.kwarg_decl returns a Vector{Any} of the keyword arguments.
         local kwargs = VERSION < v"1.4.0-DEV.215" ? Base.kwarg_decl(m, typeof(mt.kwsorter)) : Base.kwarg_decl(m)
-        @test isa(kwargs, Vector{Any})
+        @test isa(kwargs, Vector)
         @test kwargs == [:y]
         # Base.kwarg_decl will return a Tuple{} for some reason when called on a method
         # that does not have any arguments
@@ -187,10 +187,12 @@ end
             DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
+            f = str -> replace(str, " " => "")
+            str = f(str)
             if Sys.iswindows()
-                @test occursin("h_1(x::Union{Array{T,4}, Array{T,3}} where T) -> Union{Array{T,4}, Array{T,3}} where T", str)
+                @test occursin(f("h_1(x::Union{Array{T,4}, Array{T,3}} where T) -> Union{Array{T,4}, Array{T,3}} where T"), str)
             else
-                @test occursin("h_1(x::Union{Array{T,3}, Array{T,4}} where T) -> Union{Array{T,3}, Array{T,4}} where T", str)
+                @test occursin(f("h_1(x::Union{Array{T,3}, Array{T,4}} where T) -> Union{Array{T,3}, Array{T,4}} where T"), str)
             end
             @test occursin("\n```\n", str)
 
@@ -309,9 +311,11 @@ end
                 :module => M,
             )
             DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
+            f = str -> replace(str, " " => "")
             str = String(take!(buf))
+            str = f(str)
             @test occursin("\n```julia\n", str)
-            @test occursin("\nk_6(x::Array{T<:Number,1}) -> Array{T<:Number,1}\n", str)
+            @test occursin(f("\nk_6(x::Array{T<:Number,1}) -> Array{T<:Number,1}\n"), str)
             @test occursin("\n```\n", str)
 
             doc.data = Dict(
