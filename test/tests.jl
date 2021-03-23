@@ -377,13 +377,22 @@ end
 
         @testset "type definitions" begin
             doc.data = Dict(
-                :binding => Docs.Binding(M, :AbstractType),
+                :binding => Docs.Binding(M, :AbstractType1),
                 :typesig => Union{},
                 :module => M,
             )
             DSE.format(TYPEDEF, buf, doc)
             str = String(take!(buf))
-            @test str == "\n```julia\nabstract type AbstractType <: Integer\n```\n\n"
+            @test str == "\n```julia\nabstract type AbstractType1 <: Integer\n```\n\n"
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :AbstractType2),
+                :typesig => Union{},
+                :module => M,
+            )
+            DSE.format(TYPEDEF, buf, doc)
+            str = String(take!(buf))
+            @test str == "\n```julia\nabstract type AbstractType2{S, T<:Integer} <: Integer\n```\n\n"
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :CustomType),

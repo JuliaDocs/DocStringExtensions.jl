@@ -44,8 +44,8 @@ struct K
     K(; a = 1) = new()
 end
 
-
-abstract type AbstractType <: Integer end
+abstract type AbstractType1 <: Integer end
+abstract type AbstractType2{S, T <: Integer} <: Integer end
 
 struct CustomType{S, T <: Integer} <: Integer
 end
