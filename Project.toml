@@ -1,6 +1,6 @@
 name = "DocStringExtensions"
 uuid = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
-version = "0.8.4"
+version = "0.9.0"
 
 [deps]
 LibGit2 = "76f85450-5226-5b5a-8eaa-529ad045b433"
@@ -9,4 +9,10 @@ Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
-julia = "0.7, 1"
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
