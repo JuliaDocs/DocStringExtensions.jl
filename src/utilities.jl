@@ -295,14 +295,8 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
 
     for (i, sym) in enumerate(args)
         t = typesig.types[i]
-        if t isa Type && t <: Vararg
-            if t isa DataType
-                elt = t.parameters[1]
-            elseif t isa UnionAll
-                elt = t.body.parameters[1]
-            else
-                error("invalid Vararg type: $t")
-            end
+        if isvarargtype(t)
+            elt = vararg_eltype(t)
 
             if elt === Any
                 print(buffer, "$sym...")
@@ -336,6 +330,34 @@ printmethod(b, f, m) = String(take!(printmethod(IOBuffer(), b, f, m)))
 
 get_method_source(m::Method) = Base.uncompressed_ast(m)
 nargs(m::Method) = m.nargs
+
+function isvarargtype(t)
+    @static if VERSION > v"1.7-"
+        t isa Core.TypeofVararg
+    elseif VERSION > v"1.5-"
+        t isa Type && t <: Vararg
+    else
+        # don't special print Vararg
+        # below 1.5
+        false
+    end
+end
+
+function vararg_eltype(t)
+    @static if VERSION > v"1.7-"
+        return t.T
+    elseif VERSION > v"1.5-"
+        if t isa DataType
+            return t.parameters[1]
+        elseif t isa UnionAll
+            return t.body.parameters[1]
+        else
+            error("invalid Vararg type: $t")
+        end
+    else
+        error("cannot handle Vararg below 1.5")
+    end
+end
 
 """
 $(:SIGNATURES)
