@@ -320,6 +320,7 @@ function format(::MethodSignatures, buf, doc)
     local modname = doc.data[:module]
     local func = Docs.resolve(binding)
     local groups = methodgroups(func, typesig, modname)
+
     if !isempty(groups)
         println(buf)
         println(buf, "```julia")

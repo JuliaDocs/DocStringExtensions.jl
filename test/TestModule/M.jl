@@ -33,6 +33,8 @@ k_7(x::Union{T,Nothing}, y::T = zero(T)) where {T <: Integer} = x
 k_8(x) = x
 k_9(x::T where T<:Any) = x
 k_10(x::T) where T = x
+k_11(x::Int, xs...) = x
+k_12(x::Int, xs::Real...) = x
 
 mutable struct T
     a

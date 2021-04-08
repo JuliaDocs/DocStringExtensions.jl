@@ -292,9 +292,29 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     print(buffer, "(")
     local args = arguments(method)
     local where_syntax = []
+
     for (i, sym) in enumerate(args)
         t = typesig.types[i]
-        print(buffer, "$sym::$t")
+        if t isa Type && t <: Vararg
+            if t isa DataType
+                elt = t.parameters[1]
+            elseif t isa UnionAll
+                elt = t.body.parameters[1]
+            else
+                error("invalid Vararg type: $t")
+            end
+
+            if elt === Any
+                print(buffer, "$sym...")
+            else
+                print(buffer, "$sym::$elt...")
+            end
+        elseif t === Any
+            print(buffer, sym)
+        else
+            print(buffer, "$sym::$t")
+        end
+
         if i != length(args)
             print(buffer, ", ")
         end
@@ -316,7 +336,6 @@ printmethod(b, f, m) = String(take!(printmethod(IOBuffer(), b, f, m)))
 
 get_method_source(m::Method) = Base.uncompressed_ast(m)
 nargs(m::Method) = m.nargs
-
 
 """
 $(:SIGNATURES)

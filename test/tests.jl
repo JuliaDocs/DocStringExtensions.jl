@@ -259,7 +259,7 @@ end
             DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
-            @test occursin("\nk_3(x::Any, y::T, z::U) -> Any\n", str)
+            @test occursin("\nk_3(x, y::T, z::U) -> Any\n", str)
             @test occursin("\n```\n", str)
 
             doc.data = Dict(
@@ -338,7 +338,7 @@ end
             DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
-            @test occursin("\nk_8(x::Any) -> Any\n", str)
+            @test occursin("\nk_8(x) -> Any\n", str)
             @test occursin("\n```\n", str)
 
             doc.data = Dict(
@@ -349,7 +349,29 @@ end
             DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
-            @test occursin("\nk_9(x::Any) -> Any\n", str)
+            @test occursin("\nk_9(x) -> Any\n", str)
+            @test occursin("\n```\n", str)
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_11),
+                :typesig => Union{Tuple{Int, Vararg{Any}}},
+                :module => M,
+            )
+            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            @test occursin("\nk_11(x::Int64, xs...) -> Int64\n", str)
+            @test occursin("\n```\n", str)
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_12),
+                :typesig => Union{Tuple{Int, Vararg{Real}}},
+                :module => M,
+            )
+            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            @test occursin("\nk_12(x::Int64, xs::Real...) -> Int64\n", str)
             @test occursin("\n```\n", str)
 
             doc.data = Dict(
