@@ -519,10 +519,6 @@ function print_mutable_struct_or_struct(buf, object)
     println(buf)
 end
 
-@static if VERSION < v"0.7.0"
-    isprimitivetype(x) = isbitstype(x)
-end
-
 function format(::TypeDefinition, buf, doc)
     local binding = doc.data[:binding]
     local object = gettype(Docs.resolve(binding))
