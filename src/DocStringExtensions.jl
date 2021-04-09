@@ -75,6 +75,10 @@ $(IMPORTS)
 """
 module DocStringExtensions
 
+# Imports.
+
+import LibGit2
+
 # Exports.
 
 export @template, FIELDS, TYPEDFIELDS, EXPORTS, METHODLIST, IMPORTS
