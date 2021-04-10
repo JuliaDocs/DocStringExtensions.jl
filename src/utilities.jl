@@ -352,7 +352,9 @@ function vararg_eltype(t)
         elseif t isa UnionAll
             return t.body.parameters[1]
         else
-            error("invalid Vararg type: $t")
+            # don't know how to handle
+            # just return Any
+            return Any
         end
     else
         error("cannot handle Vararg below 1.5")
