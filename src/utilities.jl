@@ -437,8 +437,6 @@ on TravisCI as well.
 """
 url(m::Method) = url(m.module, string(m.file), m.line)
 
-import LibGit2
-
 function url(mod::Module, file::AbstractString, line::Integer)
     file = Sys.iswindows() ? replace(file, '\\' => '/') : file
     if Base.inbase(mod) && !isabspath(file)
