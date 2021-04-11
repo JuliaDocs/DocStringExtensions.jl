@@ -65,12 +65,7 @@ template for modules found in module `ModName`.
 
 """
 macro template(ex)
-    # JuliaLang/julia#22064 introduced the __module__ variable and deprecated current_module()
-    @static if VERSION >= v"0.7.0-DEV.484"
-        template(__source__, __module__, ex)
-    else
-        template(LineNumberNode(0), current_module(), ex)
-    end
+    template(__source__, __module__, ex)
 end
 
 const TEMP_SYM = gensym("templates")

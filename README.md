@@ -4,7 +4,7 @@
 
 | **Documentation**                                                               | **Build Status**                                                                                |
 |:-------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------:|
-| [![][docs-stable-img]][docs-stable-url] [![][docs-latest-img]][docs-latest-url] | [![][travis-img]][travis-url] [![][appveyor-img]][appveyor-url] [![][codecov-img]][codecov-url] |
+| [![][docs-stable-img]][docs-stable-url] [![][docs-latest-img]][docs-latest-url] | [![CI][github-action-img]][github-action-url] [![][codecov-img]][codecov-url] |
 
 ## Installation
 
@@ -36,6 +36,9 @@ Contributions are very welcome, as are feature requests and suggestions. Please 
 
 [docs-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
 [docs-stable-url]: https://juliadocs.github.io/DocStringExtensions.jl/stable
+
+[github-action-img]: https://github.com/JuliaDocs/DocStringExtensions.jl/actions/workflows/ci.yml/badge.svg
+[github-action-url]: https://github.com/JuliaDocs/DocStringExtensions.jl/actions/workflows/ci.yml
 
 [travis-img]: https://travis-ci.org/JuliaDocs/DocStringExtensions.jl.svg?branch=master
 [travis-url]: https://travis-ci.org/JuliaDocs/DocStringExtensions.jl

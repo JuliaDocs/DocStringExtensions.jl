@@ -1,5 +1,3 @@
-__precompile__(true)
-
 """
 *Extensions for the Julia docsystem.*
 

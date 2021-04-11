@@ -320,6 +320,7 @@ function format(::MethodSignatures, buf, doc)
     local modname = doc.data[:module]
     local func = Docs.resolve(binding)
     local groups = methodgroups(func, typesig, modname)
+
     if !isempty(groups)
         println(buf)
         println(buf, "```julia")
@@ -516,10 +517,6 @@ function print_mutable_struct_or_struct(buf, object)
     print_params(buf, object)
     print_supertype(buf, object)
     println(buf)
-end
-
-@static if VERSION < v"0.7.0"
-    isprimitivetype(x) = isbitstype(x)
 end
 
 function format(::TypeDefinition, buf, doc)
