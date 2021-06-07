@@ -461,3 +461,13 @@ function url(mod::Module, file::AbstractString, line::Integer)
         end
     end
 end
+
+# This is compat to make sure that we have ismutabletype available pre-1.7.
+# Implementation borrowed from JuliaLang/julia (MIT license).
+# https://github.com/JuliaLang/julia/pull/39037
+if !isdefined(Base, :ismutabletype)
+    function ismutabletype(@nospecialize(t::Type))
+        t = Base.unwrap_unionall(t)
+        return isa(t, DataType) && t.mutable
+    end
+end
