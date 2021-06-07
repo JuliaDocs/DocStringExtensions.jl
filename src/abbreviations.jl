@@ -512,7 +512,7 @@ function print_abstract_type(buf, object)
 end
 
 function print_mutable_struct_or_struct(buf, object)
-    object.mutable && print(buf, "mutable ")
+    ismutabletype(object) && print(buf, "mutable ")
     print(buf, "struct ", object.name.name)
     print_params(buf, object)
     print_supertype(buf, object)
