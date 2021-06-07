@@ -89,6 +89,7 @@ function getmethods!(results, f, sig)
     end
     return results
 end
+
 """
 $(:SIGNATURES)
 
@@ -98,22 +99,6 @@ This is similar to `methods(f, sig)`, but handles type signatures found in `DocS
 more consistently that `methods`.
 """
 getmethods(f, sig) = unique(getmethods!(Method[], f, sig))
-
-
-"""
-$(:SIGNATURES)
-
-Is the type `t` a `bitstype`?
-"""
-isbitstype(@nospecialize(t)) = isconcretetype(t) && sizeof(t) > 0 && isbits(t)
-
-"""
-$(:SIGNATURES)
-
-Is the type `t` an `abstract` type?
-"""
-isabstracttype(@nospecialize(t)) = isa(t, DataType) && getfield(t, :abstract)
-
 
 """
 $(:SIGNATURES)
