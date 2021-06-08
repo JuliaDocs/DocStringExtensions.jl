@@ -89,6 +89,7 @@ function getmethods!(results, f, sig)
     end
     return results
 end
+
 """
 $(:SIGNATURES)
 
@@ -98,22 +99,6 @@ This is similar to `methods(f, sig)`, but handles type signatures found in `DocS
 more consistently that `methods`.
 """
 getmethods(f, sig) = unique(getmethods!(Method[], f, sig))
-
-
-"""
-$(:SIGNATURES)
-
-Is the type `t` a `bitstype`?
-"""
-isbitstype(@nospecialize(t)) = isconcretetype(t) && sizeof(t) > 0 && isbits(t)
-
-"""
-$(:SIGNATURES)
-
-Is the type `t` an `abstract` type?
-"""
-isabstracttype(@nospecialize(t)) = isa(t, DataType) && getfield(t, :abstract)
-
 
 """
 $(:SIGNATURES)
@@ -474,5 +459,15 @@ function url(mod::Module, file::AbstractString, line::Integer)
         else
             return ""
         end
+    end
+end
+
+# This is compat to make sure that we have ismutabletype available pre-1.7.
+# Implementation borrowed from JuliaLang/julia (MIT license).
+# https://github.com/JuliaLang/julia/pull/39037
+if !isdefined(Base, :ismutabletype)
+    function ismutabletype(@nospecialize(t::Type))
+        t = Base.unwrap_unionall(t)
+        return isa(t, DataType) && t.mutable
     end
 end
