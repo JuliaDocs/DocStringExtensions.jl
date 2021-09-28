@@ -3,6 +3,7 @@ uuid = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 version = "0.8.5"
 
 [deps]
+Infiltrator = "5903a43b-9cc3-4c30-8d17-598619ec4e9b"
 LibGit2 = "76f85450-5226-5b5a-8eaa-529ad045b433"
 
 [compat]

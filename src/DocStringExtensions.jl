@@ -77,17 +77,18 @@ module DocStringExtensions
 
 import LibGit2
 
-# Exports.
-
-export @template, FIELDS, TYPEDFIELDS, EXPORTS, METHODLIST, IMPORTS
-export SIGNATURES, TYPEDSIGNATURES, TYPEDEF, DOCSTRING, FUNCTIONNAME
-export README, LICENSE
-
 # Includes.
 
 include("utilities.jl")
 include("abbreviations.jl")
 include("templates.jl")
+include("function_signatures_add.jl")
+
+# Exports.
+
+export @template, FIELDS, TYPEDFIELDS, EXPORTS, METHODLIST, IMPORTS
+export SIGNATURES, TYPEDSIGNATURES, TYPEDEF, DOCSTRING, FUNCTIONNAME
+export README, LICENSE, function_signatures_add
 
 #
 # Bootstrap abbreviations.
