@@ -131,7 +131,7 @@ Takes the doc_string and either adds a function signature or replaces the existi
 """
 function doc_string_modify(docString, moduleAndFunctionName, signatureString, removeExistingSignatureFirst)
     
-    printStuffHere=true
+    printStuffHere=false
 
     #Make sure we actually have a string, even if the docString thing didn't match:
     if docString==nothing
@@ -144,7 +144,7 @@ function doc_string_modify(docString, moduleAndFunctionName, signatureString, re
     #I use ra to keep from having to escape a bunch of stuff, and I use Regex instead of r"asdf" so I can interporate
     # the functionName in it.
     #Matching parenthesis inspired by https://stackoverflow.com/questions/546433/regular-expression-to-match-balanced-parentheses
-    docStrRe=Regex(raw"(^\s*)([^s]*?" * "$functionName" * raw")(\((?:[^)(]+|(?-1))*+\))?([^\n]*\n\s*)?(.*?)(\s*)$","s")
+    docStrRe=Regex(raw"(^\s*)([^s]*?" * "$functionName" * raw")?(\((?:[^)(]+|(?-1))*+\))?([^\n]*\n\s*)?(.*?)(\s*)$","s")
     
     printStuffHere && ( println(docStrRe); println(""))
 
