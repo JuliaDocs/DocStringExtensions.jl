@@ -39,7 +39,7 @@ If !confirmFirst, then we just assume it's ok.
 """
 function files_ok_with_user(files,confirmFirst::Bool)
     if confirmFirst
-        print("These are the files I am about to edit:\n\n")
+        print("These are the files I am about to edit.  Please make sure they're under version control before continuing:\n\n")
         foreach(x->println("\t"*x), files)
         print("\n")
 
@@ -63,7 +63,7 @@ end
 function_signatures_add(path::AbstractString,
                         signatureString::AbstractString="\$TYPEDSIGNATURES",
                         confirmFirst::Bool=true,
-                        replaceExistingSignatures::Bool=true,
+                        removeExistingSignatureFirst::Bool=true,
                         followSymlinks=::Bool=false)::Nothing
 
 This function is used to add function signatures to an entire code-base with one command, or to standarsize
@@ -74,8 +74,8 @@ If confirmFirst is true(default), it will display the list of files it intends t
 confirmation first.
 
 After that, it reads the files, searches for strings ending on the line before a line starting with "function",
-removes any existing function signatures (if replaceExistingSignatures, which is default), and makes sure 
-the beginning of the string starts with signatureString (Defaults to TYPEDSIGNATURES), two newlines, 
+removes any existing function signatures (if removeExistingSignatureFirst, which is default), and makes sure 
+the beginning of the string starts with signatureString (Defaults to "\$TYPEDSIGNATURES\n\n"), 
 and then whatever printable text was there before that was not a function signature.
 
 followSymlinks (default: false) says whether to follow symbolic links when recursively traversing directories.
@@ -86,7 +86,7 @@ If you're using git, the changes can be reviewed before comitting, to help build
 function function_signatures_add(path::AbstractString;
                                  signatureString::AbstractString="\$TYPEDSIGNATURES",
                                  confirmFirst::Bool=true,
-                                 replaceExistingSignatures::Bool=true,
+                                 removeExistingSignatureFirst::Bool=true,
                                  followSymlinks::Bool=false)
     
     allFiles=file_list_get(path,followSymlinks)
@@ -97,9 +97,12 @@ function function_signatures_add(path::AbstractString;
     end
 
     #Actually add them:
-    foreach(x->function_signatures_add_to_file(x,signatureString,replaceExistingSignatures), onlyJlFiles)
+    foreach(x->function_signatures_add_to_file(x,signatureString,removeExistingSignatureFirst), onlyJlFiles)
 
 end
 
-function_signatures_add("/home/andromodon/tmp/genie/genie.jl", confirmFirst=false)
 # function_signatures_add("/home/andromodon/tmp/genie/test.jl", confirmFirst=false)
+# function_signatures_add("/home/andromodon/tmp/genie/docStringsGalore.jl", confirmFirst=false)
+# function_signatures_add("/home/andromodon/tmp/genie/mistakes.jl", confirmFirst=false, removeExistingSignatureFirst=true)
+# function_signatures_add("/home/andromodon/tmp/genie/try.jl", confirmFirst=false, removeExistingSignatureFirst=true)
+function_signatures_add("/home/andromodon/tmp/genie/genie.jl", confirmFirst=false, removeExistingSignatureFirst=true)
