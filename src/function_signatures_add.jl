@@ -1,7 +1,5 @@
 #!/opt/bin/julia --project="."
 
-using Infiltrator
-
 include("./function_signatures_add_to_file.jl")
 
 """
