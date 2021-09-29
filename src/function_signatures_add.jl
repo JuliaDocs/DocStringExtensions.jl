@@ -101,5 +101,5 @@ function function_signatures_add(path::AbstractString;
 
 end
 
-# function_signatures_add("/home/andromodon/tmp/genie/genie.jl", confirmFirst=false)
-function_signatures_add("/home/andromodon/tmp/genie/test.jl", confirmFirst=false)
+function_signatures_add("/home/andromodon/tmp/genie/genie.jl", confirmFirst=false)
+# function_signatures_add("/home/andromodon/tmp/genie/test.jl", confirmFirst=false)
