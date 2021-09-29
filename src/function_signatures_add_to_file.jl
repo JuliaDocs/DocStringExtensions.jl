@@ -105,7 +105,7 @@ function function_signatures_add_to_file(filePath, signatureString, removeExisti
     # @assert inFileReassembled==fileAsString "Oh, crap, some part of the document escaped my regex!!"
 
     #Write the file to disk:
-    write(filePath * ".new", outFileStr)
+    write(filePath, outFileStr)
 end
 
 function file_contents_as_string(filePath)
