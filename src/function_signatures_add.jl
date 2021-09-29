@@ -100,9 +100,3 @@ function function_signatures_add(path::AbstractString;
     foreach(x->function_signatures_add_to_file(x,signatureString,removeExistingSignatureFirst), onlyJlFiles)
 
 end
-
-# function_signatures_add("/home/andromodon/tmp/genie/test.jl", confirmFirst=false)
-# function_signatures_add("/home/andromodon/tmp/genie/docStringsGalore.jl", confirmFirst=false)
-# function_signatures_add("/home/andromodon/tmp/genie/mistakes.jl", confirmFirst=false, removeExistingSignatureFirst=true)
-# function_signatures_add("/home/andromodon/tmp/genie/try.jl", confirmFirst=false, removeExistingSignatureFirst=true)
-function_signatures_add("/home/andromodon/tmp/genie/genie.jl", confirmFirst=false, removeExistingSignatureFirst=true)
