@@ -46,8 +46,8 @@ function function_signatures_add_to_file(filePath, signatureString, removeExisti
     #Get all of the matches, one per function that has a docstring:
     docStringsWhitespaceAndFunctions=eachmatch(regexToMatch, fileAsString)
     
-    #This is just to keep this at this scope:
-    endOfLastGroup=-1
+    #This is to keep this at this scope and to initialize if there isn't a match:
+    endOfLastGroup=1
 
     #This is an array we'll append to and then concatenate to make sure the regexes don't miss anything.
     inFileParts=[]
