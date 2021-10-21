@@ -246,7 +246,7 @@ julia> DocStringExtensions.find_tuples(s)
 """
 function find_tuples(typesig)
     if typesig isa UnionAll
-        return find_tuples(typesig.body)
+        return [UnionAll(typesig.var, x) for x in find_tuples(typesig.body)]
     elseif typesig isa Union
         return [typesig.a, find_tuples(typesig.b)...]
     else
@@ -278,11 +278,32 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     local args = arguments(method)
     local where_syntax = []
 
+    # find inner tuple type
+    function f(t)
+        # t is always either a UnionAll which represents a generic type or a Tuple where each parameter is the argument
+        if t isa DataType && t <: Tuple
+            return t
+        elseif t isa UnionAll
+            return f(t.body)
+        end
+    end
+
     for (i, sym) in enumerate(args)
-        t = typesig.types[i]
+        if typesig isa UnionAll
+            # e.g. Tuple{Vector{T}} where T<:Number
+            # or   Tuple{String, T, T} where T<:Number
+            # or   Tuple{Type{T}, String, Union{Nothing, Function}} where T<:Number
+            t = [x for x in f(typesig).types]
+            v = [x for x in t if x isa TypeVar]
+            # TODO: this prints `Union{Nothing, T<:Integer}` instead of `Union{Nothing, T} where T<:Number`
+            # To do this correctly, we need to extract the information out of types like this: `Type{TypeVar(:T, Number)}`
+            t = [x isa TypeVar ? UnionAll(popfirst!(v), x) : x for x in t][i]
+        else
+            # e.g. Tuple{Vector{Int}}
+            t = typesig.types[i]
+        end
         if isvarargtype(t)
             elt = vararg_eltype(t)
-
             if elt === Any
                 print(buffer, "$sym...")
             else
