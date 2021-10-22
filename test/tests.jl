@@ -325,19 +325,18 @@ end
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :k_7),
-                :typesig => Union{Tuple{Union{T, Nothing}}, Tuple{Union{T, Nothing}, T}, Tuple{T}} where T <: Integer,
+                :typesig => Union{Tuple{Union{Nothing, T}}, Tuple{T}, Tuple{Union{Nothing, T}, T}} where T<:Integer,
                 :module => M,
             )
             DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
-            # TODO: print `Union{Nothing, T<:Integer}` instead of `Union{Nothing, T} where T<:Number`
             if VERSION > v"1.7" || VERSION < v"1.1"
-                @test occursin("\nk_7(x::Union{Nothing, T<:Integer}) -> Union{Nothing, T} where T<:Integer\n", str)
+                @test occursin("\nk_7(x::Union{Nothing, T} where T<:Integer) -> Union{Nothing, T} where T<:Integer\n", str)
             else
-                @test occursin("\nk_7(x::Union{Nothing, T<:Integer}) -> Union{Nothing, Integer}\n", str)
+                @test occursin("\nk_7(x::Union{Nothing, T} where T<:Integer) -> Union{Nothing, Integer}\n", str)
             end
-            @test occursin("\nk_7(x::Union{Nothing, T<:Integer}, y::Integer) -> Union{Nothing, T} where T<:Integer\n", str)
+            @test occursin("\nk_7(x::Union{Nothing, T} where T<:Integer, y::Integer) -> Union{Nothing, T} where T<:Integer\n", str)
             @test occursin("\n```\n", str)
 
             doc.data = Dict(
@@ -390,13 +389,13 @@ end
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :k_10),
-                :typesig => Union{Tuple{T}, Tuple{T}} where T,
+                :typesig => Tuple{T} where T,
                 :module => M,
             )
             DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
             str = String(take!(buf))
             @test_broken occursin("\n```julia\n", str)
-            @test_broken occursin("\nk_10(x::T) -> Any\n", str)
+            @test_broken occursin("\nk_10(x) -> Any\n", str)
             @test_broken occursin("\n```\n", str)
         end
 

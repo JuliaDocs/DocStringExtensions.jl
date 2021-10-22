@@ -288,16 +288,31 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         end
     end
 
+    function get_typesig(t::Union, org::Union)
+        if t.a isa TypeVar
+            UnionAll(t.a, get_typesig(t.b, org))
+        elseif t.b isa TypeVar
+            UnionAll(t.b, t)
+        else
+            t
+        end
+    end
+
+    function get_typesig(typ::TypeVar, org)
+        UnionAll(typ, org)
+    end
+
+    function get_typesig(typ, org)
+        return typ
+    end
+
     for (i, sym) in enumerate(args)
         if typesig isa UnionAll
             # e.g. Tuple{Vector{T}} where T<:Number
             # or   Tuple{String, T, T} where T<:Number
             # or   Tuple{Type{T}, String, Union{Nothing, Function}} where T<:Number
             t = [x for x in f(typesig).types]
-            v = [x for x in t if x isa TypeVar]
-            # TODO: this prints `Union{Nothing, T<:Integer}` instead of `Union{Nothing, T} where T<:Number`
-            # To do this correctly, we need to extract the information out of types like this: `Type{TypeVar(:T, Number)}`
-            t = [x isa TypeVar ? UnionAll(popfirst!(v), x) : x for x in t][i]
+            t = [get_typesig(x, x) for x in t][i]
         else
             # e.g. Tuple{Vector{Int}}
             t = typesig.types[i]
