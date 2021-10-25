@@ -23,6 +23,7 @@ i_4(x; y::T = zero(T), z::U = zero(U)) where {T, U} = x + y + z
 j_1(x, y) = x * y # two arguments, no keyword arguments
 j_1(x; y = x) = x * y # one argument, one keyword argument
 
+k_0(x::T) where T = x
 k_1(x::String, y::T = 0, z::T = zero(T)) where T <: Number = x
 k_2(x::String, y::U, z::T) where T <: Number where U <: Complex = x
 k_3(x, y::T, z::U) where {T, U} = x + y + z
@@ -32,7 +33,6 @@ k_6(x::Vector{T}) where T <: Number = x
 k_7(x::Union{T,Nothing}, y::T = zero(T)) where {T <: Integer} = x
 k_8(x) = x
 k_9(x::T where T<:Any) = x
-k_10(x::T) where T = x
 k_11(x::Int, xs...) = x
 k_12(x::Int, xs::Real...) = x
 

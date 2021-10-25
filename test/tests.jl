@@ -180,6 +180,17 @@ end
 
         @testset "method signatures with types" begin
             doc.data = Dict(
+                :binding => Docs.Binding(M, :k_0),
+                :typesig => Tuple{T} where T,
+                :module => M,
+            )
+            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            @test occursin("\nk_0(x) -> Any\n", str)
+            @test occursin("\n```\n", str)
+
+            doc.data = Dict(
                 :binding => Docs.Binding(M, :h_1),
                 :typesig => Tuple{M.A},
                 :module => M,
@@ -285,7 +296,6 @@ end
             end
             @test occursin("\n```\n", str)
 
-
             doc.data = Dict(
                 :binding => Docs.Binding(M, :k_5),
                 :typesig => Union{Tuple{Type{T}, String}, Tuple{Type{T}, String, Union{Nothing, Function}}, Tuple{T}} where T <: Number,
@@ -387,16 +397,6 @@ end
 
             end
 
-            doc.data = Dict(
-                :binding => Docs.Binding(M, :k_10),
-                :typesig => Tuple{T} where T,
-                :module => M,
-            )
-            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
-            str = String(take!(buf))
-            @test_broken occursin("\n```julia\n", str)
-            @test_broken occursin("\nk_10(x) -> Any\n", str)
-            @test_broken occursin("\n```\n", str)
         end
 
         @testset "function names" begin
