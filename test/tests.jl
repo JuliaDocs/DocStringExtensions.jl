@@ -180,17 +180,6 @@ end
 
         @testset "method signatures with types" begin
             doc.data = Dict(
-                :binding => Docs.Binding(M, :k_0),
-                :typesig => Tuple{T} where T,
-                :module => M,
-            )
-            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
-            str = String(take!(buf))
-            @test occursin("\n```julia\n", str)
-            @test occursin("\nk_0(x) -> Any\n", str)
-            @test occursin("\n```\n", str)
-
-            doc.data = Dict(
                 :binding => Docs.Binding(M, :h_1),
                 :typesig => Tuple{M.A},
                 :module => M,
@@ -206,6 +195,7 @@ end
                 @test occursin(f("h_1(x::Union{Array{T,3}, Array{T,4}} where T) -> Union{Array{T,3}, Array{T,4}} where T"), str)
             end
             @test occursin("\n```\n", str)
+
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :h),
@@ -235,6 +225,17 @@ end
             else
                 @test occursin("\nh(x::Int32) -> Int32\n", str)
             end
+            @test occursin("\n```\n", str)
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_0),
+                :typesig => Tuple{T} where T,
+                :module => M,
+            )
+            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            @test occursin("\nk_0(x) -> Any\n", str)
             @test occursin("\n```\n", str)
 
             doc.data = Dict(
@@ -396,6 +397,7 @@ end
                 @test occursin("\n```\n", str)
 
             end
+
 
         end
 
