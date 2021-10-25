@@ -246,7 +246,7 @@ julia> DocStringExtensions.find_tuples(s)
 """
 function find_tuples(typesig)
     if typesig isa UnionAll
-        return find_tuples(typesig.body)
+        return [UnionAll(typesig.var, x) for x in find_tuples(typesig.body)]
     elseif typesig isa Union
         return [typesig.a, find_tuples(typesig.b)...]
     else
@@ -278,11 +278,49 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     local args = arguments(method)
     local where_syntax = []
 
+    # find inner tuple type
+    function f(t)
+        # t is always either a UnionAll which represents a generic type or a Tuple where each parameter is the argument
+        if t isa DataType && t <: Tuple
+            t
+        elseif t isa UnionAll
+            f(t.body)
+        else
+            error("Expected `typeof($t)` to be `Tuple` or `UnionAll` but found `$typeof(t)`")
+        end
+    end
+
+    function get_typesig(t::Union, org::Union)
+        if t.a isa TypeVar
+            UnionAll(t.a, get_typesig(t.b, org))
+        elseif t.b isa TypeVar
+            UnionAll(t.b, t)
+        else
+            t
+        end
+    end
+
+    function get_typesig(typ::TypeVar, org)
+        UnionAll(typ, org)
+    end
+
+    function get_typesig(typ, org)
+        typ
+    end
+
     for (i, sym) in enumerate(args)
-        t = typesig.types[i]
+        if typesig isa UnionAll
+            # e.g. Tuple{Vector{T}} where T<:Number
+            # or   Tuple{String, T, T} where T<:Number
+            # or   Tuple{Type{T}, String, Union{Nothing, Function}} where T<:Number
+            t = [x for x in f(typesig).types]
+            t = [get_typesig(x, x) for x in t][i]
+        else
+            # e.g. Tuple{Vector{Int}}
+            t = typesig.types[i]
+        end
         if isvarargtype(t)
             elt = vararg_eltype(t)
-
             if elt === Any
                 print(buffer, "$sym...")
             else
@@ -308,7 +346,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     if length(rt) >= 1 && rt[1] !== Nothing && rt[1] !== Union{}
         print(buffer, " -> $(rt[1])")
     end
-    return buffer
+    buffer
 end
 
 printmethod(b, f, m) = String(take!(printmethod(IOBuffer(), b, f, m)))

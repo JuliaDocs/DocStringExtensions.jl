@@ -384,10 +384,20 @@ function format(::TypedMethodSignatures, buf, doc)
             # The following will find the tuple that matches the number of arguments in the function
             # ideally we would check that the method signature matches the Tuple{...} signature
             # but that is not straightforward because of how expressive Julia can be
+            function f(t)
+                if t isa DataType
+                    return t <: Tuple && length(t.types) == N
+                elseif t isa UnionAll
+                    return f(t.body)
+                else
+                    return false
+                end
+            end
+
             if Sys.iswindows()
-                t = tuples[findlast(t -> t isa DataType && t <: Tuple && length(t.types) == N, tuples)]
+                t = tuples[findlast(f, tuples)]
             else
-                t = tuples[findfirst(t -> t isa DataType && t <: Tuple && length(t.types) == N, tuples)]
+                t = tuples[findfirst(f, tuples)]
             end
             printmethod(buf, binding, func, method, t)
             println(buf)
