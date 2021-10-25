@@ -282,9 +282,9 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     function f(t)
         # t is always either a UnionAll which represents a generic type or a Tuple where each parameter is the argument
         if t isa DataType && t <: Tuple
-            return t
+            t
         elseif t isa UnionAll
-            return f(t.body)
+            f(t.body)
         else
             error("Expected `typeof($t)` to be `Tuple` or `UnionAll` but found `$typeof(t)`")
         end
@@ -305,7 +305,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     end
 
     function get_typesig(typ, org)
-        return typ
+        typ
     end
 
     for (i, sym) in enumerate(args)
@@ -346,7 +346,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     if length(rt) >= 1 && rt[1] !== Nothing && rt[1] !== Union{}
         print(buffer, " -> $(rt[1])")
     end
-    return buffer
+    buffer
 end
 
 printmethod(b, f, m) = String(take!(printmethod(IOBuffer(), b, f, m)))
