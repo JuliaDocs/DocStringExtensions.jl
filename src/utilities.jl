@@ -285,6 +285,8 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
             return t
         elseif t isa UnionAll
             return f(t.body)
+        else
+            error("Expected `typeof($t)` to be `Tuple` or `UnionAll` but found `$typeof(t)`")
         end
     end
 
