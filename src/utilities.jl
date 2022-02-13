@@ -431,9 +431,18 @@ args = arguments(first(methods(f)))
 ```
 """
 function arguments(m::Method)
-    local template = get_method_source(m)
-    if isdefined(template, :slotnames)
-        local args = map(template.slotnames[1:nargs(m)]) do arg
+    local argnames = nothing
+    if isdefined(m, :generator)
+        # Generated function.
+        argnames = m.generator.argnames
+    else
+        local template = get_method_source(m)
+        if isdefined(template, :slotnames)
+            argnames = template.slotnames
+        end
+    end
+    if !isnothing(argnames)
+        local args = map(argnames) do arg
             arg === Symbol("#unused#") ? "_" : arg
         end
         return filter(arg -> arg !== Symbol("#self#"), args)
