@@ -460,7 +460,7 @@ function arguments(m::Method)
         end
     end
     if !isnothing(argnames)
-        local args = map(argnames) do arg
+        local args = map(argnames[1:nargs(m)]) do arg
             arg === Symbol("#unused#") ? "_" : arg
         end
         return filter(arg -> arg !== Symbol("#self#"), args)
