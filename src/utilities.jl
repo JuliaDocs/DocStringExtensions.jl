@@ -197,13 +197,20 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     # TODO: print qualified?
     print(buffer, binding.var)
     print(buffer, "(")
-    join(buffer, arguments(method), ", ")
+
+    #=
+    Calculate how long the string of the args and kwargs are. If too long,
+    break signature up into a nicely formatted multiline method signature.
+    =#
+    nl_delim, nl = get_format_delimiters(args, kws; delim="  ", break_point=40)
+
+    join(buffer, arguments(method), ", $nl_delim")
     local kws = keywords(func, method)
     if !isempty(kws)
-        print(buffer, "; ")
-        join(buffer, kws, ", ")
+        print(buffer, "; $nl_delim")
+        join(buffer, kws, ", $nl_delim")
     end
-    print(buffer, ")")
+    print(buffer, "$nl)")
     return buffer
 end
 
@@ -276,8 +283,9 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     print(buffer, binding.var)
     print(buffer, "(")
     local args = arguments(method)
+    local kws = keywords(func, method)
     local where_syntax = []
-
+    
     # find inner tuple type
     function f(t)
         # t is always either a UnionAll which represents a generic type or a Tuple where each parameter is the argument
@@ -308,43 +316,61 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         typ
     end
 
-    for (i, sym) in enumerate(args)
+    function get_type_at_i(typesig, i)
         if typesig isa UnionAll
             # e.g. Tuple{Vector{T}} where T<:Number
             # or   Tuple{String, T, T} where T<:Number
             # or   Tuple{Type{T}, String, Union{Nothing, Function}} where T<:Number
             t = [x for x in f(typesig).types]
-            t = [get_typesig(x, x) for x in t][i]
+            [get_typesig(x, x) for x in t][i]
         else
             # e.g. Tuple{Vector{Int}}
-            t = typesig.types[i]
+            typesig.types[i]
         end
+    end
+
+    #=
+    Calculate how long the string of the args and kwargs are. If too long,
+    break signature up into a nicely formatted multiline method signature.
+    =#
+    nl_delim, nl = get_format_delimiters(
+        args, 
+        kws;
+        type_info = join([string(get_type_at_i(typesig, i)) for i in eachindex(args)]), 
+        delim="  ", 
+        break_point=40
+    )
+
+    for (i, sym) in enumerate(args)
+        t = get_type_at_i(typesig, i)
+
         if isvarargtype(t)
             elt = vararg_eltype(t)
             if elt === Any
-                print(buffer, "$sym...")
+                print(buffer, "$nl_delim$sym...")
             else
-                print(buffer, "$sym::$elt...")
+                print(buffer, "$nl_delim$sym::$elt...")
             end
         elseif t === Any
-            print(buffer, sym)
+            print(buffer, "$nl_delim$sym")
         else
-            print(buffer, "$sym::$t")
+            print(buffer, "$nl_delim$sym::$t")
         end
 
         if i != length(args)
             print(buffer, ", ")
         end
     end
-    local kws = keywords(func, method)
+
     if !isempty(kws)
-        print(buffer, "; ")
-        join(buffer, kws, ", ")
+        print(buffer, "; $nl_delim")
+        join(buffer, kws, ", $nl_delim")
     end
-    print(buffer, ")")
+    print(buffer, "$nl)")
     rt = Base.return_types(func, typesig)
     if length(rt) >= 1 && rt[1] !== Nothing && rt[1] !== Union{}
-        print(buffer, " -> $(rt[1])")
+        formatted_rt = format_return_type_string(rt[1])
+        print(buffer, " -> $formatted_rt")
     end
     buffer
 end
@@ -507,5 +533,41 @@ if !isdefined(Base, :ismutabletype)
     function ismutabletype(@nospecialize(t::Type))
         t = Base.unwrap_unionall(t)
         return isa(t, DataType) && t.mutable
+    end
+end
+
+"""
+$(:SIGNATURES)
+
+Return two strings used to format method signatures by breaking long signatures
+into multiline signatures. If the line width of the `args` and `kws` of a method
+is longer than `break_point`, then return a new line joined with `delim` and a
+new line character. Otherwise, return an empty string, so that the formatting is
+unaffected.
+"""
+function get_format_delimiters(args, kws; delim="  ", break_point=40, type_info = "")
+    estimated_line_width = length(join(string.(args))) + 
+        length(join(string.(kws))) + length(type_info)
+    
+    nl_delim = estimated_line_width > break_point ? "\n$delim" : ""
+    nl = estimated_line_width > break_point ? "\n" : ""
+    
+    return nl_delim, nl
+end
+
+"""
+$(:SIGNATURES)
+
+Format the return type to look prettier.
+"""
+function format_return_type_string(rt; delim = "  ", break_point=40)
+    if startswith(string(rt), "Tuple{") && length(string(rt)) > break_point
+        string(
+            "Tuple{\n", 
+            join([string(x) for x in rt.types],",\n$delim"),
+            "\n}",
+        )
+    else
+        string(rt)
     end
 end
