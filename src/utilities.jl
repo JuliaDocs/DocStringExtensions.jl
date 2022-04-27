@@ -562,7 +562,7 @@ Format the return type to look prettier.
 """
 function format_return_type_string(rt; delim = "  ", break_point=40)
     if startswith(string(rt), "Tuple{") && length(string(rt)) > break_point
-        string(
+        string( #TODO Unions[...} look ugly
             "Tuple{\n$delim", 
             join([string(x) for x in rt.types],",\n$delim"),
             "\n}",
