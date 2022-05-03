@@ -197,6 +197,8 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     # TODO: print qualified?
     print(buffer, binding.var)
     print(buffer, "(")
+    local args = arguments(method)
+    local kws = keywords(func, method)
 
     #=
     Calculate how long the string of the args and kwargs are. If too long,
@@ -204,8 +206,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     =#
     nl_delim, nl = get_format_delimiters(args, kws; delim="  ", break_point=40)
 
-    join(buffer, arguments(method), ", $nl_delim")
-    local kws = keywords(func, method)
+    join(buffer, args, ", $nl_delim")
     if !isempty(kws)
         print(buffer, "; $nl_delim")
         join(buffer, kws, ", $nl_delim")
@@ -562,12 +563,12 @@ Format the return type to look prettier.
 """
 function format_return_type_string(rt; delim = "  ", break_point=40)
     if startswith(string(rt), "Tuple{") && length(string(rt)) > break_point
-        string( #TODO Unions[...} look ugly
+        string(
             "Tuple{\n$delim", 
             join([string(x) for x in rt.types],",\n$delim"),
             "\n}",
         )
-    else
+    else #TODO Unions{...} look ugly, but represent one type, so maybe should be on one line
         string(rt)
     end
 end
