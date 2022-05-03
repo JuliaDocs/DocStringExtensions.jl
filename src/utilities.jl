@@ -286,7 +286,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     local args = arguments(method)
     local kws = keywords(func, method)
     local where_syntax = []
-    
+
     # find inner tuple type
     function f(t)
         # t is always either a UnionAll which represents a generic type or a Tuple where each parameter is the argument
@@ -335,10 +335,10 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     break signature up into a nicely formatted multiline method signature.
     =#
     nl_delim, nl = get_format_delimiters(
-        args, 
+        args,
         kws;
-        type_info = join([string(get_type_at_i(typesig, i)) for i in eachindex(args)]), 
-        delim="  ", 
+        type_info = join([string(get_type_at_i(typesig, i)) for i in eachindex(args)]),
+        delim="  ",
         break_point=40
     )
 
@@ -547,12 +547,12 @@ new line character. Otherwise, return an empty string, so that the formatting is
 unaffected.
 """
 function get_format_delimiters(args, kws; delim="  ", break_point=40, type_info = "")
-    estimated_line_width = length(join(string.(args))) + 
+    estimated_line_width = length(join(string.(args))) +
         length(join(string.(kws))) + length(type_info)
-    
+
     nl_delim = estimated_line_width > break_point ? "\n$delim" : ""
     nl = estimated_line_width > break_point ? "\n" : ""
-    
+
     return nl_delim, nl
 end
 
@@ -564,7 +564,7 @@ Format the return type to look prettier.
 function format_return_type_string(rt; delim = "  ", break_point=40)
     if startswith(string(rt), "Tuple{") && length(string(rt)) > break_point
         string(
-            "Tuple{\n$delim", 
+            "Tuple{\n$delim",
             join([string(x) for x in rt.types],",\n$delim"),
             "\n}",
         )
