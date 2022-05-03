@@ -342,12 +342,13 @@ end
             DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
-            if VERSION > v"1.7" || VERSION < v"1.1"
-                @test occursin("\nk_7(\n  x::Union{Nothing, T} where T<:Integer\n) -> Union{Nothing, T} where T<:Integer\n", str)
-            else
+            if VERSION >= v"1.6" && VERSION < v"1.7"
                 @test occursin("\nk_7(\n  x::Union{Nothing, T} where T<:Integer\n) -> Union{Nothing, Integer}\n", str)
+                @test occursin("\nk_7(\n  x::Union{Nothing, T} where T<:Integer,\n  y::Integer\n) -> Union{Nothing, Integer}\n", str)
+            else
+                @test occursin("\nk_7(\n  x::Union{Nothing, T} where T<:Integer\n) -> Union{Nothing, T} where T<:Integer\n", str)
+                @test occursin("\nk_7(\n  x::Union{Nothing, T} where T<:Integer,\n  y::Integer\n) -> Union{Nothing, T} where T<:Integer\n", str)
             end
-            @test occursin("\nk_7(\n  x::Union{Nothing, T} where T<:Integer,\n  y::Integer\n) -> Union{Nothing, T} where T<:Integer\n", str)
             @test occursin("\n```\n", str)
 
             doc.data = Dict(
