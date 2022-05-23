@@ -307,7 +307,7 @@ end
             @test occursin("\n```julia\n", str)
             if VERSION > v"1.3.0"
                 @test occursin("\nk_5(::Type{T<:Number}, x::String) -> String\n", str)
-                @test occursin("\nk_5(\n  ::Type{T<:Number},\n  x::String,\n  func::Union{Nothing, Function}\n) -> String\n", str)
+                @test occursin("\nk_5(\n    ::Type{T<:Number},\n    x::String,\n    func::Union{Nothing, Function}\n) -> String\n", str)
                 @test occursin("\n```\n", str)
             else
                 # TODO: remove this test when julia 1.0.0 support is dropped.
@@ -343,11 +343,11 @@ end
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
             if VERSION >= v"1.6" && VERSION < v"1.7"
-                @test occursin("\nk_7(\n  x::Union{Nothing, T} where T<:Integer\n) -> Union{Nothing, Integer}\n", str)
-                @test occursin("\nk_7(\n  x::Union{Nothing, T} where T<:Integer,\n  y::Integer\n) -> Union{Nothing, Integer}\n", str)
+                @test occursin("\nk_7(\n    x::Union{Nothing, T} where T<:Integer\n) -> Union{Nothing, Integer}\n", str)
+                @test occursin("\nk_7(\n    x::Union{Nothing, T} where T<:Integer,\n    y::Integer\n) -> Union{Nothing, Integer}\n", str)
             else
-                @test occursin("\nk_7(\n  x::Union{Nothing, T} where T<:Integer\n) -> Union{Nothing, T} where T<:Integer\n", str)
-                @test occursin("\nk_7(\n  x::Union{Nothing, T} where T<:Integer,\n  y::Integer\n) -> Union{Nothing, T} where T<:Integer\n", str)
+                @test occursin("\nk_7(\n    x::Union{Nothing, T} where T<:Integer\n) -> Union{Nothing, T} where T<:Integer\n", str)
+                @test occursin("\nk_7(\n    x::Union{Nothing, T} where T<:Integer,\n    y::Integer\n) -> Union{Nothing, T} where T<:Integer\n", str)
             end
             @test occursin("\n```\n", str)
 
