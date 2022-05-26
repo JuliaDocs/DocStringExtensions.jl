@@ -459,7 +459,7 @@ function arguments(m::Method)
             argnames = template.slotnames
         end
     end
-    if !isnothing(argnames)
+    if argnames !== nothing
         local args = map(argnames[1:nargs(m)]) do arg
             arg === Symbol("#unused#") ? "_" : arg
         end
