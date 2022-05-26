@@ -35,6 +35,9 @@ const K = 1
 "mutable struct `T`"
 mutable struct T end
 
+"mutable struct `ISSUE_115{S}`"
+mutable struct ISSUE_115{S} end
+
 "`@kwdef` struct `S`"
 Base.@kwdef struct S end
 
@@ -100,6 +103,9 @@ module OtherModule
 
     "mutable struct `T`"
     mutable struct T end
+
+    "mutable struct `ISSUE_115{S}`"
+    mutable struct ISSUE_115{S} end
 
     "macro `@m`"
     macro m(x) end
