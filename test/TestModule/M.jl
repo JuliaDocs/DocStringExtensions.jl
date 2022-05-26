@@ -15,6 +15,9 @@ h_2(x::A{Int}) = x
 h_3(x::A{T}) where {T} = x
 h_4(x, ::Int, z) = x
 
+@generated g_1(x) = x
+@generated g_2(x::Integer) = x
+
 i_1(x; y = x) = x * y
 i_2(x::Int; y = x) = x * y
 i_3(x::T; y = x) where {T} = x * y

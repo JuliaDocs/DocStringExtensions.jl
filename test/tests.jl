@@ -167,6 +167,17 @@ end
             @test occursin("\n```\n", str)
 
             doc.data = Dict(
+                :binding => Docs.Binding(M, :g_1),
+                :typesig => Tuple{Any},
+                :module => M,
+            )
+            DSE.format(SIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            @test occursin("\ng_1(x)\n", str)
+            @test occursin("\n```\n", str)
+
+            doc.data = Dict(
                 :binding => Docs.Binding(M, :h_4),
                 :typesig => Union{Tuple{Any, Int, Any}},
                 :module => M,
@@ -196,6 +207,16 @@ end
             end
             @test occursin("\n```\n", str)
 
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :g_2),
+                :typesig => Tuple{Integer},
+                :module => M,
+            )
+            DSE.format(TYPEDSIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            @test occursin("\ng_2(x::Integer)", str)
+            @test occursin("\n```\n", str)
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :h),
