@@ -190,8 +190,8 @@ function printmethod_format(buffer::IOBuffer, binding::String, args::Vector{Stri
     if method_length_over_limit(
             length(binding) +
             1 +
-            sum(length, args; init = 0) +
-            sum(length, kws; init = 0) +
+            sum(length.(args)) +
+            sum(length.(kws)) +
             2*max(0, length(args)-1) +
             2*length(kws) +
             1 +
