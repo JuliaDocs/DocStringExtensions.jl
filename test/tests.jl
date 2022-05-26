@@ -496,6 +496,7 @@ end
             @test occursin("(DEFAULT)", fmt(:(TemplateTests.K)))
             @test occursin("(TYPES)", fmt(:(TemplateTests.T)))
             @test occursin("(TYPES)", fmt(:(TemplateTests.S)))
+            @test occursin("(TYPES)", fmt(:(TemplateTests.ISSUE_115)))
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.f)))
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.g)))
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.h)))
@@ -508,6 +509,7 @@ end
             @test occursin("(MACROS)", fmt(:(TemplateTests.InnerModule.@m)))
 
             @test occursin("(TYPES)", fmt(:(TemplateTests.OtherModule.T)))
+            @test occursin("(TYPES)", fmt(:(TemplateTests.OtherModule.ISSUE_115)))
             @test occursin("(MACROS)", fmt(:(TemplateTests.OtherModule.@m)))
             @test fmt(:(TemplateTests.OtherModule.f)) == "method `f`\n"
         end

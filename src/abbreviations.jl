@@ -670,6 +670,7 @@ function template_key(doc::Docs.DocStr)
     _key(::Function, ::typeof(Union{}), binding) = ismacro(binding) ? :MACROS : :FUNCTIONS
     _key(::Function, sig, binding)               = ismacro(binding) ? :MACROS : :METHODS
     _key(::DataType, ::typeof(Union{}), binding) = :TYPES
+    _key(::UnionAll, ::typeof(Union{}), binding) = :TYPES
     _key(::DataType, sig, binding)               = :METHODS
     _key(other, sig, binding)                    = :DEFAULT
 
