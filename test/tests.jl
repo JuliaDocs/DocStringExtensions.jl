@@ -209,13 +209,13 @@ end
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :g_2),
-                :typesig => Tuple{Integer},
+                :typesig => Tuple{String},
                 :module => M,
             )
             DSE.format(TYPEDSIGNATURES, buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
-            @test occursin("\ng_2(x::Integer)", str)
+            @test occursin("\ng_2(x::String)", str)
             @test occursin("\n```\n", str)
 
             doc.data = Dict(
