@@ -190,9 +190,9 @@ end
             f = str -> replace(str, " " => "")
             str = f(str)
             if Sys.iswindows()
-                @test occursin(f("h_1(x::Union{Array{T,4}, Array{T,3}} where T) -> Union{Array{T,4}, Array{T,3}} where T"), str)
+                @test occursin(f("h_1(\nx::Union{Array{T,4}, Array{T,3}} where T\n) -> Union{Array{T,4}, Array{T,3}} where T"), str)
             else
-                @test occursin(f("h_1(x::Union{Array{T,3}, Array{T,4}} where T) -> Union{Array{T,3}, Array{T,4}} where T"), str)
+                @test occursin(f("h_1(\nx::Union{Array{T,3}, Array{T,4}} where T\n) -> Union{Array{T,3}, Array{T,4}} where T"), str)
             end
             @test occursin("\n```\n", str)
 
@@ -307,7 +307,7 @@ end
             @test occursin("\n```julia\n", str)
             if VERSION > v"1.3.0"
                 @test occursin("\nk_5(::Type{T<:Number}, x::String) -> String\n", str)
-                @test occursin("\nk_5(::Type{T<:Number}, x::String, func::Union{Nothing, Function}) -> String\n", str)
+                @test occursin("\nk_5(\n    ::Type{T<:Number},\n    x::String,\n    func::Union{Nothing, Function}\n) -> String\n", str)
                 @test occursin("\n```\n", str)
             else
                 # TODO: remove this test when julia 1.0.0 support is dropped.
@@ -342,12 +342,13 @@ end
             DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
-            if VERSION > v"1.7" || VERSION < v"1.1"
-                @test occursin("\nk_7(x::Union{Nothing, T} where T<:Integer) -> Union{Nothing, T} where T<:Integer\n", str)
+            if VERSION >= v"1.6" && VERSION < v"1.7"
+                @test occursin("\nk_7(\n    x::Union{Nothing, T} where T<:Integer\n) -> Union{Nothing, Integer}\n", str)
+                @test occursin("\nk_7(\n    x::Union{Nothing, T} where T<:Integer,\n    y::Integer\n) -> Union{Nothing, Integer}\n", str)
             else
-                @test occursin("\nk_7(x::Union{Nothing, T} where T<:Integer) -> Union{Nothing, Integer}\n", str)
+                @test occursin("\nk_7(\n    x::Union{Nothing, T} where T<:Integer\n) -> Union{Nothing, T} where T<:Integer\n", str)
+                @test occursin("\nk_7(\n    x::Union{Nothing, T} where T<:Integer,\n    y::Integer\n) -> Union{Nothing, T} where T<:Integer\n", str)
             end
-            @test occursin("\nk_7(x::Union{Nothing, T} where T<:Integer, y::Integer) -> Union{Nothing, T} where T<:Integer\n", str)
             @test occursin("\n```\n", str)
 
             doc.data = Dict(
