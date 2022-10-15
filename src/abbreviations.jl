@@ -81,13 +81,9 @@ type `Vector{Any}`.
 
   - `x::String`
 
-  - `y::Int`
+  - `y::Int`: Unlike the `x` field this field has been documented.
 
-    Unlike the `x` field this field has been documented.
-
-  - `z::Array{Any, 1}`
-
-    Another documented field.
+  - `z::Array{Any, 1}`: Another documented field.
 ```
 """
 const TYPEDFIELDS = TypeFields(true)
@@ -105,9 +101,11 @@ function format(abbrv::TypeFields, buf, doc)
             println(buf, "`")
             # Print the field docs if they exist and aren't a `doc"..."` docstring.
             if haskey(docs, field) && isa(docs[field], AbstractString)
-                println(buf)
+                print(buf, ": ")
+                indented = true
                 for line in split(docs[field], "\n")
-                    println(buf, isempty(line) ? "" : "    ", rstrip(line))
+                    println(buf, indented || isempty(line) ? "" : "    ", rstrip(line))
+                    indented = false
                 end
             end
             println(buf)
