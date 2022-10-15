@@ -100,11 +100,9 @@ function format(abbrv::TypeFields, buf, doc)
     if !isempty(fields)
         println(buf)
         for field in fields
-            if abbrv.types
-                println(buf, "  - `", field, "::", fieldtype(object, field), "`")
-            else
-                println(buf, "  - `", field, "`")
-            end
+            print(buf, "  - `", field)
+            abbrv.types && print(buf, "::", fieldtype(object, field))
+            println(buf, "`")
             # Print the field docs if they exist and aren't a `doc"..."` docstring.
             if haskey(docs, field) && isa(docs[field], AbstractString)
                 println(buf)
