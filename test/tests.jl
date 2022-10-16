@@ -200,8 +200,10 @@ end
             @test occursin("\n```julia\n", str)
             f = str -> replace(str, " " => "")
             str = f(str)
-            if Sys.iswindows()
-                @test occursin(f("h_1(\nx::Union{Array{T,4}, Array{T,3}} where T\n) -> Union{Array{T,4}, Array{T,3}} where T"), str)
+
+            if VERSION == v"1.0" && Sys.iswindows()
+                # on Windows, Julia 1.0 sorts Array{T,n} within Union in reverse order
+                @test_broken occursin(f("h_1(\nx::Union{Array{T,3}, Array{T,4}} where T\n) -> Union{Array{T,3}, Array{T,4}} where T"), str)
             else
                 @test occursin(f("h_1(\nx::Union{Array{T,3}, Array{T,4}} where T\n) -> Union{Array{T,3}, Array{T,4}} where T"), str)
             end
