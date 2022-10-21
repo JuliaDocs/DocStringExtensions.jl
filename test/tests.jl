@@ -42,7 +42,9 @@ end
         @test isdefined(methods(M.j_1), :mt)
         local mt = methods(M.j_1).mt
         @test isa(mt, Core.MethodTable)
-        @test isdefined(mt, :kwsorter)
+        if Base.fieldindex(Core.MethodTable, :kwsorter, false) > 0
+            @test isdefined(mt, :kwsorter)
+        end
         # .kwsorter is not always defined -- namely, it seems when none of the methods
         # have keyword arguments:
         @test isdefined(methods(M.f).mt, :kwsorter) === false
@@ -200,10 +202,8 @@ end
             @test occursin("\n```julia\n", str)
             f = str -> replace(str, " " => "")
             str = f(str)
-
-            if VERSION < v"1.1" && Sys.iswindows()
-                # on Windows, Julia 1.0 sorts Array{T,n} within Union in reverse order
-                @test_broken occursin(f("h_1(\nx::Union{Array{T,3}, Array{T,4}} where T\n) -> Union{Array{T,3}, Array{T,4}} where T"), str)
+            if Sys.iswindows() && VERSION < v"1.8"
+                @test occursin(f("h_1(\nx::Union{Array{T,4}, Array{T,3}} where T\n) -> Union{Array{T,4}, Array{T,3}} where T"), str)
             else
                 @test occursin(f("h_1(\nx::Union{Array{T,3}, Array{T,4}} where T\n) -> Union{Array{T,3}, Array{T,4}} where T"), str)
             end
