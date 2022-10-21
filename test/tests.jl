@@ -42,7 +42,9 @@ end
         @test isdefined(methods(M.j_1), :mt)
         local mt = methods(M.j_1).mt
         @test isa(mt, Core.MethodTable)
-        @test isdefined(mt, :kwsorter)
+        if Base.fieldindex(Core.MethodTable, :kwsorter, false) > 0
+            @test isdefined(mt, :kwsorter)
+        end
         # .kwsorter is not always defined -- namely, it seems when none of the methods
         # have keyword arguments:
         @test isdefined(methods(M.f).mt, :kwsorter) === false
