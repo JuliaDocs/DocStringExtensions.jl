@@ -200,7 +200,7 @@ end
             @test occursin("\n```julia\n", str)
             f = str -> replace(str, " " => "")
             str = f(str)
-            if Sys.iswindows()
+            if Sys.iswindows() && VERSION < v"1.8"
                 @test occursin(f("h_1(\nx::Union{Array{T,4}, Array{T,3}} where T\n) -> Union{Array{T,4}, Array{T,3}} where T"), str)
             else
                 @test occursin(f("h_1(\nx::Union{Array{T,3}, Array{T,4}} where T\n) -> Union{Array{T,3}, Array{T,4}} where T"), str)

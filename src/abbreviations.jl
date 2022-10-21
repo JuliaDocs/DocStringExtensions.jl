@@ -394,7 +394,7 @@ function format(::TypedMethodSignatures, buf, doc)
                 end
             end
 
-            if Sys.iswindows()
+            @static if Sys.iswindows() && VERSION < v"1.8"
                 t = tuples[findlast(f, tuples)]
             else
                 t = tuples[findfirst(f, tuples)]
