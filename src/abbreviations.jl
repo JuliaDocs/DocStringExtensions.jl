@@ -98,7 +98,7 @@ function format(abbrv::TypeFields, buf, doc)
         for field in fields
             print(buf, "  - `", field)
             abbrv.types && print(buf, "::", fieldtype(object, field))
-            println(buf, "`")
+            print(buf, "`")
             # Print the field docs if they exist and aren't a `doc"..."` docstring.
             if haskey(docs, field) && isa(docs[field], AbstractString)
                 print(buf, ": ")
@@ -107,6 +107,8 @@ function format(abbrv::TypeFields, buf, doc)
                     println(buf, indented || isempty(line) ? "" : "    ", rstrip(line))
                     indented = false
                 end
+            else
+                println(buf)
             end
             println(buf)
         end
