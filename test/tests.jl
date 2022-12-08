@@ -42,7 +42,9 @@ end
         @test isdefined(methods(M.j_1), :mt)
         local mt = methods(M.j_1).mt
         @test isa(mt, Core.MethodTable)
-        @test isdefined(mt, :kwsorter)
+        if Base.fieldindex(Core.MethodTable, :kwsorter, false) > 0
+            @test isdefined(mt, :kwsorter)
+        end
         # .kwsorter is not always defined -- namely, it seems when none of the methods
         # have keyword arguments:
         @test isdefined(methods(M.f).mt, :kwsorter) === false
@@ -167,6 +169,17 @@ end
             @test occursin("\n```\n", str)
 
             doc.data = Dict(
+                :binding => Docs.Binding(M, :g_1),
+                :typesig => Tuple{Any},
+                :module => M,
+            )
+            DSE.format(SIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            @test occursin("\ng_1(x)\n", str)
+            @test occursin("\n```\n", str)
+
+            doc.data = Dict(
                 :binding => Docs.Binding(M, :h_4),
                 :typesig => Union{Tuple{Any, Int, Any}},
                 :module => M,
@@ -189,13 +202,23 @@ end
             @test occursin("\n```julia\n", str)
             f = str -> replace(str, " " => "")
             str = f(str)
-            if Sys.iswindows()
-                @test occursin(f("h_1(x::Union{Array{T,4}, Array{T,3}} where T) -> Union{Array{T,4}, Array{T,3}} where T"), str)
+            if Sys.iswindows() && VERSION < v"1.8"
+                @test occursin(f("h_1(\nx::Union{Array{T,4}, Array{T,3}} where T\n) -> Union{Array{T,4}, Array{T,3}} where T"), str)
             else
-                @test occursin(f("h_1(x::Union{Array{T,3}, Array{T,4}} where T) -> Union{Array{T,3}, Array{T,4}} where T"), str)
+                @test occursin(f("h_1(\nx::Union{Array{T,3}, Array{T,4}} where T\n) -> Union{Array{T,3}, Array{T,4}} where T"), str)
             end
             @test occursin("\n```\n", str)
 
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :g_2),
+                :typesig => Tuple{String},
+                :module => M,
+            )
+            DSE.format(TYPEDSIGNATURES, buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            @test occursin("\ng_2(x::String)", str)
+            @test occursin("\n```\n", str)
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :h),
@@ -307,7 +330,7 @@ end
             @test occursin("\n```julia\n", str)
             if VERSION > v"1.3.0"
                 @test occursin("\nk_5(::Type{T<:Number}, x::String) -> String\n", str)
-                @test occursin("\nk_5(::Type{T<:Number}, x::String, func::Union{Nothing, Function}) -> String\n", str)
+                @test occursin("\nk_5(\n    ::Type{T<:Number},\n    x::String,\n    func::Union{Nothing, Function}\n) -> String\n", str)
                 @test occursin("\n```\n", str)
             else
                 # TODO: remove this test when julia 1.0.0 support is dropped.
@@ -342,12 +365,13 @@ end
             DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
-            if VERSION > v"1.7" || VERSION < v"1.1"
-                @test occursin("\nk_7(x::Union{Nothing, T} where T<:Integer) -> Union{Nothing, T} where T<:Integer\n", str)
+            if VERSION >= v"1.6" && VERSION < v"1.7"
+                @test occursin("\nk_7(\n    x::Union{Nothing, T} where T<:Integer\n) -> Union{Nothing, Integer}\n", str)
+                @test occursin("\nk_7(\n    x::Union{Nothing, T} where T<:Integer,\n    y::Integer\n) -> Union{Nothing, Integer}\n", str)
             else
-                @test occursin("\nk_7(x::Union{Nothing, T} where T<:Integer) -> Union{Nothing, Integer}\n", str)
+                @test occursin("\nk_7(\n    x::Union{Nothing, T} where T<:Integer\n) -> Union{Nothing, T} where T<:Integer\n", str)
+                @test occursin("\nk_7(\n    x::Union{Nothing, T} where T<:Integer,\n    y::Integer\n) -> Union{Nothing, T} where T<:Integer\n", str)
             end
-            @test occursin("\nk_7(x::Union{Nothing, T} where T<:Integer, y::Integer) -> Union{Nothing, T} where T<:Integer\n", str)
             @test occursin("\n```\n", str)
 
             doc.data = Dict(
@@ -474,6 +498,7 @@ end
             @test occursin("(DEFAULT)", fmt(:(TemplateTests.K)))
             @test occursin("(TYPES)", fmt(:(TemplateTests.T)))
             @test occursin("(TYPES)", fmt(:(TemplateTests.S)))
+            @test occursin("(TYPES)", fmt(:(TemplateTests.ISSUE_115)))
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.f)))
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.g)))
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.h)))
@@ -486,6 +511,7 @@ end
             @test occursin("(MACROS)", fmt(:(TemplateTests.InnerModule.@m)))
 
             @test occursin("(TYPES)", fmt(:(TemplateTests.OtherModule.T)))
+            @test occursin("(TYPES)", fmt(:(TemplateTests.OtherModule.ISSUE_115)))
             @test occursin("(MACROS)", fmt(:(TemplateTests.OtherModule.@m)))
             @test fmt(:(TemplateTests.OtherModule.f)) == "method `f`\n"
         end

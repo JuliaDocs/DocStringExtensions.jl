@@ -81,13 +81,9 @@ type `Vector{Any}`.
 
   - `x::String`
 
-  - `y::Int`
+  - `y::Int`: Unlike the `x` field this field has been documented.
 
-    Unlike the `x` field this field has been documented.
-
-  - `z::Array{Any, 1}`
-
-    Another documented field.
+  - `z::Array{Any, 1}`: Another documented field.
 ```
 """
 const TYPEDFIELDS = TypeFields(true)
@@ -96,23 +92,23 @@ function format(abbrv::TypeFields, buf, doc)
     local docs = get(doc.data, :fields, Dict())
     local binding = doc.data[:binding]
     local object = Docs.resolve(binding)
-    # On 0.7 fieldnames() on an abstract type throws an error. We then explicitly return
-    # an empty vector to be consistent with the behaviour on v0.6.
     local fields = isabstracttype(object) ? Symbol[] : fieldnames(object)
     if !isempty(fields)
         println(buf)
         for field in fields
-            if abbrv.types
-                println(buf, "  - `", field, "::", fieldtype(object, field), "`")
-            else
-                println(buf, "  - `", field, "`")
-            end
+            print(buf, "  - `", field)
+            abbrv.types && print(buf, "::", fieldtype(object, field))
+            print(buf, "`")
             # Print the field docs if they exist and aren't a `doc"..."` docstring.
             if haskey(docs, field) && isa(docs[field], AbstractString)
-                println(buf)
+                print(buf, ": ")
+                indented = true
                 for line in split(docs[field], "\n")
-                    println(buf, isempty(line) ? "" : "    ", rstrip(line))
+                    println(buf, indented || isempty(line) ? "" : "    ", rstrip(line))
+                    indented = false
                 end
+            else
+                println(buf)
             end
             println(buf)
         end
@@ -394,7 +390,7 @@ function format(::TypedMethodSignatures, buf, doc)
                 end
             end
 
-            if Sys.iswindows()
+            @static if Sys.iswindows() && VERSION < v"1.8"
                 t = tuples[findlast(f, tuples)]
             else
                 t = tuples[findfirst(f, tuples)]
@@ -670,6 +666,7 @@ function template_key(doc::Docs.DocStr)
     _key(::Function, ::typeof(Union{}), binding) = ismacro(binding) ? :MACROS : :FUNCTIONS
     _key(::Function, sig, binding)               = ismacro(binding) ? :MACROS : :METHODS
     _key(::DataType, ::typeof(Union{}), binding) = :TYPES
+    _key(::UnionAll, ::typeof(Union{}), binding) = :TYPES
     _key(::DataType, sig, binding)               = :METHODS
     _key(other, sig, binding)                    = :DEFAULT
 

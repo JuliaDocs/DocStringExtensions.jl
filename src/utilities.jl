@@ -175,6 +175,45 @@ function parsedocs(mod::Module)
     end
 end
 
+"""
+$(:SIGNATURES)
+
+Decides whether a length of method is too big to be visually appealing.
+"""
+method_length_over_limit(len::Int) = len > 60
+
+function printmethod_format(buffer::IOBuffer, binding::String, args::Vector{String}, kws::Vector{String}; return_type = "")
+
+    sep_delim = " "
+    paren_delim = ""
+    indent = ""
+
+    if method_length_over_limit(
+            length(binding) +
+            1 +
+            sum(length.(args)) +
+            sum(length.(kws)) +
+            2*max(0, length(args)-1) +
+            2*length(kws) +
+            1 +
+            length(return_type))
+
+        sep_delim = "\n"
+        paren_delim = "\n"
+        indent = "    "
+    end
+
+    print(buffer, binding)
+    print(buffer, "($paren_delim")
+    join(buffer, Ref(indent).*args, ",$sep_delim")
+    if !isempty(kws)
+        print(buffer, ";$sep_delim")
+        join(buffer, Ref(indent).*kws, ",$sep_delim")
+    end
+    print(buffer, "$paren_delim)")
+    print(buffer, return_type)
+    return buffer
+end
 
 """
 $(:SIGNATURES)
@@ -194,19 +233,10 @@ f(x; a = 1, b...) = x
 sig = printmethod(Docs.Binding(Main, :f), f, first(methods(f)))
 ```
 """
-function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method)
-    # TODO: print qualified?
-    print(buffer, binding.var)
-    print(buffer, "(")
-    join(buffer, arguments(method), ", ")
-    local kws = keywords(func, method)
-    if !isempty(kws)
-        print(buffer, "; ")
-        join(buffer, kws, ", ")
-    end
-    print(buffer, ")")
-    return buffer
-end
+printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method) =
+    printmethod_format(buffer, string(binding.var),
+        string.(arguments(method)),
+        string.(keywords(func, method)))
 
 """
 $(:SIGNATURES)
@@ -274,18 +304,16 @@ sig = printmethod(Docs.Binding(Main, :f), f, first(methods(f)))
 """
 function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method, typesig)
     # TODO: print qualified?
-    print(buffer, binding.var)
-    print(buffer, "(")
-    local args = arguments(method)
-    local where_syntax = []
+    local args = string.(arguments(method))
+    local kws = string.(keywords(func, method))
 
     # find inner tuple type
-    function f(t)
+    function find_inner_tuple_type(t)
         # t is always either a UnionAll which represents a generic type or a Tuple where each parameter is the argument
         if t isa DataType && t <: Tuple
             t
         elseif t isa UnionAll
-            f(t.body)
+            find_inner_tuple_type(t.body)
         else
             error("Expected `typeof($t)` to be `Tuple` or `UnionAll` but found `$typeof(t)`")
         end
@@ -309,45 +337,35 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         typ
     end
 
-    for (i, sym) in enumerate(args)
-        if typesig isa UnionAll
-            # e.g. Tuple{Vector{T}} where T<:Number
-            # or   Tuple{String, T, T} where T<:Number
-            # or   Tuple{Type{T}, String, Union{Nothing, Function}} where T<:Number
-            t = [x for x in f(typesig).types]
-            t = [get_typesig(x, x) for x in t][i]
-        else
-            # e.g. Tuple{Vector{Int}}
-            t = typesig.types[i]
-        end
+    # if `typesig` is an UnionAll, it may be
+    # e.g. Tuple{Vector{T}} where T<:Number
+    # or   Tuple{String, T, T} where T<:Number
+    # or   Tuple{Type{T}, String, Union{Nothing, Function}} where T<:Number
+    # in the other case, it's usually something like Tuple{Vector{Int}}.
+    argtypes = typesig isa UnionAll ?
+            [get_typesig(t, t) for t in find_inner_tuple_type(typesig).types] :
+            collect(typesig.types)
+
+    args = map(args, argtypes) do arg,t
+        type = ""
+        suffix = ""
         if isvarargtype(t)
-            elt = vararg_eltype(t)
-            if elt === Any
-                print(buffer, "$sym...")
-            else
-                print(buffer, "$sym::$elt...")
-            end
-        elseif t === Any
-            print(buffer, sym)
-        else
-            print(buffer, "$sym::$t")
+            t = vararg_eltype(t)
+            suffix = "..."
+        end
+        if t!==Any
+            type = "::$t"
         end
 
-        if i != length(args)
-            print(buffer, ", ")
-        end
+        "$arg$type$suffix"
     end
-    local kws = keywords(func, method)
-    if !isempty(kws)
-        print(buffer, "; ")
-        join(buffer, kws, ", ")
-    end
-    print(buffer, ")")
+
     rt = Base.return_types(func, typesig)
-    if length(rt) >= 1 && rt[1] !== Nothing && rt[1] !== Union{}
-        print(buffer, " -> $(rt[1])")
-    end
-    buffer
+
+    return printmethod_format(buffer, string(binding.var), args, string.(kws);
+        return_type =
+            length(rt) >= 1 && rt[1] !== Nothing && rt[1] !== Union{} ?
+            " -> $(rt[1])" : "")
 end
 
 printmethod(b, f, m) = String(take!(printmethod(IOBuffer(), b, f, m)))
@@ -402,7 +420,7 @@ function keywords(func, m::Method)
     # table is a MethodTable object. For some reason, the :kwsorter field is not always
     # defined. An undefined kwsorter seems to imply that there are no methods in the
     # MethodTable with keyword arguments.
-    if isdefined(table, :kwsorter)
+    if  !(Base.fieldindex(Core.MethodTable, :kwsorter, false) > 0) || isdefined(table, :kwsorter)
         # Fetching method keywords stolen from base/replutil.jl:572-576 (commit 3b45cdc9aab0):
         kwargs = VERSION < v"1.4.0-DEV.215" ? Base.kwarg_decl(m, typeof(table.kwsorter)) : Base.kwarg_decl(m)
         if isa(kwargs, Vector) && length(kwargs) > 0
@@ -432,12 +450,21 @@ args = arguments(first(methods(f)))
 ```
 """
 function arguments(m::Method)
-    local template = get_method_source(m)
-    if isdefined(template, :slotnames)
-        local args = map(template.slotnames[1:nargs(m)]) do arg
+    local argnames = nothing
+    if isdefined(m, :generator)
+        # Generated function.
+        argnames = m.generator.argnames
+    else
+        local template = get_method_source(m)
+        if isdefined(template, :slotnames)
+            argnames = template.slotnames
+        end
+    end
+    if argnames !== nothing
+        local args = map(argnames[1:nargs(m)]) do arg
             arg === Symbol("#unused#") ? "_" : arg
         end
-        return filter(arg -> arg !== Symbol("#self#"), args)
+        return filter(arg -> arg !== Symbol("#self#") && arg !== Symbol("#ctor-self#"), args)
     end
     return Symbol[]
 end

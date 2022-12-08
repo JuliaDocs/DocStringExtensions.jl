@@ -32,19 +32,13 @@ Contributions are very welcome, as are feature requests and suggestions. Please 
 [gitter-url]: https://gitter.im/juliadocs/users
 
 [docs-latest-img]: https://img.shields.io/badge/docs-latest-blue.svg
-[docs-latest-url]: https://juliadocs.github.io/DocStringExtensions.jl/latest
+[docs-latest-url]: https://DocStringExtensions.juliadocs.org/latest
 
 [docs-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
-[docs-stable-url]: https://juliadocs.github.io/DocStringExtensions.jl/stable
+[docs-stable-url]: https://DocStringExtensions.juliadocs.org/stable
 
 [github-action-img]: https://github.com/JuliaDocs/DocStringExtensions.jl/actions/workflows/ci.yml/badge.svg
 [github-action-url]: https://github.com/JuliaDocs/DocStringExtensions.jl/actions/workflows/ci.yml
-
-[travis-img]: https://travis-ci.org/JuliaDocs/DocStringExtensions.jl.svg?branch=master
-[travis-url]: https://travis-ci.org/JuliaDocs/DocStringExtensions.jl
-
-[appveyor-img]: https://ci.appveyor.com/api/projects/status/7bixd69chxps91wx/branch/master?svg=true
-[appveyor-url]: https://ci.appveyor.com/project/JuliaDocs/docstringextensions-jl/branch/master
 
 [codecov-img]: https://codecov.io/gh/JuliaDocs/DocStringExtensions.jl/branch/master/graph/badge.svg
 [codecov-url]: https://codecov.io/gh/JuliaDocs/DocStringExtensions.jl
