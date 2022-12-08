@@ -111,7 +111,8 @@ function alltypesigs(sig)::Vector{Any}
     elseif isa(sig, Union)
         uniontypes(sig)
     elseif isa(sig, UnionAll)
-        Base.rewrap_unionall.(uniontypes(Base.unwrap_unionall(sig)), sig)
+        Any[Base.rewrap_unionall(usig, sig) for
+            usig in uniontypes(Base.unwrap_unionall(sig))]
     else
         Any[sig]
     end

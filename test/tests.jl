@@ -645,11 +645,7 @@ end
             @test DSE.alltypesigs(Union{}) == Any[]
             @test DSE.alltypesigs(Union{Tuple{}}) == Any[Tuple{}]
             @test DSE.alltypesigs(Tuple{}) == Any[Tuple{}]
-
-            # TODO: Clean me up
-            T = Type{T} where {T}
-            @test DSE.alltypesigs(T) ==
-                Base.rewrap_unionall.(DSE.uniontypes(Base.unwrap_unionall(T)), T)
+            @test DSE.alltypesigs(Tuple{G} where G) == Any[Tuple{G} where G]
         end
         @testset "groupby" begin
             let groups = DSE.groupby(Int, Vector{Int}, collect(1:10)) do each
