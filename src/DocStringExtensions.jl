@@ -82,6 +82,7 @@ import LibGit2
 export @template, FIELDS, TYPEDFIELDS, EXPORTS, METHODLIST, IMPORTS
 export SIGNATURES, TYPEDSIGNATURES, TYPEDEF, DOCSTRING, FUNCTIONNAME
 export README, LICENSE
+export interpolation
 
 # Includes.
 

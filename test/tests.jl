@@ -1,6 +1,7 @@
 const DSE = DocStringExtensions
 
 include("templates.jl")
+include("interpolation.jl")
 include("TestModule/M.jl")
 
 # initialize a test repo in test/TestModule which is needed for some tests
@@ -514,6 +515,12 @@ end
             @test occursin("(TYPES)", fmt(:(TemplateTests.OtherModule.ISSUE_115)))
             @test occursin("(MACROS)", fmt(:(TemplateTests.OtherModule.@m)))
             @test fmt(:(TemplateTests.OtherModule.f)) == "method `f`\n"
+        end
+    end
+    @testset "Interpolation" begin
+        let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))
+            @test occursin("f(x)", fmt(:(InterpolationTestModule.f)))
+            @test occursin("x + 2", fmt(:(InterpolationTestModule.g)))
         end
     end
     @testset "utilities" begin

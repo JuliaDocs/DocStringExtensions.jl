@@ -4,6 +4,42 @@
 #
 
 #
+# Expression Capture.
+#
+
+"""
+    interpolation(object::T, captured::Expr) -> new_object
+
+Interface method for hooking into interpolation within docstrings to change
+the behaviour of the interpolation. `object` is the interpolated object within a
+docstring and `captured` is the raw expression that is documented by the docstring
+in which the interpolated `object` has been included.
+
+To define custom behaviour for your own `object` types implement a method of
+`interpolation(::T, captured)` for type `T` and return a `new_object` to
+be interpolated into the final docstring. Note that you must own the definition
+of type `T`. `new_object` does not need to be of type `T`.
+"""
+interpolation(@nospecialize(object), @nospecialize(_)) = object
+
+# During macro expansion process the interpolated string and replace all interpolation
+# syntax with calls to `interpolation` that pass through the documented expression along
+# with the resolved object that was interpolated.
+function _capture_expression(docstr::Expr, expr::Expr)
+    if Meta.isexpr(docstr, :string)
+        quoted = QuoteNode(expr)
+        new_docstring = Expr(:string)
+        append!(new_docstring.args, [_process_interpolation(each, quoted) for each in docstr.args])
+        return new_docstring
+    end
+    return docstr
+end
+_capture_expression(@nospecialize(other), ::Expr) = other
+
+_process_interpolation(str::AbstractString, ::QuoteNode) = str
+_process_interpolation(@nospecialize(expr), quoted::QuoteNode) = Expr(:call, interpolation, expr, quoted)
+
+#
 # Method grouping.
 #
 
