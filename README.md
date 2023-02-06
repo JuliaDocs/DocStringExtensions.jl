@@ -23,7 +23,7 @@ pkg> add DocStringExtensions
 ## Project Status
 
 The package is tested and developed against Julia `1.0`, as well as the latest `stable` and `nightly` versions on Linux, OS X, and Windows,
-but there are versions of the package that works on older versions of Julia.
+but there are versions of the package that work on older versions of Julia.
 
 ## Contributing and Questions
 
