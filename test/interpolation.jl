@@ -7,7 +7,7 @@ end
 import DocStringExtensions
 
 # For TestType(1), it interpolates the function signature, and for
-# TestType(1) it interpolates the function body.
+# TestType(2) it interpolates the function body.
 DocStringExtensions.interpolation(obj::TestType, ex::Expr) = ex.args[obj.value]
 
 """
