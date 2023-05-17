@@ -309,13 +309,13 @@ The generated markdown text will look similar to the following example where a f
 
 ````markdown
 ```julia
-f(x::Int, y::Int; a, b...)
+f(x::Int)
 ```
 
 defined at [`<path>:<line>`](<github-url>).
 
 ```julia
-f(x::Int, y::String; a, b...)
+f(y::String)
 ```
 
 defined at [`<path>:<line>`](<github-url>).
