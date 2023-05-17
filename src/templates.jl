@@ -22,7 +22,11 @@ hook!() = setter!(expander)
 $(:SIGNATURES)
 
 Defines a docstring template that will be applied to all docstrings in a module that match
-the specified category or tuple of categories.
+the specified category or tuple of categories of documented bindings.
+
+Effectively, it replaces all the matching docstrings in the module with the template.
+The `DOCSTRING` abbreviation can be used to splice the original docstring into the
+replacement docstring generated from the template.
 
 # Examples
 
