@@ -330,39 +330,39 @@ function format(::MethodList, buf, doc)
     local func = Docs.resolve(binding)
     local groups = methodgroups(func, typesig, modname; exact = false)
     if !isempty(groups)
-        
-        #START OF COPIED CODE FROM TYPEDMETHODSIGNATURES
-        group = groups[end]
-        println(buf)
-        println(buf, "```julia")
-        for (i, method) in enumerate(group)
-            N = length(arguments(method))
-            # return a list of tuples that represent type signatures
-            tuples = find_tuples(typesig)
-            # The following will find the tuple that matches the number of arguments in the function
-            # ideally we would check that the method signature matches the Tuple{...} signature
-            # but that is not straightforward because of how expressive Julia can be
-            function f(t)
-                if t isa DataType
-                    return t <: Tuple && length(t.types) == N
-                elseif t isa UnionAll
-                    return f(t.body)
-                else
-                    return false
-                end
-            end
+        printTypedSignaturesForMethod(groups,buf,typesig)
+        # #START OF COPIED CODE FROM TYPEDMETHODSIGNATURES
+        # group = groups[end]
+        # println(buf)
+        # println(buf, "```julia")
+        # for (i, method) in enumerate(group)
+        #     N = length(arguments(method))
+        #     # return a list of tuples that represent type signatures
+        #     tuples = find_tuples(typesig)
+        #     # The following will find the tuple that matches the number of arguments in the function
+        #     # ideally we would check that the method signature matches the Tuple{...} signature
+        #     # but that is not straightforward because of how expressive Julia can be
+        #     function f(t)
+        #         if t isa DataType
+        #             return t <: Tuple && length(t.types) == N
+        #         elseif t isa UnionAll
+        #             return f(t.body)
+        #         else
+        #             return false
+        #         end
+        #     end
 
-            @static if Sys.iswindows() && VERSION < v"1.8"
-                t = tuples[findlast(f, tuples)]
-            else
-                t = tuples[findfirst(f, tuples)]
-            end
-            printmethod(buf, binding, func, method, t)
-            
-            println(buf)
-        end
-        #END OF COPIED CODE FROM TYPEDMETHODSIGNATURES
-        
+        #     @static if Sys.iswindows() && VERSION < v"1.8"
+        #         t = tuples[findlast(f, tuples)]
+        #     else
+        #         t = tuples[findfirst(f, tuples)]
+        #     end
+        #     printmethod(buf, binding, func, method, t)
+
+        #     println(buf)
+        # end
+        # #END OF COPIED CODE FROM TYPEDMETHODSIGNATURES
+
         println(buf, "```\n")
         if !isempty(group)
             local method = group[1]
@@ -379,7 +379,39 @@ end
 
 
 
+function printTypedSignaturesForMethod(groups,buf,typesig)
+    #START OF COPIED CODE FROM TYPEDMETHODSIGNATURES ---> CAN RMEOVE THIS COMMENT BEFORE MERGING
 
+    group = groups[end]
+    println(buf)
+    println(buf, "```julia")
+    for (i, method) in enumerate(group)
+        N = length(arguments(method))
+        # return a list of tuples that represent type signatures
+        tuples = find_tuples(typesig)
+        # The following will find the tuple that matches the number of arguments in the function
+        # ideally we would check that the method signature matches the Tuple{...} signature
+        # but that is not straightforward because of how expressive Julia can be
+        function f(t)
+            if t isa DataType
+                return t <: Tuple && length(t.types) == N
+            elseif t isa UnionAll
+                return f(t.body)
+            else
+                return false
+            end
+        end
+    @static if Sys.iswindows() && VERSION < v"1.8"
+            t = tuples[findlast(f, tuples)]
+        else
+            t = tuples[findfirst(f, tuples)]
+        end
+        printmethod(buf, binding, func, method, t)
+    println(buf)
+    end
+
+    #END OF COPIED CODE FROM TYPEDMETHODSIGNATURES ---> CAN RMEOVE THIS COMMENT BEFORE MERGING
+end
 
 
 
@@ -480,34 +512,7 @@ function format(::TypedMethodSignatures, buf, doc)
     # and whether default arguments are used
     local groups = methodgroups(func, typesig, modname)
     if !isempty(groups)
-        group = groups[end]
-        println(buf)
-        println(buf, "```julia")
-        for (i, method) in enumerate(group)
-            N = length(arguments(method))
-            # return a list of tuples that represent type signatures
-            tuples = find_tuples(typesig)
-            # The following will find the tuple that matches the number of arguments in the function
-            # ideally we would check that the method signature matches the Tuple{...} signature
-            # but that is not straightforward because of how expressive Julia can be
-            function f(t)
-                if t isa DataType
-                    return t <: Tuple && length(t.types) == N
-                elseif t isa UnionAll
-                    return f(t.body)
-                else
-                    return false
-                end
-            end
-
-            @static if Sys.iswindows() && VERSION < v"1.8"
-                t = tuples[findlast(f, tuples)]
-            else
-                t = tuples[findfirst(f, tuples)]
-            end
-            printmethod(buf, binding, func, method, t)
-            println(buf)
-        end
+        printTypedSignaturesForMethod(groups,buf,typesig)
         println(buf, "\n```\n")
     end
 end
