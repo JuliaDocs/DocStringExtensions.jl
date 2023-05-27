@@ -386,7 +386,9 @@ function printTypedSignaturesForMethod(groups,buf,typesig)
 
     group = groups[end]
     println(buf)
-    println(buf, "```julia")
+    println(buf, "```julia") #start the markdown juia code block
+
+
     for (i, method) in enumerate(group)
         N = length(arguments(method))
         # return a list of tuples that represent type signatures
@@ -403,16 +405,19 @@ function printTypedSignaturesForMethod(groups,buf,typesig)
                 return false
             end
         end
-    @static if Sys.iswindows() && VERSION < v"1.8"
-            t = tuples[findlast(f, tuples)]
-        else
-            t = tuples[findfirst(f, tuples)]
-        end
-        printmethod(buf, binding, func, method, t)
-    println(buf)
+
+
+        @static if Sys.iswindows() && VERSION < v"1.8"
+                t = tuples[findlast(f, tuples)]
+            else
+                t = tuples[findfirst(f, tuples)]
+            end
+            printmethod(buf, binding, func, method, t)
+        println(buf)
     end
-    println(buf, "```\n")
-    
+
+    println(buf, "```\n")  #end the markdown juia code block
+
     #END OF COPIED CODE FROM TYPEDMETHODSIGNATURES ---> CAN RMEOVE THIS COMMENT BEFORE MERGING
 end
 

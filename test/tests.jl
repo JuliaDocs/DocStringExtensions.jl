@@ -127,7 +127,7 @@ end
             end
             str = String(take!(buf))
             @test occursin("```julia", str)
-            @test occursin("f(x)", str)
+            @test occursin("f(x::Any)", str)
             @test occursin(joinpath("test", "TestModule", "M.jl"), str)
         end
 
