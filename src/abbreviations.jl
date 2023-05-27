@@ -361,9 +361,11 @@ function format(::MethodList, buf, doc)
 
         #     println(buf)
         # end
+        # println(buf, "```\n")
         # #END OF COPIED CODE FROM TYPEDMETHODSIGNATURES
 
-        println(buf, "```\n")
+        
+
         if !isempty(group)
             local method = group[1]
             local file = string(method.file)
@@ -409,7 +411,8 @@ function printTypedSignaturesForMethod(groups,buf,typesig)
         printmethod(buf, binding, func, method, t)
     println(buf)
     end
-
+    println(buf, "```\n")
+    
     #END OF COPIED CODE FROM TYPEDMETHODSIGNATURES ---> CAN RMEOVE THIS COMMENT BEFORE MERGING
 end
 
@@ -513,7 +516,7 @@ function format(::TypedMethodSignatures, buf, doc)
     local groups = methodgroups(func, typesig, modname)
     if !isempty(groups)
         printTypedSignaturesForMethod(groups,buf,typesig)
-        println(buf, "\n```\n")
+      
     end
 end
 
