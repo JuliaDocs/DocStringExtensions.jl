@@ -131,6 +131,24 @@ end
             @test occursin(joinpath("test", "TestModule", "M.jl"), str)
         end
 
+
+        # START OF NEW TESTS FOR TYPED METHOD LIST
+        @testset "method lists wih types" begin
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :f),
+                :typesig => Tuple{Any},
+                :module => M,
+            )
+            with_test_repo() do
+                DSE.format(METHODLIST, buf, doc)
+            end
+            str = String(take!(buf))
+            @test occursin("```julia", str)
+            @test occursin("f(x)", str)
+            @test occursin(joinpath("test", "TestModule", "M.jl"), str)
+        end
+        # END OF NEW TESTS FOR TYPED METHOD LIST
+
         @testset "method signatures" begin
             doc.data = Dict(
                 :binding => Docs.Binding(M, :f),
