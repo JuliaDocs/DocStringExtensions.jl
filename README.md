@@ -20,6 +20,17 @@ pkg> add DocStringExtensions
 - [**STABLE**][docs-stable-url] &mdash; **most recently tagged version of the documentation.**
 - [**LATEST**][docs-latest-url] &mdash; *in-development version of the documentation.*
 
+## Updating to DocStringExtensions v1.0
+
+DocStringExtensions v1.0 is a breaking update. Only one breaking change is included, which is that
+the `url` functionality is now locked behind a package extension. This is because this functionality
+requires LibGit2, and thus requires any packages which wishes to use this function to have a direct
+runtime dependency which ships and loads a Git installation. This is a potentially large burden as
+DocStringExtensions.jl is a very core library to the Julia ecosystem, and thus it no longer requires
+that all dependencies load Git. If this functionality is required for your package and you wish to
+opt into the consequences of this dependency, simply add a direct dependency on LibGit2 and do
+`using LibGit2` to recover the functionality.
+
 ## Project Status
 
 The package is tested and developed against Julia `1.0`, as well as the latest `stable` and `nightly` versions on Linux, OS X, and Windows,
