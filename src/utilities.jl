@@ -459,7 +459,7 @@ function keywords(func, m::Method)
     if  !(Base.fieldindex(Core.MethodTable, :kwsorter, false) > 0) || isdefined(table, :kwsorter)
         # Fetching method keywords stolen from base/replutil.jl:572-576 (commit 3b45cdc9aab0):
         kwargs = VERSION < v"1.4.0-DEV.215" ? Base.kwarg_decl(m, typeof(table.kwsorter)) : Base.kwarg_decl(m)
-        if isa(kwargs, Vector) && length(kwargs) > 0
+        if isa(kwargs, Vector) && length(kwargs) > 0 && kwargs != [:...] # in julia 1.10 sometimes kwargs is `[:...]`, ignore that
             filter!(arg -> !occursin("#", string(arg)), kwargs)
             # Keywords *may* not be sorted correctly. We move the vararg one to the end.
             index = findfirst(arg -> endswith(string(arg), "..."), kwargs)
@@ -519,50 +519,9 @@ $(:SIGNATURES)
 
 Get the URL (file and line number) where a method `m` is defined.
 
-Note that this is based on the implementation of `Base.url`, but handles URLs correctly
-on TravisCI as well.
+Note that this is `Base.url`.
 """
-url(m::Method) = url(m.module, string(m.file), m.line)
-
-function url(mod::Module, file::AbstractString, line::Integer)
-    file = Sys.iswindows() ? replace(file, '\\' => '/') : file
-    if Base.inbase(mod) && !isabspath(file)
-        local base = "https://github.com/JuliaLang/julia/tree"
-        if isempty(Base.GIT_VERSION_INFO.commit)
-            return "$base/v$VERSION/base/$file#L$line"
-        else
-            local commit = Base.GIT_VERSION_INFO.commit
-            return "$base/$commit/base/$file#L$line"
-        end
-    else
-        if isfile(file)
-            local d = dirname(file)
-            try # might not be in a git repo
-                LibGit2.with(LibGit2.GitRepoExt(d)) do repo
-                    LibGit2.with(LibGit2.GitConfig(repo)) do cfg
-                        local u = LibGit2.get(cfg, "remote.origin.url", "")
-                        local m = match(LibGit2.GITHUB_REGEX, u)
-                        u = m === nothing ? get(ENV, "TRAVIS_REPO_SLUG", "") : m.captures[1]
-                        local commit = string(LibGit2.head_oid(repo))
-                        local root = LibGit2.path(repo)
-                        if startswith(file, root) || startswith(realpath(file), root)
-                            local base = "https://github.com/$u/tree"
-                            local filename = file[(length(root) + 1):end]
-                            return "$base/$commit/$filename#L$line"
-                        else
-                            return ""
-                        end
-                    end
-                end
-            catch err
-                isa(err, LibGit2.GitError) || rethrow()
-                return ""
-            end
-        else
-            return ""
-        end
-    end
-end
+url(m::Method) = Base.url(m)
 
 # This is compat to make sure that we have ismutabletype available pre-1.7.
 # Implementation borrowed from JuliaLang/julia (MIT license).

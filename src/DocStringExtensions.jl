@@ -75,7 +75,6 @@ module DocStringExtensions
 
 # Imports.
 
-import LibGit2
 
 # Exports.
 
