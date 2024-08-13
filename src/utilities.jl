@@ -517,11 +517,17 @@ end
 """
 $(:SIGNATURES)
 
-Get the URL (file and line number) where a method `m` is defined.
+Get the URL (file and line number) where a method `m` is defined. May return an empty string
+if the URL can not be determined.
 
-Note that this is `Base.url`.
+Requires the `LibGit2` to be present in the environment.
 """
-url(m::Method) = Base.url(m)
+function url(m::Method)
+    # Base.url() something produces file:// URLs, but we want these to be sharable web URLs.
+    # So we just say we couldn't determine the URL if we get one of those.
+    url = Base.url(m)
+    return startswith(url, "file://") ? "" : url
+end
 
 # This is compat to make sure that we have ismutabletype available pre-1.7.
 # Implementation borrowed from JuliaLang/julia (MIT license).
