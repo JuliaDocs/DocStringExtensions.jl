@@ -15,6 +15,7 @@ to enter the Pkg REPL mode and run
 pkg> add DocStringExtensions
 ```
 
+
 ## Documentation
 
 - [**STABLE**][docs-stable-url] &mdash; **most recently tagged version of the documentation.**
