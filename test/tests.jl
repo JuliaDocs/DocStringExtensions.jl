@@ -151,8 +151,15 @@ end
             DSE.format(SIGNATURES, buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
-            @test occursin("\ng()\n", str)
-            @test occursin("\ng(x)\n", str)
+            # On 1.10+, automatically generated methods have keywords in the metadata,
+            # hence the display difference between Julia versions.
+            if VERSION >= v"1.10"
+                @test occursin("\ng(; ...)\n", str)
+                @test occursin("\ng(x; ...)\n", str)
+            else
+                @test occursin("\ng()\n", str)
+                @test occursin("\ng()\n", str)
+            end
             @test occursin("\n```\n", str)
 
             doc.data = Dict(
@@ -163,9 +170,17 @@ end
             DSE.format(SIGNATURES, buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
-            @test occursin("\ng()\n", str)
-            @test occursin("\ng(x)\n", str)
-            @test occursin("\ng(x, y)\n", str)
+            # On 1.10+, automatically generated methods have keywords in the metadata,
+            # hence the display difference between Julia versions.
+            if VERSION >= v"1.10"
+                @test occursin("\ng(; ...)\n", str)
+                @test occursin("\ng(x; ...)\n", str)
+                @test occursin("\ng(x, y; ...)\n", str)
+            else
+                @test occursin("\ng()\n", str)
+                @test occursin("\ng(x)\n", str)
+                @test occursin("\ng(x, y)\n", str)
+            end
             @test occursin("\ng(x, y, z; kwargs...)\n", str)
             @test occursin("\n```\n", str)
 
@@ -245,9 +260,21 @@ end
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
             if typeof(1) === Int64
-                @test occursin("\nh(x::Int64) -> Int64\n", str)
+                # On 1.10+, automatically generated methods have keywords in the metadata,
+                # hence the display difference between Julia versions.
+                if VERSION >= v"1.10"
+                    @test occursin("\nh(x::Int64; ...) -> Int64\n", str)
+                else
+                    @test occursin("\nh(x::Int64) -> Int64\n", str)
+                end
             else
-                @test occursin("\nh(x::Int32) -> Int32\n", str)
+                # On 1.10+, automatically generated methods have keywords in the metadata,
+                # hence the display difference between Julia versions.
+                if VERSION >= v"1.10"
+                    @test occursin("\nh(x::Int32; ...) -> Int32\n", str)
+                else
+                    @test occursin("\nh(x::Int32) -> Int32\n", str)
+                end
             end
             @test occursin("\n```\n", str)
 
