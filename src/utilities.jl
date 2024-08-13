@@ -459,7 +459,7 @@ function keywords(func, m::Method)
     if  !(Base.fieldindex(Core.MethodTable, :kwsorter, false) > 0) || isdefined(table, :kwsorter)
         # Fetching method keywords stolen from base/replutil.jl:572-576 (commit 3b45cdc9aab0):
         kwargs = VERSION < v"1.4.0-DEV.215" ? Base.kwarg_decl(m, typeof(table.kwsorter)) : Base.kwarg_decl(m)
-        if isa(kwargs, Vector) && length(kwargs) > 0 && kwargs != [:...] # in julia 1.10 sometimes kwargs is `[:...]`, ignore that
+        if isa(kwargs, Vector) && length(kwargs) > 0
             filter!(arg -> !occursin("#", string(arg)), kwargs)
             # Keywords *may* not be sorted correctly. We move the vararg one to the end.
             index = findfirst(arg -> endswith(string(arg), "..."), kwargs)
