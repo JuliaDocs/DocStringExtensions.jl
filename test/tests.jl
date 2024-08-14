@@ -1,3 +1,4 @@
+using REPL # Hack to get around: https://github.com/JuliaLang/julia/issues/52986
 const DSE = DocStringExtensions
 
 include("templates.jl")
