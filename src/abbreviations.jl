@@ -340,7 +340,11 @@ The singleton type for [`TYPEDSIGNATURES`](@ref) abbreviations.
 
 $(:FIELDS)
 """
-struct TypedMethodSignatures <: Abbreviation end
+struct TypedMethodSignatures <: Abbreviation
+    expr::Union{Nothing, Expr}
+end
+
+interpolation(::TypedMethodSignatures, expr) = TypedMethodSignatures(expr)
 
 """
 An [`Abbreviation`](@ref) for including a simplified representation of all the method
@@ -358,21 +362,24 @@ f(x::Int, y::Int; a, b...)
 ```
 ````
 """
-const TYPEDSIGNATURES = TypedMethodSignatures()
+const TYPEDSIGNATURES = TypedMethodSignatures(nothing)
 
-function format(::TypedMethodSignatures, buf, doc)
-    local binding = doc.data[:binding]
-    local typesig = doc.data[:typesig]
-    local modname = doc.data[:module]
-    local func = Docs.resolve(binding)
+function format(x::TypedMethodSignatures, buf, doc)
+    binding = doc.data[:binding]
+    typesig = doc.data[:typesig]
+    modname = doc.data[:module]
+    func = Docs.resolve(binding)
+
     # TODO: why is methodgroups returning invalid methods?
     # the methodgroups always appears to return a Vector and the size depends on whether parametric types are used
     # and whether default arguments are used
-    local groups = methodgroups(func, typesig, modname)
+    groups = methodgroups(func, typesig, modname)
     if !isempty(groups)
         group = groups[end]
+        ast_info = parse_call(x.expr)
         println(buf)
         println(buf, "```julia")
+
         for (i, method) in enumerate(group)
             N = length(arguments(method))
             # return a list of tuples that represent type signatures
@@ -395,9 +402,11 @@ function format(::TypedMethodSignatures, buf, doc)
             else
                 t = tuples[findfirst(f, tuples)]
             end
-            printmethod(buf, binding, func, method, t)
+
+            printmethod(buf, binding, func, ast_info.args, ast_info.kwargs, t)
             println(buf)
         end
+
         println(buf, "\n```\n")
     end
 end
