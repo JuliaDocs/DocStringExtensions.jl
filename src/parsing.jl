@@ -8,7 +8,7 @@ end
 # Parse an argument with a type annotation.
 # Example input: `x::Int`
 function parse_arg_with_type(arg_expr::Expr)
-    if arg_expr.head != :(::)
+    if !Meta.isexpr(arg_expr, :(::))
         throw(ArgumentError("Argument is not a :(::) expr"))
     end
 
@@ -25,7 +25,7 @@ end
 # Parse an argument with a default value.
 # Example input: `x=5`
 function parse_arg_with_default(arg_expr::Expr)
-    if arg_expr.head != :kw
+    if !Meta.isexpr(arg_expr, :kw)
         throw(ArgumentError("Argument is not a :kw expr"))
     end
 
@@ -49,21 +49,21 @@ function parse_arglist!(exprs, args, kwargs, is_kwarg_list=false)
         if arg_expr isa Symbol
             # Plain argument name with no type or default value
             push!(list, ASTArg(; name=arg_expr))
-        elseif arg_expr.head == :(::)
+        elseif Meta.isexpr(arg_expr, :(::))
             # With a type annotation
             push!(list, parse_arg_with_type(arg_expr))
-        elseif arg_expr.head == :kw
+        elseif Meta.isexpr(arg_expr, :kw)
             # With a default value (and possibly a type annotation)
             push!(list, parse_arg_with_default(arg_expr))
-        elseif arg_expr.head == :parameters
+        elseif Meta.isexpr(arg_expr, :parameters)
             # Keyword arguments
             parse_arglist!(arg_expr.args, args, kwargs, true)
-        elseif arg_expr.head === :...
+        elseif Meta.isexpr(arg_expr, :...)
             # Variadic argument
             if arg_expr.args[1] isa Symbol
                 # Without a type annotation
                 push!(list, ASTArg(; name=arg_expr.args[1], variadic=true))
-            elseif arg_expr.args[1].head === :(::)
+            elseif Meta.isexpr(arg_expr.args[1], :(::))
                 # With a type annotation
                 arg_expr = arg_expr.args[1]
                 push!(list, ASTArg(; name=arg_expr.args[1], type=arg_expr.args[2], variadic=true))
@@ -81,20 +81,20 @@ end
 # Find a :call expression within an Expr. This will take care of ignoring other
 # tokens like `where` clauses.
 function find_call_expr(expr::Expr)
-    if expr.head === :macrocall && expr.args[1] === Symbol("@generated")
+    if Meta.isexpr(expr, :macrocall) && expr.args[1] === Symbol("@generated")
         # If this is a generated function, find the first := expr to find
         # the :call expr.
-        assignment_idx = findfirst(x -> x isa Expr && x.head === :(=), expr.args)
+        assignment_idx = findfirst(x -> x isa Expr && Meta.isexpr(x, :(=)), expr.args)
 
         expr.args[assignment_idx].args[1]
-    elseif expr.head === :(=)
+    elseif Meta.isexpr(expr, :(=))
         find_call_expr(expr.args[1])
-    elseif expr.head == :where
+    elseif Meta.isexpr(expr, :where)
         # Function with one or more `where` clauses
         find_call_expr(expr.args[1])
-    elseif expr.head === :function
+    elseif Meta.isexpr(expr, :function)
         find_call_expr(expr.args[1])
-    elseif expr.head === :call
+    elseif Meta.isexpr(expr, :call)
         expr
     else
         Meta.dump(expr)
@@ -109,7 +109,7 @@ function parse_call(expr::Expr)
     Base.remove_linenums!(expr)
     expr = find_call_expr(expr)
 
-    if expr.head != :call
+    if Meta.isexpr(expr, :call)
         throw(ArgumentError("Argument is not a :call, cannot parse it."))
     end
 
