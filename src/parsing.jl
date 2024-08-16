@@ -109,7 +109,7 @@ function parse_call(expr::Expr)
     Base.remove_linenums!(expr)
     expr = find_call_expr(expr)
 
-    if Meta.isexpr(expr, :call)
+    if !Meta.isexpr(expr, :call)
         throw(ArgumentError("Argument is not a :call, cannot parse it."))
     end
 
