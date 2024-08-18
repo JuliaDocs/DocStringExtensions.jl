@@ -119,11 +119,8 @@ function template_hook(source::LineNumberNode, mod::Module, docstr, expr::Expr)
     return (source, mod, docstr, expr)
 end
 
-function template_hook(docstr, expr::Expr)
-    source, mod, docstr, expr::Expr = template_hook(LineNumberNode(0), current_module(), docstr, expr)
-    docstr, expr
-end
-
+# This definition looks a bit weird, but in combination with hook!() the effect
+# is that template_hook() will fall back to calling the default expander().
 template_hook(args...) = args
 
 get_template(t::Dict, k::Symbol) = haskey(t, k) ? t[k] : get(t, :DEFAULT, Any[DOCSTRING])
