@@ -1,5 +1,4 @@
 using DocStringExtensions
-import DocStringExtensions: TypedMethodSignatures
 
 using Test
 import Markdown

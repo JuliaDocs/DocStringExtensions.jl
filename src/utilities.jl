@@ -321,7 +321,7 @@ function find_tuples(typesig)
     end
 end
 
-function format_args(args::Vector{ASTArg}, typesig)
+function format_args(args::Vector{ASTArg}, typesig, print_types)
     # find inner tuple type
     function find_inner_tuple_type(t)
         # t is always either a UnionAll which represents a generic type or a Tuple where each parameter is the argument
@@ -369,6 +369,8 @@ function format_args(args::Vector{ASTArg}, typesig)
 
         if !isnothing(arg.name)
             name = arg.name
+        elseif isnothing(arg.name) && (t === Any || !print_types)
+            name = "_"
         end
         if isvarargtype(t)
             t = vararg_eltype(t)
@@ -378,7 +380,7 @@ function format_args(args::Vector{ASTArg}, typesig)
             # information.
             suffix = "..."
         end
-        if t !== Any
+        if print_types && t !== Any
             type = "::$t"
         end
         if !isnothing(arg.default)
@@ -409,21 +411,22 @@ sig = printmethod(Docs.Binding(Main, :f), f, first(methods(f)))
 ```
 """
 function printmethod(buffer::IOBuffer, binding::Docs.Binding, func,
-                     args::Vector{ASTArg}, kws::Vector{ASTArg}, typesig)
-    formatted_args = format_args(args, typesig)
+                     args::Vector{ASTArg}, kws::Vector{ASTArg},
+                     typesig, print_types::Bool)
+    formatted_args = format_args(args, typesig, print_types)
+
     # We don't have proper type information for keyword arguments like we do
     # with `typesig` for positional arguments, so we assume they're all Any. An
     # alternative would be to use the types extracted from the AST, but that
     # might not exactly match the types of positional arguments (e.g. an alias
     # type would be printed as the underlying type for positional arguments but
     # under the alias for keyword arguments).
-    formatted_kws = format_args(kws, NTuple{length(kws), Any})
+    formatted_kws = format_args(kws, NTuple{length(kws), Any}, print_types)
     rt = Base.return_types(func, typesig)
+    can_print_rt = print_types && length(rt) >= 1 && rt[1] !== Nothing && rt[1] !== Union{}
 
     return printmethod_format(buffer, string(binding.var), formatted_args, formatted_kws;
-        return_type =
-            length(rt) >= 1 && rt[1] !== Nothing && rt[1] !== Union{} ?
-            " -> $(rt[1])" : "")
+        return_type = can_print_rt ? " -> $(rt[1])" : "")
 end
 
 printmethod(b, f, m) = String(take!(printmethod(IOBuffer(), b, f, m)))

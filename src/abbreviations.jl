@@ -290,7 +290,12 @@ The singleton type for [`SIGNATURES`](@ref) abbreviations.
 
 $(:FIELDS)
 """
-struct MethodSignatures <: Abbreviation end
+struct MethodSignatures <: Abbreviation
+    expr::Union{Nothing, Expr}
+    print_types::Bool
+end
+
+interpolation(ms::MethodSignatures, expr) = MethodSignatures(expr, ms.print_types)
 
 """
 An [`Abbreviation`](@ref) for including a simplified representation of all the method
@@ -308,43 +313,7 @@ f(x, y; a, b...)
 ```
 ````
 """
-const SIGNATURES = MethodSignatures()
-
-function format(::MethodSignatures, buf, doc)
-    local binding = doc.data[:binding]
-    local typesig = doc.data[:typesig]
-    local modname = doc.data[:module]
-    local func = Docs.resolve(binding)
-    local groups = methodgroups(func, typesig, modname)
-
-    if !isempty(groups)
-        println(buf)
-        println(buf, "```julia")
-        for group in groups
-            for method in group
-                printmethod(buf, binding, func, method)
-                println(buf)
-            end
-        end
-        println(buf, "\n```\n")
-    end
-end
-
-
-#
-# `TypedMethodSignatures`
-#
-
-"""
-The singleton type for [`TYPEDSIGNATURES`](@ref) abbreviations.
-
-$(:FIELDS)
-"""
-struct TypedMethodSignatures <: Abbreviation
-    expr::Union{Nothing, Expr}
-end
-
-interpolation(::TypedMethodSignatures, expr) = TypedMethodSignatures(expr)
+const SIGNATURES = MethodSignatures(nothing, false)
 
 """
 An [`Abbreviation`](@ref) for including a simplified representation of all the method
@@ -362,9 +331,9 @@ f(x::Int, y::Int; a, b...)
 ```
 ````
 """
-const TYPEDSIGNATURES = TypedMethodSignatures(nothing)
+const TYPEDSIGNATURES = MethodSignatures(nothing, true)
 
-function format(x::TypedMethodSignatures, buf, doc)
+function format(ms::MethodSignatures, buf, doc)
     binding = doc.data[:binding]
     typesig = doc.data[:typesig]
     modname = doc.data[:module]
@@ -376,7 +345,8 @@ function format(x::TypedMethodSignatures, buf, doc)
     groups = methodgroups(func, typesig, modname)
     if !isempty(groups)
         group = groups[end]
-        ast_info = parse_call(x.expr)
+        ast_info = parse_call(ms.expr)
+
         println(buf)
         println(buf, "```julia")
 
@@ -403,7 +373,7 @@ function format(x::TypedMethodSignatures, buf, doc)
                 t = tuples[findfirst(f, tuples)]
             end
 
-            printmethod(buf, binding, func, ast_info.args, ast_info.kwargs, t)
+            printmethod(buf, binding, func, ast_info.args, ast_info.kwargs, t, ms.print_types)
             println(buf)
         end
 

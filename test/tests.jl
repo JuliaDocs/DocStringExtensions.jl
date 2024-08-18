@@ -1,5 +1,6 @@
 using REPL # Hack to get around: https://github.com/JuliaLang/julia/issues/52986
 import CodeTracking: code_string
+import DocStringExtensions: MethodSignatures
 const DSE = DocStringExtensions
 
 include("templates.jl")
@@ -144,30 +145,34 @@ end
         end
 
         @testset "method signatures" begin
+            UntypedSignatures(x) = MethodSignatures(x, false)
+
             doc.data = Dict(
                 :binding => Docs.Binding(M, :f),
                 :typesig => Tuple{Any},
                 :module => M,
             )
-            DSE.format(SIGNATURES, buf, doc)
+
+            DSE.format(UntypedSignatures(get_expr(M.f)), buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
             @test occursin("\nf(x)\n", str)
             @test occursin("\n```\n", str)
 
+            g_expr = get_expr(M.g, Int, Int, Int)
             doc.data = Dict(
                 :binding => Docs.Binding(M, :g),
                 :typesig => Union{Tuple{}, Tuple{Any}},
                 :module => M,
             )
-            DSE.format(SIGNATURES, buf, doc)
+            DSE.format(UntypedSignatures(g_expr), buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
             # On 1.10+, automatically generated methods have keywords in the metadata,
             # hence the display difference between Julia versions.
             if VERSION >= v"1.10"
-                @test occursin("\ng(; ...)\n", str)
-                @test occursin("\ng(x; ...)\n", str)
+                @test occursin("\ng(; kwargs...)\n", str)
+                @test occursin("\ng(x=1; kwargs...)\n", str)
             else
                 @test occursin("\ng()\n", str)
                 @test occursin("\ng()\n", str)
@@ -179,21 +184,21 @@ end
                 :typesig => Union{Tuple{}, Tuple{Any}, Tuple{Any, Any}, Tuple{Any, Any, Any}},
                 :module => M,
             )
-            DSE.format(SIGNATURES, buf, doc)
+            DSE.format(UntypedSignatures(g_expr), buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
             # On 1.10+, automatically generated methods have keywords in the metadata,
             # hence the display difference between Julia versions.
             if VERSION >= v"1.10"
-                @test occursin("\ng(; ...)\n", str)
-                @test occursin("\ng(x; ...)\n", str)
-                @test occursin("\ng(x, y; ...)\n", str)
+                @test occursin("\ng(; kwargs...)\n", str)
+                @test occursin("\ng(x=1; kwargs...)\n", str)
+                @test occursin("\ng(x=1, y=2; kwargs...)\n", str)
             else
                 @test occursin("\ng()\n", str)
-                @test occursin("\ng(x)\n", str)
-                @test occursin("\ng(x, y)\n", str)
+                @test occursin("\ng(x=1)\n", str)
+                @test occursin("\ng(x=1, y=2)\n", str)
             end
-            @test occursin("\ng(x, y, z; kwargs...)\n", str)
+            @test occursin("\ng(x=1, y=2, z=3; kwargs...)\n", str)
             @test occursin("\n```\n", str)
 
             doc.data = Dict(
@@ -201,7 +206,7 @@ end
                 :typesig => Tuple{Any},
                 :module => M,
             )
-            DSE.format(SIGNATURES, buf, doc)
+            DSE.format(UntypedSignatures(get_expr(M.g_1)), buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
             @test occursin("\ng_1(x)\n", str)
@@ -212,7 +217,7 @@ end
                 :typesig => Union{Tuple{Any, Int, Any}},
                 :module => M,
             )
-            DSE.format(SIGNATURES, buf, doc)
+            DSE.format(UntypedSignatures(get_expr(M.h_4)), buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
             @test occursin("\nh_4(x, _, z)\n", str)
@@ -226,7 +231,9 @@ end
                 :module => M,
             )
 
-            DSE.format(TypedMethodSignatures(get_expr(M.h_1)), buf, doc)
+            TypedSignatures(x) = MethodSignatures(x, true)
+
+            DSE.format(TypedSignatures(get_expr(M.h_1)), buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
             f = str -> replace(str, " " => "")
@@ -243,7 +250,7 @@ end
                 :typesig => Tuple{String},
                 :module => M,
             )
-            DSE.format(TypedMethodSignatures(get_expr(M.g_2)), buf, doc)
+            DSE.format(TypedSignatures(get_expr(M.g_2)), buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
             @test occursin("\ng_2(x::String)", str)
@@ -255,7 +262,7 @@ end
                 :typesig => Tuple{Int, Int, Int},
                 :module => M,
             )
-            DSE.format(TypedMethodSignatures(h_expr), buf, doc)
+            DSE.format(TypedSignatures(h_expr), buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
             if typeof(1) === Int64
@@ -270,7 +277,7 @@ end
                 :typesig => Tuple{Int},
                 :module => M,
             )
-            DSE.format(TypedMethodSignatures(h_expr), buf, doc)
+            DSE.format(TypedSignatures(h_expr), buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
             if typeof(1) === Int64
@@ -297,7 +304,7 @@ end
                 :typesig => Tuple{T} where T,
                 :module => M,
             )
-            DSE.format(TypedMethodSignatures(get_expr(M.k_0)), buf, doc)
+            DSE.format(TypedSignatures(get_expr(M.k_0)), buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
             @test occursin("\nk_0(x) -> Any\n", str)
@@ -309,7 +316,7 @@ end
                 :module => M,
             )
             k_1_expr = get_expr(M.k_1, String, Int, Int)
-            DSE.format(TypedMethodSignatures(k_1_expr), buf, doc)
+            DSE.format(TypedSignatures(k_1_expr), buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
             @test occursin("\nk_1(x::String) -> String\n", str)
@@ -322,7 +329,7 @@ end
                 :typesig => (Union{Tuple{String, U, T}, Tuple{T}, Tuple{U}} where T <: Number) where U <: Complex,
                 :module => M,
             )
-            DSE.format(TypedMethodSignatures(get_expr(M.k_2)), buf, doc)
+            DSE.format(TypedSignatures(get_expr(M.k_2)), buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
             @test occursin("k_2(x::String, y::Complex, z::Number) -> String", str)
@@ -333,7 +340,7 @@ end
                 :typesig => (Union{Tuple{Any, T, U}, Tuple{U}, Tuple{T}} where U <: Any) where T <: Any,
                 :module => M,
             )
-            DSE.format(TypedMethodSignatures(get_expr(M.k_3)), buf, doc)
+            DSE.format(TypedSignatures(get_expr(M.k_3)), buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
             @test occursin("\nk_3(x, y, z) -> Any\n", str)
@@ -344,7 +351,7 @@ end
                 :typesig => Union{Tuple{String}, Tuple{String, Int}},
                 :module => M,
             )
-            DSE.format(TypedMethodSignatures(get_expr(M.k_4, String, Int)), buf, doc)
+            DSE.format(TypedSignatures(get_expr(M.k_4, String, Int)), buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
             if VERSION > v"1.3.0"
@@ -367,7 +374,7 @@ end
                 :typesig => Union{Tuple{Type{T}, String}, Tuple{Type{T}, String, Union{Nothing, Function}}, Tuple{T}} where T <: Number,
                 :module => M,
             )
-            DSE.format(TypedMethodSignatures(get_expr(M.k_5, Type{Int}, String, Nothing)), buf, doc)
+            DSE.format(TypedSignatures(get_expr(M.k_5, Type{Int}, String, Nothing)), buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
             if VERSION > v"1.3.0"
@@ -386,7 +393,7 @@ end
                 :typesig => Union{Tuple{Vector{T}}, Tuple{T}} where T <: Number,
                 :module => M,
             )
-            DSE.format(TypedMethodSignatures(get_expr(M.k_6)), buf, doc)
+            DSE.format(TypedSignatures(get_expr(M.k_6)), buf, doc)
             f = str -> replace(str, " " => "")
             str = String(take!(buf))
             str = f(str)
@@ -404,7 +411,7 @@ end
                 :typesig => Union{Tuple{Union{Nothing, T}}, Tuple{T}, Tuple{Union{Nothing, T}, T}} where T<:Integer,
                 :module => M,
             )
-            DSE.format(TypedMethodSignatures(get_expr(M.k_7, Nothing, Int)), buf, doc)
+            DSE.format(TypedSignatures(get_expr(M.k_7, Nothing, Int)), buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
             if VERSION >= v"1.6" && VERSION < v"1.7"
@@ -421,7 +428,7 @@ end
                 :typesig => Union{Tuple{Any}},
                 :module => M,
             )
-            DSE.format(TypedMethodSignatures(get_expr(M.k_8)), buf, doc)
+            DSE.format(TypedSignatures(get_expr(M.k_8)), buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
             @test occursin("\nk_8(x) -> Any\n", str)
@@ -432,7 +439,7 @@ end
                 :typesig => Union{Tuple{T where T}},
                 :module => M,
             )
-            DSE.format(TypedMethodSignatures(get_expr(M.k_9)), buf, doc)
+            DSE.format(TypedSignatures(get_expr(M.k_9)), buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
             @test occursin("\nk_9(x) -> Any\n", str)
@@ -445,7 +452,7 @@ end
                     :typesig => Union{Tuple{Int, Vararg{Any}}},
                     :module => M,
                 )
-                DSE.format(TypedMethodSignatures(get_expr(M.k_11)), buf, doc)
+                DSE.format(TypedSignatures(get_expr(M.k_11)), buf, doc)
                 str = String(take!(buf))
                 @test occursin("\n```julia\n", str)
                 @test occursin("\nk_11(x::Int64, xs...) -> Int64\n", str)
@@ -456,7 +463,7 @@ end
                     :typesig => Union{Tuple{Int, Vararg{Real}}},
                     :module => M,
                 )
-                DSE.format(TypedMethodSignatures(get_expr(M.k_12)), buf, doc)
+                DSE.format(TypedSignatures(get_expr(M.k_12)), buf, doc)
                 str = String(take!(buf))
                 @test occursin("\n```julia\n", str)
                 @test occursin("\nk_12(x::Int64, xs::Real...) -> Int64\n", str)
