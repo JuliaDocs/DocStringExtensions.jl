@@ -471,7 +471,15 @@ end
 
             end
 
-
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :l),
+                :typesig => Union{Tuple{Int}, Tuple{Int, Any}},
+                :module => M,
+            )
+            DSE.format(TypedSignatures(get_expr(M.l, Int, Int)), buf, doc)
+            str = String(take!(buf))
+            @test occursin("\nl(x::Int64) -> Int64\n", str)
+            @test occursin("\nl(x::Int64, y=1) -> Any\n", str)
         end
 
         @testset "function names" begin

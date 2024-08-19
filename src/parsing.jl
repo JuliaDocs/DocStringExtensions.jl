@@ -79,27 +79,28 @@ function parse_arglist!(exprs, args, kwargs, is_kwarg_list=false)
 end
 
 # Find a :call expression within an Expr. This will take care of ignoring other
-# tokens like `where` clauses.
-function find_call_expr(expr::Expr)
-    if Meta.isexpr(expr, :macrocall) && expr.args[1] === Symbol("@generated")
-        # If this is a generated function, find the first := expr to find
-        # the :call expr.
-        assignment_idx = findfirst(x -> x isa Expr && Meta.isexpr(x, :(=)), expr.args)
-
-        expr.args[assignment_idx].args[1]
-    elseif Meta.isexpr(expr, :(=))
-        find_call_expr(expr.args[1])
-    elseif Meta.isexpr(expr, :where)
-        # Function with one or more `where` clauses
-        find_call_expr(expr.args[1])
-    elseif Meta.isexpr(expr, :function)
-        find_call_expr(expr.args[1])
-    elseif Meta.isexpr(expr, :call)
-        expr
-    else
-        Meta.dump(expr)
-        error("Can't parse current expr (printed above)")
+# tokens like `where` clauses. It will return `nothing` if a :call expression
+# wasn't found.
+function find_call_expr(obj)
+    if Meta.isexpr(obj, :call)
+        # Base case: we've found the :call expression
+        return obj
+    elseif obj isa Symbol || (obj isa Expr && isempty(obj.args))
+        # Base case: this is the end of a branch in the expression tree
+        return nothing
     end
+
+    # Recursive case: recurse over all the Expr arguments
+    for arg in obj.args
+        if arg isa Expr
+            result = find_call_expr(arg)
+            if !isnothing(result)
+                return result
+            end
+        end
+    end
+
+    return nothing
 end
 
 # Parse an expression to find a :call expr, and return as much information as
