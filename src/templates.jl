@@ -38,6 +38,12 @@ replacement docstring generated from the template.
     \"""
 ```
 
+Note that a significant limitation of docstring templates is that the
+abbreviations used will be declared separately from the bindings that they
+operate on, which means that they will not have access to the bindings
+`Expr`'s. That will disable `TYPEDSIGNATURES` and `SIGNATURES` from showing
+default [keyword ]argument values in docstrings.
+
 `DEFAULT` is the default template that is applied to a docstring if no other template
 definitions match the documented expression. The `DOCSTRING` abbreviation is used to mark
 the location in the template where the actual docstring body will be spliced into each

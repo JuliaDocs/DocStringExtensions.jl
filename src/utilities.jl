@@ -410,18 +410,27 @@ f(x::Int; a = 1, b...) = x
 sig = printmethod(Docs.Binding(Main, :f), f, first(methods(f)))
 ```
 """
-function printmethod(buffer::IOBuffer, binding::Docs.Binding, func,
-                     args::Vector{ASTArg}, kws::Vector{ASTArg},
-                     typesig, print_types::Bool)
-    formatted_args = format_args(args, typesig, print_types)
+function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method,
+                     ast_info, typesig, print_types::Bool)
+    local formatted_args
+    local formatted_kws
 
-    # We don't have proper type information for keyword arguments like we do
-    # with `typesig` for positional arguments, so we assume they're all Any. An
-    # alternative would be to use the types extracted from the AST, but that
-    # might not exactly match the types of positional arguments (e.g. an alias
-    # type would be printed as the underlying type for positional arguments but
-    # under the alias for keyword arguments).
-    formatted_kws = format_args(kws, NTuple{length(kws), Any}, print_types)
+    if isnothing(ast_info)
+        formatted_args = string.(arguments(method))
+        formatted_kws = string.(keywords(func, method))
+    else
+        formatted_args = format_args(ast_info.args, typesig, print_types)
+
+        # We don't have proper type information for keyword arguments like we do
+        # with `typesig` for positional arguments, so we assume they're all Any. An
+        # alternative would be to use the types extracted from the AST, but that
+        # might not exactly match the types of positional arguments (e.g. an alias
+        # type would be printed as the underlying type for positional arguments but
+        # under the alias for keyword arguments).
+        kws = ast_info.kwargs
+        formatted_kws = format_args(kws, NTuple{length(kws), Any}, print_types)
+    end
+
     rt = Base.return_types(func, typesig)
     can_print_rt = print_types && length(rt) >= 1 && rt[1] !== Nothing && rt[1] !== Union{}
 

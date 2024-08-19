@@ -345,7 +345,7 @@ function format(ms::MethodSignatures, buf, doc)
     groups = methodgroups(func, typesig, modname)
     if !isempty(groups)
         group = groups[end]
-        ast_info = parse_call(ms.expr)
+        ast_info = isnothing(ms.expr) ? nothing : parse_call(ms.expr)
 
         println(buf)
         println(buf, "```julia")
@@ -373,7 +373,7 @@ function format(ms::MethodSignatures, buf, doc)
                 t = tuples[findfirst(f, tuples)]
             end
 
-            printmethod(buf, binding, func, ast_info.args, ast_info.kwargs, t, ms.print_types)
+            printmethod(buf, binding, func, method, ast_info, t, ms.print_types)
             println(buf)
         end
 
