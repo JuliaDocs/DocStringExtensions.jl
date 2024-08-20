@@ -111,7 +111,7 @@ function parse_call(expr::Expr)
     expr = find_call_expr(expr)
 
     if !Meta.isexpr(expr, :call)
-        throw(ArgumentError("Argument is not a :call, cannot parse it."))
+        throw(ArgumentError("Couldn't find a :call Expr, are you documenting a function? If so this may be a bug in DocStringExtensions.jl, please open an issue and include the function being documented."))
     end
 
     args = ASTArg[]
