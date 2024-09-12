@@ -19,6 +19,9 @@ function parse_arg_with_type(arg_expr::Expr)
     elseif n_expr_args == 2
         # 'x::Int'
         ASTArg(; name=arg_expr.args[1], type=arg_expr.args[2])
+    else
+        Meta.dump(arg_expr)
+        error("Couldn't parse typed argument (printed above)")
     end
 end
 
@@ -85,7 +88,7 @@ function find_call_expr(obj)
     if Meta.isexpr(obj, :call)
         # Base case: we've found the :call expression
         return obj
-    elseif obj isa Symbol || (obj isa Expr && isempty(obj.args))
+    elseif !(obj isa Expr) || isempty(obj.args)
         # Base case: this is the end of a branch in the expression tree
         return nothing
     end
