@@ -431,8 +431,14 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         formatted_kws = format_args(kws, NTuple{length(kws), Any}, print_types)
     end
 
-    rt = Base.return_types(func, typesig)
-    can_print_rt = print_types && length(rt) >= 1 && rt[1] !== Nothing && rt[1] !== Union{}
+    rt = try
+        # We wrap this in a try-catch block because Base.return_types() is
+        # documented to fail on generated functions.
+        Base.return_types(func, typesig)
+    catch
+        nothing
+    end
+    can_print_rt = print_types && !isnothing(rt) && length(rt) >= 1 && rt[1] !== Nothing && rt[1] !== Union{}
 
     return printmethod_format(buffer, string(binding.var), formatted_args, formatted_kws;
         return_type = can_print_rt ? " -> $(rt[1])" : "")
