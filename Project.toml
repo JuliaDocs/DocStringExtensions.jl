@@ -6,7 +6,7 @@ version = "0.9.3"
 LibGit2 = "76f85450-5226-5b5a-8eaa-529ad045b433"
 
 [compat]
-CodeTracking = "1.3.6"
+CodeTracking = "1"
 REPL = "1"
 julia = "1"
 
