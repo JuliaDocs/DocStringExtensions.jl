@@ -7,11 +7,26 @@ include("templates.jl")
 include("interpolation.jl")
 include("TestModule/M.jl")
 
+if !isdefined(Base, :default_tt)
+    # This function isn't available in early Julia versions so we vendor it in
+    function default_tt(@nospecialize(f))
+        ms = methods(f).ms
+        if length(ms) == 1
+            return Base.tuple_type_tail(ms[1].sig)
+        else
+            return Tuple
+        end
+    end
+else
+    import Base: default_tt
+end
+
+
 # Helper function to get the Expr of a function. In some cases the argument
 # types will need to be explicitly given.
 function get_expr(f::Function, arg_types...)
     if isempty(arg_types)
-        arg_types = Base.default_tt(f)
+        arg_types = default_tt(f)
     end
 
     Meta.parse(code_string(f, arg_types))
@@ -168,15 +183,8 @@ end
             DSE.format(UntypedSignatures(g_expr), buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
-            # On 1.10+, automatically generated methods have keywords in the metadata,
-            # hence the display difference between Julia versions.
-            if VERSION >= v"1.10"
-                @test occursin("\ng(; kwargs...)\n", str)
-                @test occursin("\ng(x=1; kwargs...)\n", str)
-            else
-                @test occursin("\ng()\n", str)
-                @test occursin("\ng()\n", str)
-            end
+            @test occursin("\ng(; kwargs...)\n", str)
+            @test occursin("\ng(x=1; kwargs...)\n", str)
             @test occursin("\n```\n", str)
 
             doc.data = Dict(
@@ -187,17 +195,9 @@ end
             DSE.format(UntypedSignatures(g_expr), buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
-            # On 1.10+, automatically generated methods have keywords in the metadata,
-            # hence the display difference between Julia versions.
-            if VERSION >= v"1.10"
-                @test occursin("\ng(; kwargs...)\n", str)
-                @test occursin("\ng(x=1; kwargs...)\n", str)
-                @test occursin("\ng(x=1, y=2; kwargs...)\n", str)
-            else
-                @test occursin("\ng()\n", str)
-                @test occursin("\ng(x=1)\n", str)
-                @test occursin("\ng(x=1, y=2)\n", str)
-            end
+            @test occursin("\ng(; kwargs...)\n", str)
+            @test occursin("\ng(x=1; kwargs...)\n", str)
+            @test occursin("\ng(x=1, y=2; kwargs...)\n", str)
             @test occursin("\ng(x=1, y=2, z=3; kwargs...)\n", str)
             @test occursin("\n```\n", str)
 
@@ -281,21 +281,9 @@ end
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
             if typeof(1) === Int64
-                # On 1.10+, automatically generated methods have keywords in the metadata,
-                # hence the display difference between Julia versions.
-                if VERSION >= v"1.10"
-                    @test occursin("\nh(x::Int64; kwargs...) -> Int64\n", str)
-                else
-                    @test occursin("\nh(x::Int64) -> Int64\n", str)
-                end
+                @test occursin("\nh(x::Int64; kwargs...) -> Int64\n", str)
             else
-                # On 1.10+, automatically generated methods have keywords in the metadata,
-                # hence the display difference between Julia versions.
-                if VERSION >= v"1.10"
-                    @test occursin("\nh(x::Int32; ...) -> Int32\n", str)
-                else
-                    @test occursin("\nh(x::Int32) -> Int32\n", str)
-                end
+                @test occursin("\nh(x::Int32; ...) -> Int32\n", str)
             end
             @test occursin("\n```\n", str)
 
@@ -416,11 +404,10 @@ end
             @test occursin("\n```julia\n", str)
             if VERSION >= v"1.6" && VERSION < v"1.7"
                 @test occursin("\nk_7(\n    x::Union{Nothing, T} where T<:Integer\n) -> Union{Nothing, Integer}\n", str)
-                @test occursin("\nk_7(\n    x::Union{Nothing, T} where T<:Integer,\n    y::Integer=zero(T)\n) -> Union{Nothing, Integer}\n", str)
             else
                 @test occursin("\nk_7(\n    x::Union{Nothing, T} where T<:Integer\n) -> Union{Nothing, T} where T<:Integer\n", str)
-                @test occursin("\nk_7(\n    x::Union{Nothing, T} where T<:Integer,\n    y::Integer=zero(T)\n) -> Union{Nothing, T} where T<:Integer\n", str)
             end
+            @test occursin("\nk_7(\n    x::Union{Nothing, T} where T<:Integer,\n    y::Integer=zero(T)\n) -> Union{Nothing, T} where T<:Integer\n", str)
             @test occursin("\n```\n", str)
 
             doc.data = Dict(
