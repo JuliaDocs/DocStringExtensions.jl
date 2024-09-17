@@ -49,6 +49,11 @@ struct K
     K(; a = 1) = new()
 end
 
+macro m1(expr) expr end
+macro m2(expr) expr end
+
+@m1 @m2 l(x::Int, y=1) = x + y
+
 abstract type AbstractType1 <: Integer end
 abstract type AbstractType2{S, T <: Integer} <: Integer end
 

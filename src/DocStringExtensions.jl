@@ -86,6 +86,7 @@ export interpolation
 
 # Includes.
 
+include("parsing.jl")
 include("utilities.jl")
 include("abbreviations.jl")
 include("templates.jl")

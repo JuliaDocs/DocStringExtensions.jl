@@ -321,28 +321,7 @@ function find_tuples(typesig)
     end
 end
 
-"""
-$(:TYPEDSIGNATURES)
-
-Print a simplified representation of a method signature to `buffer`. Some of these
-simplifications include:
-
-  * no `TypeVar`s;
-  * no types;
-  * no keyword default values;
-
-# Examples
-
-```julia
-f(x::Int; a = 1, b...) = x
-sig = printmethod(Docs.Binding(Main, :f), f, first(methods(f)))
-```
-"""
-function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method, typesig)
-    # TODO: print qualified?
-    local args = string.(arguments(method))
-    local kws = string.(keywords(func, method))
-
+function format_args(args::Vector{ASTArg}, typesig, print_types)
     # find inner tuple type
     function find_inner_tuple_type(t)
         # t is always either a UnionAll which represents a generic type or a Tuple where each parameter is the argument
@@ -383,25 +362,86 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
             collect(typesig.types)
 
     args = map(args, argtypes) do arg,t
+        name = ""
         type = ""
         suffix = ""
+        default_value = ""
+
+        if !isnothing(arg.name)
+            name = arg.name
+        elseif isnothing(arg.name) && (t === Any || !print_types)
+            name = "_"
+        end
         if isvarargtype(t)
             t = vararg_eltype(t)
             suffix = "..."
+        elseif arg.variadic
+            # This extra branch is here for kwargs, where we don't have type
+            # information.
+            suffix = "..."
         end
-        if t!==Any
+        if print_types && t !== Any
             type = "::$t"
         end
+        if !isnothing(arg.default)
+            default_value = "=$(arg.default)"
+        end
 
-        "$arg$type$suffix"
+        "$name$type$suffix$default_value"
     end
 
-    rt = Base.return_types(func, typesig)
+    return args
+end
 
-    return printmethod_format(buffer, string(binding.var), args, string.(kws);
-        return_type =
-            length(rt) >= 1 && rt[1] !== Nothing && rt[1] !== Union{} ?
-            " -> $(rt[1])" : "")
+"""
+$(:TYPEDSIGNATURES)
+
+Print a simplified representation of a method signature to `buffer`. Some of these
+simplifications include:
+
+  * no `TypeVar`s;
+  * no types;
+  * no keyword default values;
+
+# Examples
+
+```julia
+f(x::Int; a = 1, b...) = x
+sig = printmethod(Docs.Binding(Main, :f), f, first(methods(f)))
+```
+"""
+function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method,
+                     ast_info, typesig, print_types::Bool)
+    local formatted_args
+    local formatted_kws
+
+    if isnothing(ast_info)
+        formatted_args = string.(arguments(method))
+        formatted_kws = string.(keywords(func, method))
+    else
+        formatted_args = format_args(ast_info.args, typesig, print_types)
+
+        # We don't have proper type information for keyword arguments like we do
+        # with `typesig` for positional arguments, so we assume they're all Any. An
+        # alternative would be to use the types extracted from the AST, but that
+        # might not exactly match the types of positional arguments (e.g. an alias
+        # type would be printed as the underlying type for positional arguments but
+        # under the alias for keyword arguments).
+        kws = ast_info.kwargs
+        formatted_kws = format_args(kws, NTuple{length(kws), Any}, print_types)
+    end
+
+    rt = try
+        # We wrap this in a try-catch block because Base.return_types() is
+        # documented to fail on generated functions.
+        Base.return_types(func, typesig)
+    catch
+        nothing
+    end
+    can_print_rt = print_types && !isnothing(rt) && length(rt) >= 1 && rt[1] !== Nothing && rt[1] !== Union{}
+
+    return printmethod_format(buffer, string(binding.var), formatted_args, formatted_kws;
+        return_type = can_print_rt ? " -> $(rt[1])" : "")
 end
 
 printmethod(b, f, m) = String(take!(printmethod(IOBuffer(), b, f, m)))

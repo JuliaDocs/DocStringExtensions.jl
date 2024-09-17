@@ -6,12 +6,16 @@ version = "0.9.3"
 LibGit2 = "76f85450-5226-5b5a-8eaa-529ad045b433"
 
 [compat]
+CodeTracking = "1"
+REPL = "1"
 julia = "1"
 
 [extras]
+CodeTracking = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
 Markdown = "d6f4376e-aef5-505a-96c1-9c027394607a"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
+REPL = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Markdown", "Pkg", "Test"]
+test = ["Markdown", "Pkg", "Test", "REPL", "CodeTracking"]
