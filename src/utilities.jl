@@ -533,7 +533,7 @@ function url(m::Method)
         file = string(m.file)
         if startswith(file, root) || startswith(realpath(file), root)
             base = "https://github.com/$repo/tree"
-            filename = lstrip(file[(length(root)+1):end], '/')
+            filename = join(splitpath(lstrip(file[(length(root)+1):end], '/')), '/')
             return "$base/$commit/$filename#L$(m.line)"
         else
             return ""
