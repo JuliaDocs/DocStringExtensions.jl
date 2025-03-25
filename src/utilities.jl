@@ -523,19 +523,20 @@ on TravisCI as well.
 function url(m::Method)
     if haskey(ENV, "TRAVIS_REPO_SLUG")
         repo = ENV["TRAVIS_REPO_SLUG"]
+
         commit = get(ENV, "TRAVIS_COMMIT", nothing)
+        commit === nothing && return ""
+
         root = get(ENV, "TRAVIS_BUILD_DIR", nothing)
-        if any(isnothing, (commit, root))
-            return ""
+        root === nothing && return ""
+
+        file = string(m.file)
+        if startswith(file, root) || startswith(realpath(file), root)
+            base = "https://github.com/$repo/tree"
+            filename = lstrip(file[(length(root)+1):end], '/')
+            return "$base/$commit/$filename#L$(m.line)"
         else
-            file = string(m.file)
-            if startswith(file, root) || startswith(realpath(file), root)
-                base = "https://github.com/$repo/tree"
-                filename = lstrip(file[(length(root)+1):end], '/')
-                return "$base/$commit/$filename#L$(m.line)"
-            else
-                return ""
-            end
+            return ""
         end
     else
         return Base.url(m)
