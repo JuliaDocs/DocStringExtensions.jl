@@ -698,6 +698,13 @@ end
                 @test occursin("github.com/JuliaDocs/NonExistent", DSE.url(first(methods(M.f))))
                 @test occursin("github.com/JuliaDocs/NonExistent", DSE.url(first(methods(M.K))))
             end
+            withenv(
+                "TRAVIS_REPO_SLUG" => "JuliaDocs/NonExistent",
+                "TRAVIS_COMMIT" => "<commit>",
+                "TRAVIS_BUILD_DIR" => dirname(@__DIR__)
+            ) do
+                @test occursin("github.com/JuliaDocs/NonExistent/tree/<commit>/test/TestModule/M.jl", DSE.url(first(methods(M.f))))
+            end
         end
         @testset "comparemethods" begin
             let f = first(methods(M.f)),
