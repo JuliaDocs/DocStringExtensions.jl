@@ -530,10 +530,10 @@ function url(m::Method)
         root = get(ENV, "TRAVIS_BUILD_DIR", nothing)
         root === nothing && return ""
 
-        file = string(m.file)
-        if startswith(file, root) || startswith(realpath(file), root)
+        file = realpath(string(m.file))
+        if startswith(file, root)
+            filename = join(split(relpath(file, root), @static Sys.iswindows() ? '\\' : '/'), '/')
             base = "https://github.com/$repo/tree"
-            filename = join(splitpath(lstrip(file[(length(root)+1):end], '/')), '/')
             return "$base/$commit/$filename#L$(m.line)"
         else
             return ""
