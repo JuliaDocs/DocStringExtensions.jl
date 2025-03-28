@@ -1,6 +1,6 @@
 name = "DocStringExtensions"
 uuid = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
-version = "0.9.3"
+version = "0.9.4"
 
 [compat]
 julia = "1"
