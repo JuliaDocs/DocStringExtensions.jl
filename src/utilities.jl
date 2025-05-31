@@ -452,10 +452,10 @@ kws = keywords(f, first(methods(f)))
 ```
 """
 function keywords(func, m::Method)
-    table = methods(func).mt
-    # table is a MethodTable object. For some reason, the :kwsorter field is not always
-    # defined. An undefined kwsorter seems to imply that there are no methods in the
-    # MethodTable with keyword arguments.
+    table::Core.MethodTable = VERSION ≥ v"1.13.0-DEV.647" ? Core.GlobalMethods : methods(func).mt
+    # For some reason, the :kwsorter field is not always defined.
+    # An undefined kwsorter seems to imply that there are no methods
+    # in the MethodTable with keyword arguments.
     if  !(Base.fieldindex(Core.MethodTable, :kwsorter, false) > 0) || isdefined(table, :kwsorter)
         # Fetching method keywords stolen from base/replutil.jl:572-576 (commit 3b45cdc9aab0):
         kwargs = VERSION < v"1.4.0-DEV.215" ? Base.kwarg_decl(m, typeof(table.kwsorter)) : Base.kwarg_decl(m)
