@@ -452,24 +452,24 @@ kws = keywords(f, first(methods(f)))
 ```
 """
 function keywords(func, m::Method)
-    table::Core.MethodTable = VERSION ≥ v"1.13.0-DEV.647" ? Core.GlobalMethods : methods(func).mt
-    # For some reason, the :kwsorter field is not always defined.
-    # An undefined kwsorter seems to imply that there are no methods
-    # in the MethodTable with keyword arguments.
-    if  !(Base.fieldindex(Core.MethodTable, :kwsorter, false) > 0) || isdefined(table, :kwsorter)
-        # Fetching method keywords stolen from base/replutil.jl:572-576 (commit 3b45cdc9aab0):
-        kwargs = VERSION < v"1.4.0-DEV.215" ? Base.kwarg_decl(m, typeof(table.kwsorter)) : Base.kwarg_decl(m)
-        if isa(kwargs, Vector) && length(kwargs) > 0
-            filter!(arg -> !occursin("#", string(arg)), kwargs)
-            # Keywords *may* not be sorted correctly. We move the vararg one to the end.
-            index = findfirst(arg -> endswith(string(arg), "..."), kwargs)
-            if index != nothing
-                kwargs[index], kwargs[end] = kwargs[end], kwargs[index]
-            end
-            return kwargs
-        end
+    @static if VERSION < v"1.4"
+        table::Core.MethodTable = methods(func).mt
+        # For some reason, the :kwsorter field is not always defined.
+        # An undefined kwsorter seems to imply that there are no methods
+        # in the MethodTable with keyword arguments.
+        isdefined(table, :kwsorter) || return Symbol[]
+        kwargs = Base.kwarg_decl(m, typeof(table.kwsorter))
+    else
+        kwargs = Base.kwarg_decl(m)
     end
-    return Symbol[]
+    isa(kwargs, Vector) && !isempty(kwargs) || return Symbol[]
+    filter!(arg -> !occursin("#", string(arg)), kwargs)
+    # Keywords *may* not be sorted correctly. We move the vararg one to the end.
+    index = findfirst(arg -> endswith(string(arg), "..."), kwargs)
+    if index != nothing
+        kwargs[index], kwargs[end] = kwargs[end], kwargs[index]
+    end
+    return kwargs
 end
 
 
