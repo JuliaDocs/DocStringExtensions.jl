@@ -452,24 +452,28 @@ kws = keywords(f, first(methods(f)))
 ```
 """
 function keywords(func, m::Method)
-    table = methods(func).mt
-    # table is a MethodTable object. For some reason, the :kwsorter field is not always
-    # defined. An undefined kwsorter seems to imply that there are no methods in the
-    # MethodTable with keyword arguments.
-    if  !(Base.fieldindex(Core.MethodTable, :kwsorter, false) > 0) || isdefined(table, :kwsorter)
-        # Fetching method keywords stolen from base/replutil.jl:572-576 (commit 3b45cdc9aab0):
-        kwargs = VERSION < v"1.4.0-DEV.215" ? Base.kwarg_decl(m, typeof(table.kwsorter)) : Base.kwarg_decl(m)
-        if isa(kwargs, Vector) && length(kwargs) > 0
-            filter!(arg -> !occursin("#", string(arg)), kwargs)
-            # Keywords *may* not be sorted correctly. We move the vararg one to the end.
-            index = findfirst(arg -> endswith(string(arg), "..."), kwargs)
-            if index != nothing
-                kwargs[index], kwargs[end] = kwargs[end], kwargs[index]
-            end
-            return kwargs
+    kwargs = @static if VERSION < v"1.4.0-DEV.215"
+        table::Core.MethodTable = methods(func).mt
+        # For some reason, the :kwsorter field is not always defined.
+        # An undefined kwsorter seems to imply that there are no methods
+        # in the MethodTable with keyword arguments.
+        if Base.fieldindex(Core.MethodTable, :kwsorter, false) > 0 && !isdefined(table, :kwsorter)
+            return Symbol[]
         end
+        Base.kwarg_decl(m, typeof(table.kwsorter))
+    else
+        Base.kwarg_decl(m)
     end
-    return Symbol[]
+    if !isa(kwargs, Vector) || isempty(kwargs)
+        return Symbol[]
+    end
+    filter!(arg -> !occursin("#", string(arg)), kwargs)
+    # Keywords *may* not be sorted correctly. We move the vararg one to the end.
+    index = findfirst(arg -> endswith(string(arg), "..."), kwargs)
+    if index != nothing
+        kwargs[index], kwargs[end] = kwargs[end], kwargs[index]
+    end
+    return kwargs
 end
 
 
