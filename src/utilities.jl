@@ -452,7 +452,7 @@ kws = keywords(f, first(methods(f)))
 ```
 """
 function keywords(func, m::Method)
-    kwargs = @static if VERSION < v"1.4"
+    kwargs = @static if VERSION < v"1.4.0-DEV.215"
         table::Core.MethodTable = methods(func).mt
         # For some reason, the :kwsorter field is not always defined.
         # An undefined kwsorter seems to imply that there are no methods
