@@ -457,7 +457,7 @@ function keywords(func, m::Method)
         # For some reason, the :kwsorter field is not always defined.
         # An undefined kwsorter seems to imply that there are no methods
         # in the MethodTable with keyword arguments.
-        if !isdefined(table, :kwsorter)
+        if Base.fieldindex(Core.MethodTable, :kwsorter, false) > 0 && !isdefined(table, :kwsorter)
             return Symbol[]
         end
         Base.kwarg_decl(m, typeof(table.kwsorter))
