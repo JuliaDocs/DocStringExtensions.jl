@@ -452,17 +452,21 @@ kws = keywords(f, first(methods(f)))
 ```
 """
 function keywords(func, m::Method)
-    @static if VERSION < v"1.4"
+    kwargs = @static if VERSION < v"1.4"
         table::Core.MethodTable = methods(func).mt
         # For some reason, the :kwsorter field is not always defined.
         # An undefined kwsorter seems to imply that there are no methods
         # in the MethodTable with keyword arguments.
-        isdefined(table, :kwsorter) || return Symbol[]
-        kwargs = Base.kwarg_decl(m, typeof(table.kwsorter))
+        if !isdefined(table, :kwsorter)
+            return Symbol[]
+        end
+        Base.kwarg_decl(m, typeof(table.kwsorter))
     else
-        kwargs = Base.kwarg_decl(m)
+        Base.kwarg_decl(m)
     end
-    isa(kwargs, Vector) && !isempty(kwargs) || return Symbol[]
+    if !isa(kwargs, Vector) || isempty(kwargs)
+        return Symbol[]
+    end
     filter!(arg -> !occursin("#", string(arg)), kwargs)
     # Keywords *may* not be sorted correctly. We move the vararg one to the end.
     index = findfirst(arg -> endswith(string(arg), "..."), kwargs)
