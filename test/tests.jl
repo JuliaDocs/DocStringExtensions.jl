@@ -40,15 +40,15 @@ end
         # Its signature is kwarg_decl(m::Method, kwtype::DataType). The second argument
         # should be the type of the kwsorter from the corresponding MethodTable.
         @test isa(methods(M.j_1), Base.MethodList)
-        @test isdefined(methods(M.j_1), :mt)
-        local mt = methods(M.j_1).mt
+        get_mt(func) = VERSION ≥ v"1.13.0-DEV.647" ? Core.GlobalMethods : methods(func).mt
+        local mt = get_mt(M.j_1)
         @test isa(mt, Core.MethodTable)
         if Base.fieldindex(Core.MethodTable, :kwsorter, false) > 0
             @test isdefined(mt, :kwsorter)
         end
         # .kwsorter is not always defined -- namely, it seems when none of the methods
         # have keyword arguments:
-        @test isdefined(methods(M.f).mt, :kwsorter) === false
+        @test isdefined(get_mt(M.f), :kwsorter) === false
         # M.j_1 has two methods. Fetch the single argument one..
         local m = which(M.j_1, (Any,))
         @test isa(m, Method)
@@ -61,7 +61,7 @@ end
         # that does not have any arguments
         m = which(M.j_1, (Any,Any)) # fetch the no-keyword method
         if VERSION < v"1.4.0-DEV.215"
-            @test Base.kwarg_decl(m, typeof(methods(M.j_1).mt.kwsorter)) == Tuple{}()
+            @test Base.kwarg_decl(m, typeof(get_mt(M.j_1).kwsorter)) == Tuple{}()
         else
             @test Base.kwarg_decl(m) == []
         end
@@ -83,7 +83,9 @@ end
             DSE.format(IMPORTS, buf, doc)
             str = String(take!(buf))
             @test occursin("\n  - `Base`\n", str)
-            @test occursin("\n  - `Core`\n", str)
+            if VERSION < v"1.13-DEV"
+                @test occursin("\n  - `Core`\n", str)
+            end
 
             # Module exports.
             DSE.format(EXPORTS, buf, doc)
@@ -151,8 +153,15 @@ end
             DSE.format(SIGNATURES, buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
-            @test occursin("\ng()\n", str)
-            @test occursin("\ng(x)\n", str)
+            # On 1.10+, automatically generated methods have keywords in the metadata,
+            # hence the display difference between Julia versions.
+            if VERSION >= v"1.10"
+                @test occursin("\ng(; ...)\n", str)
+                @test occursin("\ng(x; ...)\n", str)
+            else
+                @test occursin("\ng()\n", str)
+                @test occursin("\ng()\n", str)
+            end
             @test occursin("\n```\n", str)
 
             doc.data = Dict(
@@ -163,9 +172,17 @@ end
             DSE.format(SIGNATURES, buf, doc)
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
-            @test occursin("\ng()\n", str)
-            @test occursin("\ng(x)\n", str)
-            @test occursin("\ng(x, y)\n", str)
+            # On 1.10+, automatically generated methods have keywords in the metadata,
+            # hence the display difference between Julia versions.
+            if VERSION >= v"1.10"
+                @test occursin("\ng(; ...)\n", str)
+                @test occursin("\ng(x; ...)\n", str)
+                @test occursin("\ng(x, y; ...)\n", str)
+            else
+                @test occursin("\ng()\n", str)
+                @test occursin("\ng(x)\n", str)
+                @test occursin("\ng(x, y)\n", str)
+            end
             @test occursin("\ng(x, y, z; kwargs...)\n", str)
             @test occursin("\n```\n", str)
 
@@ -245,9 +262,21 @@ end
             str = String(take!(buf))
             @test occursin("\n```julia\n", str)
             if typeof(1) === Int64
-                @test occursin("\nh(x::Int64) -> Int64\n", str)
+                # On 1.10+, automatically generated methods have keywords in the metadata,
+                # hence the display difference between Julia versions.
+                if VERSION >= v"1.10"
+                    @test occursin("\nh(x::Int64; ...) -> Int64\n", str)
+                else
+                    @test occursin("\nh(x::Int64) -> Int64\n", str)
+                end
             else
-                @test occursin("\nh(x::Int32) -> Int32\n", str)
+                # On 1.10+, automatically generated methods have keywords in the metadata,
+                # hence the display difference between Julia versions.
+                if VERSION >= v"1.10"
+                    @test occursin("\nh(x::Int32; ...) -> Int32\n", str)
+                else
+                    @test occursin("\nh(x::Int32) -> Int32\n", str)
+                end
             end
             @test occursin("\n```\n", str)
 
@@ -670,6 +699,13 @@ end
             with_test_repo() do
                 @test occursin("github.com/JuliaDocs/NonExistent", DSE.url(first(methods(M.f))))
                 @test occursin("github.com/JuliaDocs/NonExistent", DSE.url(first(methods(M.K))))
+            end
+            withenv(
+                "TRAVIS_REPO_SLUG" => "JuliaDocs/NonExistent",
+                "TRAVIS_COMMIT" => "<commit>",
+                "TRAVIS_BUILD_DIR" => dirname(@__DIR__)
+            ) do
+                @test occursin("github.com/JuliaDocs/NonExistent/tree/<commit>/test/TestModule/M.jl", DSE.url(first(methods(M.f))))
             end
         end
         @testset "comparemethods" begin

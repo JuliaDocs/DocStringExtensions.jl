@@ -73,16 +73,12 @@ $(IMPORTS)
 """
 module DocStringExtensions
 
-# Imports.
-
-import LibGit2
-
 # Exports.
 
 export @template, FIELDS, TYPEDFIELDS, EXPORTS, METHODLIST, IMPORTS
 export SIGNATURES, TYPEDSIGNATURES, TYPEDEF, DOCSTRING, FUNCTIONNAME
 export README, LICENSE
-export interpolation
+# export interpolation
 
 # Includes.
 
