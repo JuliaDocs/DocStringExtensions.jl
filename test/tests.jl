@@ -40,7 +40,7 @@ end
         # Its signature is kwarg_decl(m::Method, kwtype::DataType). The second argument
         # should be the type of the kwsorter from the corresponding MethodTable.
         @test isa(methods(M.j_1), Base.MethodList)
-        get_mt(func) = VERSION ≥ v"1.13.0-DEV.647" ? Core.GlobalMethods : methods(func).mt
+        get_mt(func) = VERSION ≥ v"1.12" ? Core.methodtable : methods(func).mt
         local mt = get_mt(M.j_1)
         @test isa(mt, Core.MethodTable)
         if Base.fieldindex(Core.MethodTable, :kwsorter, false) > 0
@@ -83,7 +83,7 @@ end
             DSE.format(IMPORTS, buf, doc)
             str = String(take!(buf))
             @test occursin("\n  - `Base`\n", str)
-            if VERSION < v"1.13-DEV"
+            if VERSION < v"1.12"
                 @test occursin("\n  - `Core`\n", str)
             end
 
