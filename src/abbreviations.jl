@@ -336,16 +336,24 @@ end
 #
 
 """
-The singleton type for [`TYPEDSIGNATURES`](@ref) abbreviations.
+The type for [`TYPEDSIGNATURES`](@ref) abbreviations.
 
 $(:FIELDS)
 """
-struct TypedMethodSignatures <: Abbreviation end
+struct TypedMethodSignatures <: Abbreviation
+    return_types::Bool
+end
 
 """
 An [`Abbreviation`](@ref) for including a simplified representation of all the method
 signatures with types that match the given docstring. See [`printmethod`](@ref) for details on
 the simplifications that are applied.
+
+!!! tip "Disabling the Return Type"
+    In many codebases the return types are not annotated meaning the return
+    type is printed as `Any`. To reduce clutter, the return type may be omitted by
+    calling [`TypedMethodSignatures`](@ref) and passing `false` to its constructor:
+    `\$(DocStringExtensions.TypedMethodSignatures(false))`.
 
 # Examples
 
@@ -358,9 +366,9 @@ f(x::Int, y::Int; a, b...)
 ```
 ````
 """
-const TYPEDSIGNATURES = TypedMethodSignatures()
+const TYPEDSIGNATURES = TypedMethodSignatures(true)
 
-function format(::TypedMethodSignatures, buf, doc)
+function format(tms::TypedMethodSignatures, buf, doc)
     local binding = doc.data[:binding]
     local typesig = doc.data[:typesig]
     local modname = doc.data[:module]
@@ -395,7 +403,8 @@ function format(::TypedMethodSignatures, buf, doc)
             else
                 t = tuples[findfirst(f, tuples)]
             end
-            printmethod(buf, binding, func, method, t)
+            printmethod(buf, binding, func, method, t;
+                print_return_types=tms.return_types)
             println(buf)
         end
         println(buf, "\n```\n")
