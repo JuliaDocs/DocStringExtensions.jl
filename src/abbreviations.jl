@@ -336,11 +336,13 @@ end
 #
 
 """
-The singleton type for [`TYPEDSIGNATURES`](@ref) abbreviations.
+The type for [`TYPEDSIGNATURES`](@ref) abbreviations.
 
 $(:FIELDS)
 """
-struct TypedMethodSignatures <: Abbreviation end
+struct TypedMethodSignatures <: Abbreviation
+    return_types::Bool
+end
 
 """
 An [`Abbreviation`](@ref) for including a simplified representation of all the method
@@ -358,9 +360,17 @@ f(x::Int, y::Int; a, b...)
 ```
 ````
 """
-const TYPEDSIGNATURES = TypedMethodSignatures()
+const TYPEDSIGNATURES = TypedMethodSignatures(true)
 
-function format(::TypedMethodSignatures, buf, doc)
+"""
+An alternative to [`TYPEDSIGNATURES`](@ref) that omits the return type.
+
+The return type shown by [`TYPEDSIGNATURES`](@ref) is often `-> Any`, which is usually not
+correct. It is nicer to then just omit the type completely.
+"""
+const TYPEDSIGNATURESNORETURN = TypedMethodSignatures(false)
+
+function format(tms::TypedMethodSignatures, buf, doc)
     local binding = doc.data[:binding]
     local typesig = doc.data[:typesig]
     local modname = doc.data[:module]
@@ -395,7 +405,8 @@ function format(::TypedMethodSignatures, buf, doc)
             else
                 t = tuples[findfirst(f, tuples)]
             end
-            printmethod(buf, binding, func, method, t)
+            printmethod(buf, binding, func, method, t;
+                print_return_types=tms.return_types)
             println(buf)
         end
         println(buf, "\n```\n")
