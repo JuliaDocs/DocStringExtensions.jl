@@ -455,6 +455,81 @@ end
 
         end
 
+        @testset "method signatures with types (no return type)" begin
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :h_1),
+                :typesig => Tuple{M.A},
+                :module => M,
+            )
+            DSE.format(DSE.TypedMethodSignatures(false), buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            f = str -> replace(str, " " => "")
+            str = f(str)
+            if Sys.iswindows() && VERSION < v"1.8"
+                @test occursin(f("h_1(x::Union{Array{T,4}, Array{T,3}} where T)"), str)
+            else
+                @test occursin(f("h_1(x::Union{Array{T,3}, Array{T,4}} where T)"), str)
+            end
+            @test !occursin("->", str)
+            @test occursin("\n```\n", str)
+
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :g_2),
+                :typesig => Tuple{String},
+                :module => M,
+            )
+            DSE.format(DSE.TypedMethodSignatures(false), buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            @test occursin("\ng_2(x::String)", str)
+            @test occursin("\n```\n", str)
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :h),
+                :typesig => Tuple{Int,Int,Int},
+                :module => M,
+            )
+            DSE.format(DSE.TypedMethodSignatures(false), buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            if typeof(1) === Int64
+                @test occursin("\nh(x::Int64, y::Int64, z::Int64; kwargs...)\n", str)
+            else
+                @test occursin("\nh(x::Int32, y::Int32, z::Int32; kwargs...)\n", str)
+            end
+            @test occursin("\n```\n", str)
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :h),
+                :typesig => Tuple{Int},
+                :module => M,
+            )
+            DSE.format(DSE.TypedMethodSignatures(false), buf, doc)
+            str = String(take!(buf))
+            @test occursin("\n```julia\n", str)
+            if typeof(1) === Int64
+                # On 1.10+, automatically generated methods have keywords in the metadata,
+                # hence the display difference between Julia versions.
+                if VERSION >= v"1.10"
+                    @test occursin("\nh(x::Int64; ...)\n", str)
+                else
+                    @test occursin("\nh(x::Int64)\n", str)
+                end
+            else
+                # On 1.10+, automatically generated methods have keywords in the metadata,
+                # hence the display difference between Julia versions.
+                if VERSION >= v"1.10"
+                    @test occursin("\nh(x::Int32; ...)\n", str)
+                else
+                    @test occursin("\nh(x::Int32)\n", str)
+                end
+            end
+            @test occursin("\n```\n", str)
+
+        end
+
         @testset "function names" begin
             doc.data = Dict(
                 :binding => Docs.Binding(M, :f),
