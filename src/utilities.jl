@@ -287,12 +287,12 @@ types.
 
 ```jldoctest; setup = :(using DocStringExtensions)
 julia> DocStringExtensions.find_tuples(Tuple{String,Number,Int})
-1-element Array{DataType,1}:
- Tuple{String,Number,Int64}
+1-element Vector{DataType}:
+ Tuple{String, Number, Int64}
 
 julia> DocStringExtensions.find_tuples(Tuple{T} where T <: Integer)
-1-element Array{DataType,1}:
- Tuple{T<:Integer}
+1-element Vector{UnionAll}:
+ Tuple{T} where T<:Integer
 
 julia> s = Union{
          Tuple{Int64},
@@ -303,12 +303,12 @@ julia> s = Union{
        } where U where T;
 
 julia> DocStringExtensions.find_tuples(s)
-5-element Array{DataType,1}:
+5-element Vector{Type}:
  Tuple{Int64}
- Tuple{U}
- Tuple{T}
- Tuple{Int64,T}
- Tuple{Int64,T,U}
+ Tuple{U} where U
+ Tuple{T} where T
+ Tuple{Int64, T} where T
+ Tuple{Int64, T, U} where {T, U}
 ```
 """
 function find_tuples(typesig)
