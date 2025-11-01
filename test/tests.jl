@@ -455,6 +455,44 @@ end
 
         end
 
+        @testset "method signatures with types (no return type)" begin
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :h_1),
+                :typesig => Tuple{M.A},
+                :module => M,
+            )
+            DSE.format(DSE.TYPEDSIGNATURESNORETURN, buf, doc)
+            str = String(take!(buf))
+            @test_reference "references/typed_no_return/h_1.txt" str
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :g_2),
+                :typesig => Tuple{String},
+                :module => M,
+            )
+            DSE.format(TYPEDSIGNATURESNORETURN, buf, doc)
+            str = String(take!(buf))
+            @test_reference "references/typed_no_return/g_2.txt" str
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :h),
+                :typesig => Tuple{Int, Int, Int},
+                :module => M,
+            )
+            DSE.format(DSE.TYPEDSIGNATURESNORETURN, buf, doc)
+            str = String(take!(buf))
+            @test_reference "references/typed_no_return/h_int_int_int.txt" str
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :h),
+                :typesig => Tuple{Int},
+                :module => M,
+            )
+            DSE.format(DSE.TYPEDSIGNATURESNORETURN, buf, doc)
+            str = String(take!(buf))
+            @test_reference "references/typed_no_return/h_int.txt" str
+        end
+
         @testset "function names" begin
             doc.data = Dict(
                 :binding => Docs.Binding(M, :f),
