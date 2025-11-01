@@ -365,8 +365,8 @@ const TYPEDSIGNATURES = TypedMethodSignatures(true)
 """
 An alternative to [`TYPEDSIGNATURES`](@ref) that omits the return type.
 
-The return type shown by [`TYPEDSIGNATURES`](@ref) is often `-> Any`, which is usually not
-correct. It is nicer to then just omit the type completely.
+The return type shown by [`TYPEDSIGNATURES`](@ref) is often `-> Any`, which is often not
+informative. It is nicer to then just omit the type completely.
 """
 const TYPEDSIGNATURESNORETURN = TypedMethodSignatures(false)
 
