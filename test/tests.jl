@@ -9,14 +9,16 @@ function with_test_repo(f)
     repo = LibGit2.init(joinpath(@__DIR__, "TestModule"))
     LibGit2.add!(repo, "M.jl")
     sig = LibGit2.Signature("zeptodoctor", "zeptodoctor@zeptodoctor.com", round(time()), 0)
-    LibGit2.commit(repo, "M.jl", committer = sig, author = sig)
+    LibGit2.commit(repo, "M.jl", committer=sig, author=sig)
     LibGit2.GitRemote(repo, "origin", "https://github.com/JuliaDocs/NonExistent.jl.git")
     try
         f()
     finally
-        rm(joinpath(@__DIR__, "TestModule", ".git"); force = true, recursive = true)
+        rm(joinpath(@__DIR__, "TestModule", ".git"); force=true, recursive=true)
     end
 end
+
+ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
 
 @testset "DocStringExtensions" begin
     @testset "Base assumptions" begin
@@ -59,7 +61,7 @@ end
         @test kwargs == [:y]
         # Base.kwarg_decl will return a Tuple{} for some reason when called on a method
         # that does not have any arguments
-        m = which(M.j_1, (Any,Any)) # fetch the no-keyword method
+        m = which(M.j_1, (Any, Any)) # fetch the no-keyword method
         if VERSION < v"1.4.0-DEV.215"
             @test Base.kwarg_decl(m, typeof(get_mt(M.j_1).kwsorter)) == Tuple{}()
         else
@@ -80,17 +82,17 @@ end
                 :binding => Docs.Binding(Main, :M),
                 :typesig => Union{},
             )
-            DSE.format(IMPORTS, buf, doc)
-            str = String(take!(buf))
-            @test occursin("\n  - `Base`\n", str)
+            str = @io2str DSE.format(IMPORTS, ::IO, doc)
+
             if VERSION < v"1.12"
-                @test occursin("\n  - `Core`\n", str)
+                @test_reference ro_path("module_imports_pre_112.txt") str
+            else
+                @test_reference ro_path("module_imports_112_and_after.txt") str
             end
 
             # Module exports.
-            DSE.format(EXPORTS, buf, doc)
-            str = String(take!(buf))
-            @test occursin("\n  - [`f`](@ref)\n", str)
+            str = @io2str DSE.format(EXPORTS, ::IO, doc)
+            @test_reference ro_path("module_exports.txt") str
         end
 
         @testset "type fields" begin
@@ -101,21 +103,11 @@ end
                     :b => "two",
                 ),
             )
-            DSE.format(FIELDS, buf, doc)
-            str = String(take!(buf))
-            @test occursin("  - `a`", str)
-            @test occursin("  - `b`", str)
-            @test occursin("  - `c`", str)
-            @test occursin("one", str)
-            @test occursin("two", str)
+            str = @io2str DSE.format(FIELDS, ::IO, doc)
+            @test_reference ro_path("fields.txt") str
 
-            DSE.format(TYPEDFIELDS, buf, doc)
-            str = String(take!(buf))
-            @test occursin("  - `a::Any`", str)
-            @test occursin("  - `b::Any`", str)
-            @test occursin("  - `c::Any`", str)
-            @test occursin("one", str)
-            @test occursin("two", str)
+            str = @io2str DSE.format(TYPEDFIELDS, ::IO, doc)
+            @test_reference ro_path("typed_fields.txt") str
         end
 
         @testset "method lists" begin
@@ -124,13 +116,37 @@ end
                 :typesig => Tuple{Any},
                 :module => M,
             )
-            with_test_repo() do
-                DSE.format(METHODLIST, buf, doc)
+            str = @io2str with_test_repo() do
+                DSE.format(METHODLIST, ::IO, doc)
             end
-            str = String(take!(buf))
-            @test occursin("```julia", str)
-            @test occursin("f(x)", str)
-            @test occursin(joinpath("test", "TestModule", "M.jl"), str)
+            # split into multiple replace() calls for older
+            # versions of julia where the replace(s, r => s, r => s...)
+            # method is missing
+            remove_local_info = x -> begin
+                x = replace(
+                    x,
+                    # remove the part of the path that precedes DocStringExtensions.jl/...
+                    # because it will differ per machine
+                    Regex("(defined at \\[`).+(DocStringExtensions.jl)") => s"\1[...]\2",
+                )
+                replace(
+                    x,
+                    # Remove the git hash because it will differ per
+                    # test run
+                    r"(tree/).+(/M)" => s"\1[...]\2"
+                )
+            end
+            # the replacements are needed because the local
+            # Git repo created by with_test_repo() will have
+            # a different commit hash each time the test suite is run
+            # and METHODLIST displays that. Reference tests will fail every
+            # time if we don't remove the hash and the local part of the 
+            # path
+            if Sys.iswindows()
+                @test_reference ro_path("method_lists_windows.txt") remove_local_info(str)
+            else
+                @test_reference ro_path("method_lists_nonwindows.txt") remove_local_info(str)
+            end
         end
 
         @testset "method signatures" begin
@@ -139,74 +155,52 @@ end
                 :typesig => Tuple{Any},
                 :module => M,
             )
-            DSE.format(SIGNATURES, buf, doc)
-            str = String(take!(buf))
-            @test occursin("\n```julia\n", str)
-            @test occursin("\nf(x)\n", str)
-            @test occursin("\n```\n", str)
+            str = @io2str DSE.format(SIGNATURES, ::IO, doc)
+            @test_reference ro_path("method_signatures.txt") str
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :g),
-                :typesig => Union{Tuple{}, Tuple{Any}},
+                :typesig => Union{Tuple{},Tuple{Any}},
                 :module => M,
             )
-            DSE.format(SIGNATURES, buf, doc)
-            str = String(take!(buf))
-            @test occursin("\n```julia\n", str)
+            str = @io2str DSE.format(SIGNATURES, ::IO, doc)
             # On 1.10+, automatically generated methods have keywords in the metadata,
             # hence the display difference between Julia versions.
             if VERSION >= v"1.10"
-                @test occursin("\ng(; ...)\n", str)
-                @test occursin("\ng(x; ...)\n", str)
+                @test_reference ro_path("signatures_110_and_later.txt") str
             else
-                @test occursin("\ng()\n", str)
-                @test occursin("\ng()\n", str)
+                @test_reference ro_path("signatures_pre_110.txt") str
             end
-            @test occursin("\n```\n", str)
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :g),
-                :typesig => Union{Tuple{}, Tuple{Any}, Tuple{Any, Any}, Tuple{Any, Any, Any}},
+                :typesig => Union{Tuple{},Tuple{Any},Tuple{Any,Any},Tuple{Any,Any,Any}},
                 :module => M,
             )
-            DSE.format(SIGNATURES, buf, doc)
-            str = String(take!(buf))
-            @test occursin("\n```julia\n", str)
+            str = @io2str DSE.format(SIGNATURES, ::IO, doc)
             # On 1.10+, automatically generated methods have keywords in the metadata,
             # hence the display difference between Julia versions.
             if VERSION >= v"1.10"
-                @test occursin("\ng(; ...)\n", str)
-                @test occursin("\ng(x; ...)\n", str)
-                @test occursin("\ng(x, y; ...)\n", str)
+                @test_reference ro_path("signatures_many_tuples_110_and_later.txt") str
             else
-                @test occursin("\ng()\n", str)
-                @test occursin("\ng(x)\n", str)
-                @test occursin("\ng(x, y)\n", str)
+                @test_reference ro_path("signatures_many_tuples_pre_110.txt") str
             end
-            @test occursin("\ng(x, y, z; kwargs...)\n", str)
-            @test occursin("\n```\n", str)
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :g_1),
                 :typesig => Tuple{Any},
                 :module => M,
             )
-            DSE.format(SIGNATURES, buf, doc)
-            str = String(take!(buf))
-            @test occursin("\n```julia\n", str)
-            @test occursin("\ng_1(x)\n", str)
-            @test occursin("\n```\n", str)
+            str = @io2str DSE.format(SIGNATURES, ::IO, doc)
+            @test_reference ro_path("signatures_tuple_any.txt") str
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :h_4),
-                :typesig => Union{Tuple{Any, Int, Any}},
+                :typesig => Union{Tuple{Any,Int,Any}},
                 :module => M,
             )
-            DSE.format(SIGNATURES, buf, doc)
-            str = String(take!(buf))
-            @test occursin("\n```julia\n", str)
-            @test occursin("\nh_4(x, _, z)\n", str)
-            @test occursin("\n```\n", str)
+            str = @io2str DSE.format(SIGNATURES, ::IO, doc)
+            @test_reference ro_path("signatures_union_tuple_int_any.txt") str
         end
 
         @testset "method signatures with types" begin
@@ -215,241 +209,182 @@ end
                 :typesig => Tuple{M.A},
                 :module => M,
             )
-            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
-            str = String(take!(buf))
-            @test occursin("\n```julia\n", str)
-            f = str -> replace(str, " " => "")
-            str = f(str)
+            str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
+            str = replace(str, " " => "")
             if Sys.iswindows() && VERSION < v"1.8"
-                @test occursin(f("h_1(\nx::Union{Array{T,4}, Array{T,3}} where T\n) -> Union{Array{T,4}, Array{T,3}} where T"), str)
+                @test_reference ro_path("typed_method_signatures_windows_pre_18.txt") str
             else
-                @test occursin(f("h_1(\nx::Union{Array{T,3}, Array{T,4}} where T\n) -> Union{Array{T,3}, Array{T,4}} where T"), str)
+                @test_reference ro_path("typed_method_signatures_windows_18_and_later.txt") str
             end
-            @test occursin("\n```\n", str)
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :g_2),
                 :typesig => Tuple{String},
                 :module => M,
             )
-            DSE.format(TYPEDSIGNATURES, buf, doc)
-            str = String(take!(buf))
-            @test occursin("\n```julia\n", str)
-            @test occursin("\ng_2(x::String)", str)
-            @test occursin("\n```\n", str)
+            str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
+            @test_reference ro_path("typed_method_signatures_tuple_string.txt") str
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :h),
-                :typesig => Tuple{Int, Int, Int},
+                :typesig => Tuple{Int,Int,Int},
                 :module => M,
             )
-            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
-            str = String(take!(buf))
-            @test occursin("\n```julia\n", str)
+            str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
             if typeof(1) === Int64
-                @test occursin("\nh(x::Int64, y::Int64, z::Int64; kwargs...) -> Int64\n", str)
+                @test_reference ro_path("typed_method_signatures_64bit.txt") str
             else
-                @test occursin("\nh(x::Int32, y::Int32, z::Int32; kwargs...) -> Int32\n", str)
+                @test_reference ro_path("typed_method_signatures_32bit.txt") str
             end
-            @test occursin("\n```\n", str)
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :h),
                 :typesig => Tuple{Int},
                 :module => M,
             )
-            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
-            str = String(take!(buf))
-            @test occursin("\n```julia\n", str)
+            str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
             if typeof(1) === Int64
                 # On 1.10+, automatically generated methods have keywords in the metadata,
                 # hence the display difference between Julia versions.
                 if VERSION >= v"1.10"
-                    @test occursin("\nh(x::Int64; ...) -> Int64\n", str)
+                    @test_reference ro_path("typed_method_signatures_64bit_110_and_later.txt") str
                 else
-                    @test occursin("\nh(x::Int64) -> Int64\n", str)
+                    @test_reference ro_path("typed_method_signatures_64bit_pre_110.txt") str
                 end
             else
                 # On 1.10+, automatically generated methods have keywords in the metadata,
                 # hence the display difference between Julia versions.
                 if VERSION >= v"1.10"
-                    @test occursin("\nh(x::Int32; ...) -> Int32\n", str)
+                    @test_reference ro_path("typed_method_signatures_32bit_110_and_later.txt") str
                 else
-                    @test occursin("\nh(x::Int32) -> Int32\n", str)
+                    @test_reference ro_path("typed_method_signatures_32bit_pre_110.txt") str
                 end
             end
-            @test occursin("\n```\n", str)
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :k_0),
                 :typesig => Tuple{T} where T,
                 :module => M,
             )
-            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
-            str = String(take!(buf))
-            @test occursin("\n```julia\n", str)
-            @test occursin("\nk_0(x) -> Any\n", str)
-            @test occursin("\n```\n", str)
+            str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
+            @test_reference ro_path("typed_method_signatures_k0.txt") str
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :k_1),
-                :typesig => Union{Tuple{String}, Tuple{String, T}, Tuple{String, T, T}, Tuple{T}} where T <: Number,
+                :typesig => Union{Tuple{String},Tuple{String,T},Tuple{String,T,T},Tuple{T}} where T<:Number,
                 :module => M,
             )
-            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
-            str = String(take!(buf))
-            @test occursin("\n```julia\n", str)
-            @test occursin("\nk_1(x::String) -> String\n", str)
-            @test occursin("\nk_1(x::String, y::Number) -> String\n", str)
-            @test occursin("\nk_1(x::String, y::Number, z::Number) -> String\n", str)
-            @test occursin("\n```\n", str)
+            str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
+            @test_reference ro_path("typed_method_signatures_k1.txt") str
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :k_2),
-                :typesig => (Union{Tuple{String, U, T}, Tuple{T}, Tuple{U}} where T <: Number) where U <: Complex,
+                :typesig => (Union{Tuple{String,U,T},Tuple{T},Tuple{U}} where T<:Number) where U<:Complex,
                 :module => M,
             )
-
-            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
-            str = String(take!(buf))
-            @test occursin("\n```julia\n", str)
-            @test occursin("k_2(x::String, y::Complex, z::Number) -> String", str)
-            @test occursin("\n```\n", str)
+            str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
+            @test_reference ro_path("typed_method_signatures_k2.txt") str
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :k_3),
-                :typesig => (Union{Tuple{Any, T, U}, Tuple{U}, Tuple{T}} where U <: Any) where T <: Any,
+                :typesig => (Union{Tuple{Any,T,U},Tuple{U},Tuple{T}} where U<:Any) where T<:Any,
                 :module => M,
             )
-            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
-            str = String(take!(buf))
-            @test occursin("\n```julia\n", str)
-            @test occursin("\nk_3(x, y, z) -> Any\n", str)
-            @test occursin("\n```\n", str)
+            str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
+            @test_reference ro_path("typed_method_signatures_k3.txt") str
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :k_4),
-                :typesig => Union{Tuple{String}, Tuple{String, Int}},
+                :typesig => Union{Tuple{String},Tuple{String,Int}},
                 :module => M,
             )
-            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
-            str = String(take!(buf))
-            @test occursin("\n```julia\n", str)
+            str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
             if VERSION > v"1.3.0"
-                @test occursin("\nk_4(::String)\n", str)
                 if typeof(1) === Int64
-                    @test occursin("\nk_4(::String, ::Int64)\n", str)
+                    @test_reference ro_path("typed_method_signatures_k4_post_13_64bit.txt") str
                 else
-                    @test occursin("\nk_4(::String, ::Int32)\n", str)
+                    @test_reference ro_path("typed_method_signatures_k4_post_13_32bit.txt") str
                 end
             else
                 # TODO: remove this test when julia 1.0.0 support is dropped.
                 # older versions of julia seem to return this
                 # str = "\n```julia\nk_4(#temp#::String)\nk_4(#temp#::String, #temp#::Int64)\n\n```\n\n"
-                @test occursin("\nk_4", str)
+                @test_reference ro_path("typed_method_signatures_k4_up_to_13.txt") str
             end
-            @test occursin("\n```\n", str)
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :k_5),
-                :typesig => Union{Tuple{Type{T}, String}, Tuple{Type{T}, String, Union{Nothing, Function}}, Tuple{T}} where T <: Number,
+                :typesig => Union{Tuple{Type{T},String},Tuple{Type{T},String,Union{Nothing,Function}},Tuple{T}} where T<:Number,
                 :module => M,
             )
-            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
-            str = String(take!(buf))
-            @test occursin("\n```julia\n", str)
+            str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
             if VERSION > v"1.3.0"
-                @test occursin("\nk_5(::Type{T<:Number}, x::String) -> String\n", str)
-                @test occursin("\nk_5(\n    ::Type{T<:Number},\n    x::String,\n    func::Union{Nothing, Function}\n) -> String\n", str)
-                @test occursin("\n```\n", str)
+                @test_reference ro_path("typed_method_signatures_k5_post_13.txt") str
             else
                 # TODO: remove this test when julia 1.0.0 support is dropped.
                 # older versions of julia seem to return this
                 # str = "\n```julia\nk_5(#temp#::Type{T<:Number}, x::String) -> String\nk_5(#temp#::Type{T<:Number}, x::String, func::Union{Nothing, Function}) -> String\n\n```\n\n"
-                @test occursin("\nk_5", str)
+                @test_reference ro_path("typed_method_signatures_k5_up_to_13.txt") str
             end
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :k_6),
-                :typesig => Union{Tuple{Vector{T}}, Tuple{T}} where T <: Number,
+                :typesig => Union{Tuple{Vector{T}},Tuple{T}} where T<:Number,
                 :module => M,
             )
-            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
-            f = str -> replace(str, " " => "")
-            str = String(take!(buf))
-            str = f(str)
-            @test occursin("\n```julia\n", str)
+            str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
             if VERSION >= v"1.6.0"
-                @test occursin(f("\nk_6(x::Array{T<:Number, 1}) -> Vector{T} where T<:Number\n"), str)
+                @test_reference ro_path("typed_method_signatures_k6_16_and_later.txt") str
             else
                 # TODO: remove this test when julia 1.0.0 support is dropped.
-                @test occursin(f("\nk_6(x::Array{T<:Number,1}) -> Array{T,1} where T<:Number\n"), str)
+                @test_reference ro_path("typed_method_signatures_k6_pre_16.txt") str
             end
-            @test occursin("\n```\n", str)
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :k_7),
-                :typesig => Union{Tuple{Union{Nothing, T}}, Tuple{T}, Tuple{Union{Nothing, T}, T}} where T<:Integer,
+                :typesig => Union{Tuple{Union{Nothing,T}},Tuple{T},Tuple{Union{Nothing,T},T}} where T<:Integer,
                 :module => M,
             )
-            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
-            str = String(take!(buf))
-            @test occursin("\n```julia\n", str)
+            str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
             if VERSION >= v"1.6" && VERSION < v"1.7"
-                @test occursin("\nk_7(\n    x::Union{Nothing, T} where T<:Integer\n) -> Union{Nothing, Integer}\n", str)
-                @test occursin("\nk_7(\n    x::Union{Nothing, T} where T<:Integer,\n    y::Integer\n) -> Union{Nothing, Integer}\n", str)
+                @test_reference ro_path("typed_method_signatures_k7_all_16_versions.txt") str
             else
-                @test occursin("\nk_7(\n    x::Union{Nothing, T} where T<:Integer\n) -> Union{Nothing, T} where T<:Integer\n", str)
-                @test occursin("\nk_7(\n    x::Union{Nothing, T} where T<:Integer,\n    y::Integer\n) -> Union{Nothing, T} where T<:Integer\n", str)
+                @test_reference ro_path("typed_method_signatures_k7_not_16.txt") str
             end
-            @test occursin("\n```\n", str)
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :k_8),
                 :typesig => Union{Tuple{Any}},
                 :module => M,
             )
-            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
-            str = String(take!(buf))
-            @test occursin("\n```julia\n", str)
-            @test occursin("\nk_8(x) -> Any\n", str)
-            @test occursin("\n```\n", str)
+            str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
+            @test_reference ro_path("typed_method_signatures_k8.txt") str
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :k_9),
                 :typesig => Union{Tuple{T where T}},
                 :module => M,
             )
-            DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
-            str = String(take!(buf))
-            @test occursin("\n```julia\n", str)
-            @test occursin("\nk_9(x) -> Any\n", str)
-            @test occursin("\n```\n", str)
+            str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
+            @test_reference ro_path("typed_method_signatures_k9.txt") str
 
             @static if VERSION > v"1.5-" # see JuliaLang/#40405
 
                 doc.data = Dict(
                     :binding => Docs.Binding(M, :k_11),
-                    :typesig => Union{Tuple{Int, Vararg{Any}}},
+                    :typesig => Union{Tuple{Int,Vararg{Any}}},
                     :module => M,
                 )
-                DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
-                str = String(take!(buf))
-                @test occursin("\n```julia\n", str)
-                @test occursin("\nk_11(x::Int64, xs...) -> Int64\n", str)
-                @test occursin("\n```\n", str)
+                str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
+                @test_reference ro_path("typed_method_signatures_k11.txt") str
 
                 doc.data = Dict(
                     :binding => Docs.Binding(M, :k_12),
-                    :typesig => Union{Tuple{Int, Vararg{Real}}},
+                    :typesig => Union{Tuple{Int,Vararg{Real}}},
                     :module => M,
                 )
-                DSE.format(DSE.TYPEDSIGNATURES, buf, doc)
-                str = String(take!(buf))
-                @test occursin("\n```julia\n", str)
-                @test occursin("\nk_12(x::Int64, xs::Real...) -> Int64\n", str)
-                @test occursin("\n```\n", str)
-
+                str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
+                @test_reference ro_path("typed_method_signatures_k12.txt") str
             end
 
 
@@ -461,72 +396,57 @@ end
                 :typesig => Tuple{M.A},
                 :module => M,
             )
-            DSE.format(DSE.TypedMethodSignatures(false), buf, doc)
-            str = String(take!(buf))
-            @test occursin("\n```julia\n", str)
-            f = str -> replace(str, " " => "")
-            str = f(str)
+            str = @io2str DSE.format(DSE.TypedMethodSignatures(false), ::IO, doc)
+            str = replace(str, " " => "")
             if Sys.iswindows() && VERSION < v"1.8"
-                @test occursin(f("h_1(x::Union{Array{T,4}, Array{T,3}} where T)"), str)
+                @test_reference ro_path("typed_method_signatures_no_return_h1_windows_pre_18.txt") str
             else
-                @test occursin(f("h_1(x::Union{Array{T,3}, Array{T,4}} where T)"), str)
+                @test_reference ro_path("typed_method_signatures_no_return_h1_not_windows_or_18_and_later.txt") str
             end
-            @test !occursin("->", str)
-            @test occursin("\n```\n", str)
-
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :g_2),
                 :typesig => Tuple{String},
                 :module => M,
             )
-            DSE.format(DSE.TypedMethodSignatures(false), buf, doc)
-            str = String(take!(buf))
-            @test occursin("\n```julia\n", str)
-            @test occursin("\ng_2(x::String)", str)
-            @test occursin("\n```\n", str)
+            str = @io2str DSE.format(DSE.TypedMethodSignatures(false), ::IO, doc)
+            @test_reference ro_path("typed_method_signatures_no_return_g2.txt") str
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :h),
                 :typesig => Tuple{Int,Int,Int},
                 :module => M,
             )
-            DSE.format(DSE.TypedMethodSignatures(false), buf, doc)
-            str = String(take!(buf))
-            @test occursin("\n```julia\n", str)
+            str = @io2str DSE.format(DSE.TypedMethodSignatures(false), ::IO, doc)
             if typeof(1) === Int64
-                @test occursin("\nh(x::Int64, y::Int64, z::Int64; kwargs...)\n", str)
+                @test_reference ro_path("typed_method_signatures_no_return_h_64bit.txt") str
             else
-                @test occursin("\nh(x::Int32, y::Int32, z::Int32; kwargs...)\n", str)
+                @test_reference ro_path("typed_method_signatures_no_return_h_not64bit.txt") str
             end
-            @test occursin("\n```\n", str)
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :h),
                 :typesig => Tuple{Int},
                 :module => M,
             )
-            DSE.format(DSE.TypedMethodSignatures(false), buf, doc)
-            str = String(take!(buf))
-            @test occursin("\n```julia\n", str)
+            str = @io2str DSE.format(DSE.TypedMethodSignatures(false), ::IO, doc)
             if typeof(1) === Int64
                 # On 1.10+, automatically generated methods have keywords in the metadata,
                 # hence the display difference between Julia versions.
                 if VERSION >= v"1.10"
-                    @test occursin("\nh(x::Int64; ...)\n", str)
+                    @test_reference ro_path("typed_method_signatures_no_return_h_64bit_110_and_later.txt") str
                 else
-                    @test occursin("\nh(x::Int64)\n", str)
+                    @test_reference ro_path("typed_method_signatures_no_return_h_64bit_pre_110.txt") str
                 end
             else
                 # On 1.10+, automatically generated methods have keywords in the metadata,
                 # hence the display difference between Julia versions.
                 if VERSION >= v"1.10"
-                    @test occursin("\nh(x::Int32; ...)\n", str)
+                    @test_reference ro_path("typed_method_signatures_no_return_h_not_64bit_110_and_later.txt") str
                 else
-                    @test occursin("\nh(x::Int32)\n", str)
+                    @test_reference ro_path("typed_method_signatures_no_return_h_not_64bit_pre_110.txt") str
                 end
             end
-            @test occursin("\n```\n", str)
 
         end
 
@@ -536,9 +456,8 @@ end
                 :typesig => Tuple{Any},
                 :module => M,
             )
-            DSE.format(FUNCTIONNAME, buf, doc)
-            str = String(take!(buf))
-            @test str == "f"
+            str = @io2str DSE.format(DSE.FUNCTIONNAME, ::IO, doc)
+            @test_reference ro_path("function_names.txt") str
         end
 
         @testset "type definitions" begin
@@ -547,55 +466,48 @@ end
                 :typesig => Union{},
                 :module => M,
             )
-            DSE.format(TYPEDEF, buf, doc)
-            str = String(take!(buf))
-            @test str == "\n```julia\nabstract type AbstractType1 <: Integer\n```\n\n"
+            str = @io2str DSE.format(DSE.TYPEDEF, ::IO, doc)
+            @test_reference ro_path("typedef1.txt") str
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :AbstractType2),
                 :typesig => Union{},
                 :module => M,
             )
-            DSE.format(TYPEDEF, buf, doc)
-            str = String(take!(buf))
-            @test str == "\n```julia\nabstract type AbstractType2{S, T<:Integer} <: Integer\n```\n\n"
+            str = @io2str DSE.format(DSE.TYPEDEF, ::IO, doc)
+            @test_reference ro_path("typedef2.txt") str
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :CustomType),
                 :typesig => Union{},
                 :module => M,
             )
-            DSE.format(TYPEDEF, buf, doc)
-            str = String(take!(buf))
-            @test str == "\n```julia\nstruct CustomType{S, T<:Integer} <: Integer\n```\n\n"
+            str = @io2str DSE.format(DSE.TYPEDEF, ::IO, doc)
+            @test_reference ro_path("typedef_custom.txt") str
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :BitType8),
                 :typesig => Union{},
                 :module => M,
             )
-            DSE.format(TYPEDEF, buf, doc)
-            str = String(take!(buf))
-            @test str == "\n```julia\nprimitive type BitType8 8\n```\n\n"
+            str = @io2str DSE.format(DSE.TYPEDEF, ::IO, doc)
+            @test_reference ro_path("typedef_bittype8.txt") str
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :BitType32),
                 :typesig => Union{},
                 :module => M,
             )
-            DSE.format(TYPEDEF, buf, doc)
-            str = String(take!(buf))
-            @test str == "\n```julia\nprimitive type BitType32 <: Real 32\n```\n\n"
+            str = @io2str DSE.format(DSE.TYPEDEF, ::IO, doc)
+            @test_reference ro_path("typedef_bittype32.txt") str
         end
 
         @testset "README/LICENSE" begin
             doc.data = Dict(:module => DocStringExtensions)
-            DSE.format(README, buf, doc)
-            str = String(take!(buf))
-            @test occursin("*Extensions for Julia's docsystem.*", str)
-            DSE.format(LICENSE, buf, doc)
-            str = String(take!(buf))
-            @test occursin("MIT \"Expat\" License", str)
+            str = @io2str DSE.format(DSE.README, ::IO, doc)
+            @test_reference ro_path("readme.txt") str
+            str = @io2str DSE.format(DSE.LICENSE, ::IO, doc)
+            @test_reference ro_path("license.txt") str
         end
     end
     @testset "templates" begin
@@ -634,22 +546,27 @@ end
             @test DSE.keywords(M.f, first(methods(M.f))) == Symbol[]
             let f = (() -> ()),
                 m = first(methods(f))
+
                 @test DSE.keywords(f, m) == Symbol[]
             end
             let f = ((a) -> ()),
                 m = first(methods(f))
+
                 @test DSE.keywords(f, m) == Symbol[]
             end
-            let f = ((; a = 1) -> ()),
+            let f = ((; a=1) -> ()),
                 m = first(methods(f))
+
                 @test DSE.keywords(f, m) == [:a]
             end
-            let f = ((; a = 1, b = 2) -> ()),
+            let f = ((; a=1, b=2) -> ()),
                 m = first(methods(f))
+
                 @test DSE.keywords(f, m) == [:a, :b]
             end
             let f = ((; a...) -> ()),
                 m = first(methods(f))
+
                 @test DSE.keywords(f, m) == [Symbol("a...")]
             end
             # Tests for #42
@@ -676,10 +593,10 @@ end
             let m = first(methods((a) -> ()))
                 @test DSE.arguments(m) == [:a]
             end
-            let m = first(methods((; a = 1) -> ()))
+            let m = first(methods((; a=1) -> ()))
                 @test DSE.arguments(m) == Symbol[]
             end
-            let m = first(methods((x; a = 1, b = 2) -> ()))
+            let m = first(methods((x; a=1, b=2) -> ()))
                 @test DSE.arguments(m) == Symbol[:x]
             end
             let m = first(methods((; a...) -> ()))
@@ -690,35 +607,41 @@ end
             let b = Docs.Binding(M, :T),
                 f = M.T,
                 m = first(methods(f))
+
                 @test DSE.printmethod(b, f, m) == "T(a, b, c)"
             end
             let b = Docs.Binding(M, :K),
                 f = M.K,
                 m = first(methods(f))
+
                 @test DSE.printmethod(b, f, m) == "K(; a)"
             end
             let b = Docs.Binding(M, :f),
                 f = M.f,
                 m = first(methods(f))
+
                 @test DSE.printmethod(b, f, m) == "f(x)"
             end
             let b = Docs.Binding(Main, :f),
                 f = () -> (),
                 m = first(methods(f))
+
                 @test DSE.printmethod(b, f, m) == "f()"
             end
             let b = Docs.Binding(Main, :f),
                 f = (a) -> (),
                 m = first(methods(f))
+
                 @test DSE.printmethod(b, f, m) == "f(a)"
             end
             let b = Docs.Binding(Main, :f),
-                f = (; a = 1) -> (),
+                f = (; a=1) -> (),
                 m = first(methods(f))
+
                 @test DSE.printmethod(b, f, m) == "f(; a)"
             end
             let b = Docs.Binding(Main, :f),
-                f = (; a = 1, b = 2) -> (),
+                f = (; a=1, b=2) -> (),
                 m = first(methods(f))
                 # Keywords are not ordered, so check for both combinations.
                 @test DSE.printmethod(b, f, m) in ("f(; a, b)", "f(; b, a)")
@@ -726,10 +649,11 @@ end
             let b = Docs.Binding(Main, :f),
                 f = (; a...) -> (),
                 m = first(methods(f))
+
                 @test DSE.printmethod(b, f, m) == "f(; a...)"
             end
             let b = Docs.Binding(Main, :f),
-                f = (; a = 1, b = 2, c...) -> (),
+                f = (; a=1, b=2, c...) -> (),
                 m = first(methods(f))
                 # Keywords are not ordered, so check for both combinations.
                 @test DSE.printmethod(b, f, m) in ("f(; a, b, c...)", "f(; b, a, c...)")
@@ -738,10 +662,10 @@ end
         @testset "getmethods" begin
             @test length(DSE.getmethods(M.f, Union{})) == 1
             @test length(DSE.getmethods(M.f, Tuple{})) == 0
-            @test length(DSE.getmethods(M.f, Union{Tuple{}, Tuple{Any}})) == 1
+            @test length(DSE.getmethods(M.f, Union{Tuple{},Tuple{Any}})) == 1
             @test length(DSE.getmethods(M.h_3, Tuple{M.A{Int}})) == 1
-            @test length(DSE.getmethods(M.h_3, Tuple{Array{Int, 3}})) == 1
-            @test length(DSE.getmethods(M.h_3, Tuple{Array{Int, 1}})) == 0
+            @test length(DSE.getmethods(M.h_3, Tuple{Array{Int,3}})) == 1
+            @test length(DSE.getmethods(M.h_3, Tuple{Array{Int,1}})) == 0
         end
         @testset "methodgroups" begin
             @test length(DSE.methodgroups(M.f, Tuple{Any}, M)) == 1
@@ -762,10 +686,10 @@ end
             let groups = DSE.groupby(Int, Vector{Int}, collect(1:10)) do each
                     mod(each, 3), each
                 end
-                @test groups == Pair{Int, Vector{Int}}[
-                    0 => [3, 6, 9],
-                    1 => [1, 4, 7, 10],
-                    2 => [2, 5, 8],
+                @test groups == Pair{Int,Vector{Int}}[
+                    0=>[3, 6, 9],
+                    1=>[1, 4, 7, 10],
+                    2=>[2, 5, 8],
                 ]
             end
         end
@@ -786,6 +710,7 @@ end
         @testset "comparemethods" begin
             let f = first(methods(M.f)),
                 g = first(methods(M.g))
+
                 @test !DSE.comparemethods(f, f)
                 @test DSE.comparemethods(f, g)
                 @test !DSE.comparemethods(g, f)
