@@ -214,7 +214,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
             if Sys.iswindows() && VERSION < v"1.8"
                 @test_reference ro_path("typed_method_signatures_windows_pre_18.txt") str
             else
-                @test_reference ro_path("typed_method_signatures_windows_18_and_later.txt") str
+                @test_reference ro_path("typed_method_signatures_not_windows_or_not_pre_18.txt") str
             end
 
             doc.data = Dict(
