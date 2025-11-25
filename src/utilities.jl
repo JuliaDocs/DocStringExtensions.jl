@@ -338,7 +338,7 @@ f(x::Int; a = 1, b...) = x
 sig = printmethod(Docs.Binding(Main, :f), f, first(methods(f)))
 ```
 """
-function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method, typesig)
+function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method, typesig; print_return_types=true)
     # TODO: print qualified?
     local args = string.(arguments(method))
     local kws = string.(keywords(func, method))
@@ -397,11 +397,24 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     end
 
     rt = Base.return_types(func, typesig)
+    return_type_string = if (
+        print_return_types &&
+        length(rt) >= 1 &&
+        rt[1] !== Nothing &&
+        rt[1] !== Union{}
+    )
+        " -> $(rt[1])"
+    else
+        ""
+    end
 
-    return printmethod_format(buffer, string(binding.var), args, string.(kws);
-        return_type =
-            length(rt) >= 1 && rt[1] !== Nothing && rt[1] !== Union{} ?
-            " -> $(rt[1])" : "")
+    return printmethod_format(
+        buffer,
+        string(binding.var),
+        args,
+        string.(kws);
+        return_type=return_type_string
+    )
 end
 
 printmethod(b, f, m) = String(take!(printmethod(IOBuffer(), b, f, m)))
