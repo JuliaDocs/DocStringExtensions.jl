@@ -1,0 +1,5 @@
+
+```julia
+struct CustomType{S, T<:Integer} <: Integer
+```
+
