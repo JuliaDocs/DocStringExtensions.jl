@@ -1,0 +1,5 @@
+
+```julia
+primitive type BitType8 8
+```
+
