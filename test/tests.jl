@@ -792,6 +792,81 @@ end
             end
         end
     end
+    @testset "world-age safety" begin
+        # Test that formatting works correctly when called from a stale world age,
+        # which is the scenario that triggers failures on Julia 1.12+ with binding
+        # partitions. We use invokelatest in the test to simulate the world-age gap
+        # that occurs when docstrings are formatted during macro expansion.
+        buf = IOBuffer()
+
+        # Test TYPEDSIGNATURES with world-age gap
+        doc = Docs.DocStr(Core.svec(), nothing, Dict(
+            :binding => Docs.Binding(M, :h),
+            :typesig => Tuple{Int, Int, Int},
+            :module => M,
+        ))
+        Base.invokelatest(DSE.format, DSE.TYPEDSIGNATURES, buf, doc)
+        str = String(take!(buf))
+        @test occursin("```julia", str)
+        @test occursin("h(", str)
+
+        # Test SIGNATURES with world-age gap
+        doc.data = Dict(
+            :binding => Docs.Binding(M, :f),
+            :typesig => Tuple{Any},
+            :module => M,
+        )
+        Base.invokelatest(DSE.format, DSE.SIGNATURES, buf, doc)
+        str = String(take!(buf))
+        @test occursin("```julia", str)
+        @test occursin("f(x)", str)
+
+        # Test METHODLIST with world-age gap
+        doc.data = Dict(
+            :binding => Docs.Binding(M, :f),
+            :typesig => Tuple{Any},
+            :module => M,
+        )
+        with_test_repo() do
+            Base.invokelatest(DSE.format, DSE.METHODLIST, buf, doc)
+        end
+        str = String(take!(buf))
+        @test occursin("```julia", str)
+        @test occursin("f(x)", str)
+
+        # Test FIELDS with world-age gap
+        doc.data = Dict(
+            :binding => Docs.Binding(M, :T),
+            :fields => Dict(:a => "one"),
+        )
+        Base.invokelatest(DSE.format, DSE.FIELDS, buf, doc)
+        str = String(take!(buf))
+        @test occursin("`a`", str)
+
+        # Test TYPEDEF with world-age gap
+        doc.data = Dict(
+            :binding => Docs.Binding(M, :AbstractType1),
+            :typesig => Union{},
+            :module => M,
+        )
+        Base.invokelatest(DSE.format, DSE.TYPEDEF, buf, doc)
+        str = String(take!(buf))
+        @test occursin("abstract type AbstractType1", str)
+
+        # Test EXPORTS with world-age gap
+        doc.data = Dict(
+            :binding => Docs.Binding(Main, :M),
+            :typesig => Union{},
+        )
+        Base.invokelatest(DSE.format, DSE.EXPORTS, buf, doc)
+        str = String(take!(buf))
+        @test occursin("[`f`](@ref)", str)
+
+        # Test IMPORTS with world-age gap
+        Base.invokelatest(DSE.format, DSE.IMPORTS, buf, doc)
+        str = String(take!(buf))
+        @test occursin("`Base`", str)
+    end
 end
 
 DSE.parsedocs(DSE)
