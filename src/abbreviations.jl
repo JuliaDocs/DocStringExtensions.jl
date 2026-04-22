@@ -91,7 +91,7 @@ const TYPEDFIELDS = TypeFields(true)
 function format(abbrv::TypeFields, buf, doc)
     local docs = get(doc.data, :fields, Dict())
     local binding = doc.data[:binding]
-    local object = Docs.resolve(binding)
+    local object = Base.invokelatest(Docs.resolve, binding)
     local fields = isabstracttype(object) ? Symbol[] : fieldnames(object)
     if !isempty(fields)
         println(buf)
@@ -154,7 +154,7 @@ const EXPORTS = ModuleExports()
 
 function format(::ModuleExports, buf, doc)
     local binding = doc.data[:binding]
-    local object = Docs.resolve(binding)
+    local object = Base.invokelatest(Docs.resolve, binding)
     local exports = names(object)
     if !isempty(exports)
         println(buf)
@@ -202,7 +202,7 @@ const IMPORTS = ModuleImports()
 
 function format(::ModuleImports, buf, doc)
     local binding = doc.data[:binding]
-    local object = Docs.resolve(binding)
+    local object = Base.invokelatest(Docs.resolve, binding)
     local imports = unique(ccall(:jl_module_usings, Any, (Any,), object))
     if !isempty(imports)
         println(buf)
@@ -254,7 +254,7 @@ function format(::MethodList, buf, doc)
     local binding = doc.data[:binding]
     local typesig = doc.data[:typesig]
     local modname = doc.data[:module]
-    local func = Docs.resolve(binding)
+    local func = Base.invokelatest(Docs.resolve, binding)
     local groups = methodgroups(func, typesig, modname; exact = false)
     if !isempty(groups)
         println(buf)
@@ -314,7 +314,7 @@ function format(::MethodSignatures, buf, doc)
     local binding = doc.data[:binding]
     local typesig = doc.data[:typesig]
     local modname = doc.data[:module]
-    local func = Docs.resolve(binding)
+    local func = Base.invokelatest(Docs.resolve, binding)
     local groups = methodgroups(func, typesig, modname)
 
     if !isempty(groups)
@@ -372,7 +372,7 @@ function format(tms::TypedMethodSignatures, buf, doc)
     local binding = doc.data[:binding]
     local typesig = doc.data[:typesig]
     local modname = doc.data[:module]
-    local func = Docs.resolve(binding)
+    local func = Base.invokelatest(Docs.resolve, binding)
     # TODO: why is methodgroups returning invalid methods?
     # the methodgroups always appears to return a Vector and the size depends on whether parametric types are used
     # and whether default arguments are used
@@ -399,12 +399,18 @@ function format(tms::TypedMethodSignatures, buf, doc)
             end
 
             @static if Sys.iswindows() && VERSION < v"1.8"
-                t = tuples[findlast(f, tuples)]
+                idx = findlast(f, tuples)
             else
-                t = tuples[findfirst(f, tuples)]
+                idx = findfirst(f, tuples)
             end
-            printmethod(buf, binding, func, method, t;
-                print_return_types=tms.return_types)
+            if idx === nothing
+                # Fall back to untyped signature if no matching tuple is found.
+                printmethod(buf, binding, func, method)
+            else
+                t = tuples[idx]
+                printmethod(buf, binding, func, method, t;
+                    print_return_types=tms.return_types)
+            end
             println(buf)
         end
         println(buf, "\n```\n")
@@ -536,7 +542,7 @@ end
 
 function format(::TypeDefinition, buf, doc)
     local binding = doc.data[:binding]
-    local object = gettype(Docs.resolve(binding))
+    local object = gettype(Base.invokelatest(Docs.resolve, binding))
     if isa(object, DataType)
         println(buf, "\n```julia")
         if isprimitivetype(object)
@@ -680,7 +686,7 @@ function template_key(doc::Docs.DocStr)
     _key(other, sig, binding)                    = :DEFAULT
 
     binding = doc.data[:binding]
-    obj = Docs.resolve(binding)
+    obj = Base.invokelatest(Docs.resolve, binding)
     name = objname(obj, binding)
     key = name === binding.var ? _key(obj, doc.data[:typesig], binding) : :CONSTANTS
     return key
