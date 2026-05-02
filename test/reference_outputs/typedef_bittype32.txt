@@ -1,0 +1,5 @@
+
+```julia
+primitive type BitType32 <: Real 32
+```
+

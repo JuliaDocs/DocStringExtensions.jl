@@ -1,0 +1,5 @@
+
+```julia
+abstract type AbstractType1 <: Integer
+```
+
