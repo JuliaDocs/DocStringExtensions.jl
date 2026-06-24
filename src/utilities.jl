@@ -113,7 +113,7 @@ A helper method for [`getmethods`](@ref) that collects methods in `results`.
 """
 function getmethods!(results, f, sig)
     if sig == Union{}
-        append!(results, methods(f))
+        append!(results, Base.invokelatest(methods, f))
     elseif isa(sig, Union)
         for each in uniontypes(sig)
             getmethods!(results, f, each)
@@ -121,7 +121,7 @@ function getmethods!(results, f, sig)
     elseif isa(sig, UnionAll)
         getmethods!(results, f, Base.unwrap_unionall(sig))
     else
-        append!(results, methods(f, sig))
+        append!(results, Base.invokelatest(methods, f, sig))
     end
     return results
 end
@@ -396,7 +396,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         "$arg$type$suffix"
     end
 
-    rt = Base.return_types(func, typesig)
+    rt = Base.invokelatest(Base.return_types, func, typesig)
     return_type_string = if (
         print_return_types &&
         length(rt) >= 1 &&
