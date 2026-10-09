@@ -709,23 +709,22 @@ looks similar to the following:
 const INSTANCES = EnumInstances()
 
 function format(::EnumInstances, buf, doc)
-    local object = Base.invokelatest(Docs.resolve, doc.data[:binding])
-    local enum, prefix = Base.invokelatest(enum_and_prefix, object)
-    if isa(enum, Type) && enum <: Base.Enum
+    local entries = Base.invokelatest(enum_entries ∘ Docs.resolve, doc.data[:binding])
+    if !isempty(entries)
         println(buf)
-        for instance in instances(enum)
-            println(buf, "  - `", prefix, Symbol(instance), "` = ", Integer(instance))
+        for (name, value) in entries
+            println(buf, "  - `", name, "` = ", value)
         end
         println(buf)
     end
     return nothing
 end
 
-# EnumX.jl defines an enum as a module holding the `Enum` subtype `T`.
-function enum_and_prefix(object)
-    isa(object, Module) && isdefined(object, :T) || return object, ""
-    return getfield(object, :T), string(nameof(object), ".")
-end
+enum_entries(enum::Type{<:Base.Enum}, prefix = "") =
+    [(string(prefix, Symbol(instance)), Integer(instance)) for instance in instances(enum)]
+# EnumX.jl documents the module that holds its enum type `T`, and callers write `Module.Name`.
+enum_entries(mod::Module) = isdefined(mod, :T) ? enum_entries(mod.T, string(nameof(mod), ".")) : []
+enum_entries(other, prefix = "") = []
 
 """
 The singleton type for [`README`](@ref) abbreviations.
