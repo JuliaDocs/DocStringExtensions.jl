@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `@template` applies a template when a docstring is defined, not each time it is displayed. Objects in a template now receive the documented expression from `interpolation` once, and docstrings no longer keep that expression. A template applies only to the docstrings that follow it in the module, which matches how templates have behaved in every release ([#202](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/202))
+- `@template` applies a template when a docstring is defined, not each time it is displayed. Objects in a template now receive the documented expression from `interpolation` once, and docstrings no longer keep that expression. A template applies only to the docstrings that follow it in the module, which matches how templates have behaved in every release ([#203](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/203))
 
 ### Fixed
 
