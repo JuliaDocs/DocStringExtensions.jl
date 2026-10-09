@@ -538,7 +538,10 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     end
     args, kws = append_defaults(args, string.(kws), method, defaults)
 
-    rt = Base.invokelatest(Base.return_types, func, typesig)
+    # Inference cannot run a generator on abstract argument types: Julia 1.0 throws and 1.10
+    # hits a `BoundsError` in Base, while other versions can only infer `Any`.
+    rt = hasgenerator(method) && !isconcretetype(typesig) ? [] :
+        Base.invokelatest(Base.return_types, func, typesig)
     return_type_string = if (
         print_return_types &&
         length(rt) >= 1 &&
@@ -711,6 +714,12 @@ end
 # This is compat to make sure that we have ismutabletype available pre-1.7.
 # Implementation borrowed from JuliaLang/julia (MIT license).
 # https://github.com/JuliaLang/julia/pull/39037
+if isdefined(Base, :hasgenerator)
+    const hasgenerator = Base.hasgenerator
+else
+    hasgenerator(m::Method) = isdefined(m, :generator)
+end
+
 if !isdefined(Base, :ismutabletype)
     function ismutabletype(@nospecialize(t::Type))
         t = Base.unwrap_unionall(t)

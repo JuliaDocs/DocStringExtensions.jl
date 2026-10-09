@@ -88,6 +88,13 @@ typed_signatures_h_reference() =
         @test first(methods(M.k_11)).isva
         @test !first(methods(M.f)).isva
 
+        # Whether a method is `@generated`.
+        #
+        # Used in src/utilities.jl for the typed printmethod() method. Julia before 1.10 has
+        # no `Base.hasgenerator`, and the `hasgenerator` shim reads the `generator` field.
+        @test DSE.hasgenerator(first(methods(M.g_1)))
+        @test !DSE.hasgenerator(first(methods(M.f)))
+
         # Rendering default values as source text.
         #
         # Used in src/utilities.jl for the argument_defaults() function.
@@ -662,6 +669,14 @@ typed_signatures_h_reference() =
                 m = first(methods(f))
 
                 @test DSE.printmethod(b, f, m) == "f(x)"
+            end
+            let b = Docs.Binding(M, :g_1),
+                f = M.g_1,
+                m = first(methods(f))
+
+                # Issue 157: inference cannot run a generator on abstract argument types.
+                typed = DSE.printmethod(IOBuffer(), b, f, m, Tuple{Any})
+                @test String(take!(typed)) == "g_1(x)"
             end
             let b = Docs.Binding(Main, :f),
                 f = () -> (),
