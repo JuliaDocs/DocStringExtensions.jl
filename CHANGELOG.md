@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `PUBLIC` to list a module's public names, both exported and declared `public` ([#190](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/190))
 - Add `INSTANCES` to list the instances of an enum with their values. It supports `@enum` and EnumX.jl's `@enumx` ([#171](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/171))
 
+### Changed
+
+- `@template` applies a template when a docstring is defined, not each time it is displayed. Objects in a template now receive the documented expression from `interpolation` once, and docstrings no longer keep that expression. A template applies only to the docstrings that follow it in the module, which matches how templates have behaved in every release ([#202](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/202))
+
 ### Fixed
 
 - Fix `EXPORTS` listing names declared `public` but not exported on Julia 1.11 and later ([#190](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/190))

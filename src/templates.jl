@@ -24,7 +24,8 @@ $(:SIGNATURES)
 Defines a docstring template that will be applied to all docstrings in a module that match
 the specified category or tuple of categories of documented bindings.
 
-Effectively, it replaces all the matching docstrings in the module with the template.
+Effectively, it replaces each matching docstring that follows it in the module with the
+template. Docstrings defined before the `@template` are left as they are.
 Every template string must contain the `DOCSTRING` abbreviation, which marks where the
 original docstring is spliced into the replacement docstring generated from the template.
 
@@ -105,46 +106,33 @@ function checked_template(parts::Vector)
     return parts
 end
 
-# The signature for the atdocs() calls changed in v0.7
-# On v0.6 and below it seems it was assumed to be (docstr::String, expr::Expr), but on v0.7
-# it is (source::LineNumberNode, mod::Module, docstr::String, expr::Expr)
+# A template is chosen by the binding that `doc!` records, and its parts are interpolated
+# with `expr`. `resolve_templates!` runs after `doc!`, so `expr` is held only by code that is
+# discarded once it runs, never by the docstring.
 function template_hook(source::LineNumberNode, mod::Module, docstr, expr::Expr)
     docstr = _capture_expression(docstr, expr)
-    # During macro expansion we only need to wrap docstrings in special
-    # abbreviations that later print out what was before and after the
-    # docstring in it's specific template. This is only done when the module
-    # actually defines templates.
-    if isdefined(mod, TEMP_SYM)
-        dict = getfield(mod, TEMP_SYM)
-        # We unwrap interpolated strings so that we can add the `:before` and
-        # `:after` abbreviations. Otherwise they're just left as is.
-        unwrapped = Meta.isexpr(docstr, :string) ? docstr.args : [docstr]
-        # Templates outlive macro expansion, so keep `expr` only when a part uses it.
-        captured = uses_expression(dict) ? expr : nothing
-        before, after = Template{:before}(dict, captured), Template{:after}(dict, captured)
-        # Rebuild the original docstring, but with the template abbreviations
-        # surrounding it.
-        docstr = Expr(:string, before, unwrapped..., after)
-    end
-    return (source, mod, docstr, expr)
+    isdefined(mod, TEMP_SYM) || return expander(source, mod, docstr, expr)
+    local before, after, recorded = Template(), Template(), Ref{Docs.DocStr}()
+    # Mirrors how `Docs` turns a docstring into the lazily formatted text of a `DocStr`.
+    local body = Meta.isexpr(docstr, :string) ? docstr.args : [docstr]
+    docstr = Expr(:call, record!, recorded, Expr(:call, Core.svec, before, body..., after))
+    local out = expander(source, mod, docstr, expr)
+    local dict = getfield(mod, TEMP_SYM)
+    return Expr(:call, resolve_templates!, dict, recorded, before, after, QuoteNode(expr), out)
+end
+template_hook(args...) = expander(args...)
+
+# `Docs` stores a `DocStr` given as the docstring as that same object.
+record!(recorded::Ref{Docs.DocStr}, text::Core.SimpleVector) = recorded[] = Docs.docstr(text)
+
+function resolve_templates!(dict, recorded::Ref{Docs.DocStr}, before::Template, after::Template, expr::Expr, value)
+    local data = recorded[].data
+    local parts = get_template(dict, template_key(data[:binding], data[:typesig]))
+    before.parts = interpolate(parts[1:(findfirst(is_docstr_template, parts) - 1)], expr)
+    after.parts = interpolate(parts[(findlast(is_docstr_template, parts) + 1):end], expr)
+    return value
 end
 
-uses_expression(dict) = any(parts -> any(needs_expression, parts), values(dict))
-
-# Whether `interpolation` may use the documented expression for a template `part`. This
-# runs during macro expansion for every category, so it must not call `interpolation`.
-needs_expression(::AbstractString) = false
-function needs_expression(part)
-    parentmodule(typeof(part)) === DocStringExtensions && return false
-    local method = Base.invokelatest(which, interpolation, Tuple{typeof(part),Expr})
-    return method.sig !== Tuple{typeof(interpolation),Any,Any}
-end
-
-function template_hook(docstr, expr::Expr)
-    source, mod, docstr, expr::Expr = template_hook(LineNumberNode(0), current_module(), docstr, expr)
-    docstr, expr
-end
-
-template_hook(args...) = args
+interpolate(parts, expr::Expr) = Any[interpolation(part, expr) for part in parts]
 
 get_template(t::Dict, k::Symbol) = haskey(t, k) ? t[k] : get(t, :DEFAULT, Any[DOCSTRING])

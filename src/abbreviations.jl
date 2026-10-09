@@ -393,7 +393,6 @@ MethodSignatures(; defaults::Bool = false) = MethodSignatures(defaults, nothing)
 
 interpolation(abbr::MethodSignatures, expr::Expr) =
     abbr.show_defaults ? MethodSignatures(true, argument_defaults(expr)) : abbr
-needs_expression(abbr::MethodSignatures) = abbr.show_defaults
 
 """
 An [`Abbreviation`](@ref) for including a simplified representation of all the method
@@ -459,7 +458,6 @@ TypedMethodSignatures(return_types::Bool; defaults::Bool = false) =
 
 interpolation(abbr::TypedMethodSignatures, expr::Expr) =
     abbr.show_defaults ? TypedMethodSignatures(abbr.return_types, true, argument_defaults(expr)) : abbr
-needs_expression(abbr::TypedMethodSignatures) = abbr.show_defaults
 
 """
 An [`Abbreviation`](@ref) for including a simplified representation of all the method
@@ -805,44 +803,23 @@ is_docstr_template(::DocStringTemplate) = true
 is_docstr_template(other) = false
 
 """
-Internal abbreviation type used to wrap templated docstrings.
-
-`Location` is a `Symbol`, either `:before` or `:after`. `dict` stores a
-reference to a module's templates. `expr` is the documented expression, which is
-passed to [`interpolation`](@ref) for each part of the template, or `nothing` when
-no part uses it.
+Internal abbreviation that holds the parts of a template that come before or after the
+docstring it wraps, filled in by `resolve_templates!` once the docstring is defined.
 """
-struct Template{Location} <: Abbreviation
-    dict::Dict{Symbol,Vector{Any}}
-    expr::Union{Expr,Nothing}
+mutable struct Template <: Abbreviation
+    parts::Vector{Any}
 end
 
+Template() = Template(Any[])
+
 function format(abbr::Template, buf, doc)
-    # Find the applicable template based on the kind of docstr.
-    parts = get_template(abbr.dict, template_key(doc))
-    # Replace the abbreviation with either the parts of the template found
-    # before the `DOCSTRING` abbreviation, or after it.
-    for index in included_range(abbr, parts)
-        # We don't call `DocStringExtensions.format` here since we need to be
-        # able to format any content in docstrings, rather than just
-        # abbreviations.
-        part = abbr.expr === nothing ? parts[index] : interpolation(parts[index], abbr.expr)
+    for part in abbr.parts
+        # Parts can be any content found in a docstring, not only abbreviations.
         Docs.formatdoc(buf, doc, part)
     end
 end
 
-function included_range(abbr::Template, parts::Vector)
-    # Select the correct indexing depending on what we find.
-    build_range(::Template{:before}, index) = 1:(index - 1)
-    build_range(::Template{:after}, index) = (index + 1):lastindex(parts)
-    # Search for index from either the front or back.
-    find_index(::Template{:before}) = findfirst(is_docstr_template, parts)
-    find_index(::Template{:after}) = findlast(is_docstr_template, parts)
-    # Find and return the correct indices.
-    return build_range(abbr, find_index(abbr))
-end
-
-function template_key(doc::Docs.DocStr)
+function template_key(binding::Docs.Binding, typesig)
     # Local helper methods for extracting the template key from a docstring.
     ismacro(b::Docs.Binding) = startswith(string(b.var), '@')
     objname(obj::Union{Function,Module,DataType,UnionAll,Core.IntrinsicFunction}, b::Docs.Binding) = nameof(obj)
@@ -856,9 +833,8 @@ function template_key(doc::Docs.DocStr)
     _key(::DataType, sig, binding)               = :METHODS
     _key(other, sig, binding)                    = :DEFAULT
 
-    binding = doc.data[:binding]
     obj = Base.invokelatest(Docs.resolve, binding)
     name = objname(obj, binding)
-    key = name === binding.var ? _key(obj, doc.data[:typesig], binding) : :CONSTANTS
+    key = name === binding.var ? _key(obj, typesig, binding) : :CONSTANTS
     return key
 end

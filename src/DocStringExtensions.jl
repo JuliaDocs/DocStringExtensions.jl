@@ -106,6 +106,6 @@ let λ = s -> isa(s, Symbol) ? getfield(DocStringExtensions, s) : s
     end
 end
 
-__init__() = (hook!(template_hook); nothing)
+__init__() = (setter!(template_hook); nothing)
 
 end # module

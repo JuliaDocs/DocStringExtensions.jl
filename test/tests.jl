@@ -111,6 +111,14 @@ typed_signatures_h_reference() =
         @test sprint(Base.show_unquoted, "x") == "\"x\""
         @test sprint(Base.show_unquoted, QuoteNode(:x)) == ":x"
         @test Base.remove_linenums!(Expr(:block, LineNumberNode(1), :x)) == Expr(:block, :x)
+
+        # A docstring that evaluates to a `DocStr` is stored as that same object.
+        #
+        # Used in src/templates.jl, where a templated docstring records the `DocStr` that
+        # `doc!` stores so that its binding can be read once the docstring is defined.
+        let docstr = Docs.docstr(Core.svec("text"))
+            @test Docs.docstr(docstr, Dict{Symbol,Any}()) === docstr
+        end
     end
     @testset "format" begin
         # Setup.
@@ -572,13 +580,41 @@ typed_signatures_h_reference() =
             @test occursin("(TYPES)", fmt(:(TemplateTests.OtherModule.ISSUE_115)))
             @test occursin("(MACROS)", fmt(:(TemplateTests.OtherModule.@m)))
             @test fmt(:(TemplateTests.OtherModule.f)) == "method `f`\n"
+
+            @test occursin("(MODULES)", fmt(:(TemplateTests.Sub)))
+            @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.conditional)))
+            @test length(collect(eachmatch(r"\(TYPES\)", fmt(:(TemplateTests.S))))) == 1
+            @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.generated_1)))
+            @test occursin("method `generated_2`", fmt(:(TemplateTests.generated_2)))
+            @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.generated_2)))
+            @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.markdown)))
+            @test occursin("markdown method `markdown`", fmt(:(TemplateTests.markdown)))
+            @test occursin("(DEFAULT)", fmt(:(TemplateTests.pair_1)))
+            @test occursin("(DEFAULT)", fmt(:(TemplateTests.pair_2)))
+            @test occursin("(DEFAULT)", fmt(:(TemplateTests.declared)))
+            @test occursin("method `interpolating` with \n\n```julia\ninterpolating(x)", fmt(:(TemplateTests.interpolating)))
+
+            @test occursin("(DEFAULT)", fmt(:(TemplateTests.LateTemplate.early)))
+            @test occursin("(METHODS)", fmt(:(TemplateTests.LateTemplate.late)))
         end
-        # A template keeps the documented expression only when one of its parts uses it.
-        template_exprs(mod, name) = [part.expr
+        # `@doc` evaluates to the same value whether or not the module has templates.
+        let templated = TemplateTests.DOC_VALUES, untemplated = TemplateTests.Untemplated.DOC_VALUES
+            @test templated.method === (untemplated.method isa Docs.Binding ?
+                Docs.Binding(TemplateTests, :valued) : TemplateTests.valued)
+            @test templated.type === (untemplated.type isa Docs.Binding ?
+                Docs.Binding(TemplateTests, :Valued) : untemplated.type)
+            @test templated.constant === (untemplated.constant isa Docs.Binding ?
+                Docs.Binding(TemplateTests, :VALUED) : untemplated.constant)
+        end
+        # A template keeps the interpolated parts for its category, never the documented expression.
+        template_parts(mod, name) = [part
             for docstr in values(Docs.meta(mod)[Docs.Binding(mod, name)].docs)
-            for part in docstr.text if part isa DSE.Template]
-        @test all(ex -> ex === nothing, template_exprs(TemplateTests, :f))
-        @test all(ex -> ex isa Expr, template_exprs(InterpolationTestModule.Templated, :h))
+            for template in docstr.text if template isa DSE.Template
+            for part in template.parts]
+        let parts = template_parts(DefaultsTestModule.Templated, :templated)
+            @test any(part -> part isa DSE.MethodSignatures && part.defaults !== nothing, parts)
+            @test !any(part -> part isa Expr, parts)
+        end
         # Issue 151: a template without `DOCSTRING` is rejected where it is defined.
         for template in ("test", Expr(:string, "test ", :SIGNATURES))
             mod = Module()
