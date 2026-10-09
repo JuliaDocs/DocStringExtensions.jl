@@ -18,6 +18,14 @@ function with_test_repo(f)
     end
 end
 
+# `with_test_repo` commits afresh each run and the checkout location differs per machine,
+# so the commit hash and the local path in METHODLIST output are redacted.
+# Two `replace` calls because `replace(s, pairs...)` is missing on older Julia.
+function redact_local_info(str)
+    str = replace(str, r"(defined at \[`).+?(test[/\\]TestModule)" => s"\1[...]\2")
+    return replace(str, r"(tree/).+(/M)" => s"\1[...]\2")
+end
+
 @testset "DocStringExtensions" begin
     @testset "Base assumptions" begin
         # The package heavily relies on type and docsystem-related methods and types from
@@ -115,34 +123,20 @@ end
                 :module => M,
             )
             str = with_test_repo(() -> formatted(METHODLIST, doc))
-            # split into multiple replace() calls for older
-            # versions of julia where the replace(s, r => s, r => s...)
-            # method is missing
-            remove_local_info = x -> begin
-                x = replace(
-                    x,
-                    # remove the part of the path that precedes DocStringExtensions.jl/...
-                    # because it will differ per machine
-                    Regex("(defined at \\[`).+(DocStringExtensions.jl)") => s"\1[...]\2",
-                )
-                replace(
-                    x,
-                    # Remove the git hash because it will differ per
-                    # test run
-                    r"(tree/).+(/M)" => s"\1[...]\2"
-                )
-            end
-            # the replacements are needed because the local
-            # Git repo created by with_test_repo() will have
-            # a different commit hash each time the test suite is run
-            # and METHODLIST displays that. Reference tests will fail every
-            # time if we don't remove the hash and the local part of the 
-            # path
             if Sys.iswindows()
-                @test_reference ro_path("method_lists_windows.txt") remove_local_info(str)
+                @test_reference ro_path("method_lists_windows.txt") redact_local_info(str)
             else
-                @test_reference ro_path("method_lists_nonwindows.txt") remove_local_info(str)
+                @test_reference ro_path("method_lists_nonwindows.txt") redact_local_info(str)
             end
+
+            # The redaction must not depend on the name of the checkout directory.
+            url = "](https://github.com/JuliaDocs/NonExistent.jl/tree/0123abc/M.jl#L5)."
+            installed = "defined at [`packages/DocStringExtensions/Ab1Cd/test/TestModule/M.jl:5`" * url
+            @test redact_local_info(installed) ==
+                "defined at [`[...]test/TestModule/M.jl:5`](https://github.com/JuliaDocs/NonExistent.jl/tree/[...]/M.jl#L5)."
+            windows = "defined at [`C:\\Users\\u\\.julia\\dev\\DocStringExtensions\\test\\TestModule\\M.jl:5`" * url
+            @test redact_local_info(windows) ==
+                "defined at [`[...]test\\TestModule\\M.jl:5`](https://github.com/JuliaDocs/NonExistent.jl/tree/[...]/M.jl#L5)."
         end
 
         @testset "method signatures" begin
