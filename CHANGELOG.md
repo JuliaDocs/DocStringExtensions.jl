@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix unnamed and destructured arguments printing as an empty name, or as `#temp#` before Julia 1.4. `SIGNATURES` prints them as `_`, and `TYPEDSIGNATURES` as `::T` ([#193](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/193))
 - Fix `SIGNATURES` leaving out the `...` after a vararg ([#193](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/193))
 - Fix objects interpolated into an `@template` never receiving the documented expression from `interpolation` ([#194](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/194))
+- `@template` throws an `ArgumentError` for a template string without `$(DOCSTRING)`, including a plain string literal. These templates used to fail with a `MethodError` when the template was defined or when the docstring was displayed ([#151](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/151))
 
 ## [v0.9.5](https://github.com/JuliaDocs/DocStringExtensions.jl/releases/tag/v0.9.5) - 2025-06-06
 

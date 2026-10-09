@@ -537,6 +537,12 @@ typed_signatures_h_reference() =
             for part in docstr.text if part isa DSE.Template]
         @test all(ex -> ex === nothing, template_exprs(TemplateTests, :f))
         @test all(ex -> ex isa Expr, template_exprs(InterpolationTestModule.Templated, :h))
+        # Issue 151: a template without `DOCSTRING` is rejected where it is defined.
+        for template in ("test", Expr(:string, "test ", :SIGNATURES))
+            mod = Module()
+            Core.eval(mod, :(using DocStringExtensions))
+            @test_throws ArgumentError Core.eval(mod, :(@template DEFAULT = $template))
+        end
     end
     @testset "Interpolation" begin
         let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))

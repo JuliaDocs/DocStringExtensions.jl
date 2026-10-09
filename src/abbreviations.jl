@@ -730,9 +730,7 @@ function format(abbr::Template, buf, doc)
     # Find the applicable template based on the kind of docstr.
     parts = get_template(abbr.dict, template_key(doc))
     # Replace the abbreviation with either the parts of the template found
-    # before the `DOCSTRING` abbreviation, or after it. When no `DOCSTRING`
-    # exists in the template, which shouldn't really happen then nothing will
-    # get included here.
+    # before the `DOCSTRING` abbreviation, or after it.
     for index in included_range(abbr, parts)
         # We don't call `DocStringExtensions.format` here since we need to be
         # able to format any content in docstrings, rather than just
@@ -744,7 +742,6 @@ end
 
 function included_range(abbr::Template, parts::Vector)
     # Select the correct indexing depending on what we find.
-    build_range(::Template, ::Nothing) = 0:-1
     build_range(::Template{:before}, index) = 1:(index - 1)
     build_range(::Template{:after}, index) = (index + 1):lastindex(parts)
     # Search for index from either the front or back.
