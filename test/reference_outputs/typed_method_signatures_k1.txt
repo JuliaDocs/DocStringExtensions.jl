@@ -1,0 +1,8 @@
+
+```julia
+k_1(x::String) -> String
+k_1(x::String, y::Number) -> String
+k_1(x::String, y::Number, z::Number) -> String
+
+```
+

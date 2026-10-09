@@ -1,0 +1,11 @@
+
+```julia
+k_5(::Type{T<:Number}, x::String) -> String
+k_5(
+    ::Type{T<:Number},
+    x::String,
+    func::Union{Nothing, Function}
+) -> String
+
+```
+

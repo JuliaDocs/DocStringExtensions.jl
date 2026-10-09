@@ -1,0 +1,5 @@
+
+```julia
+abstract type AbstractType2{S, T<:Integer} <: Integer
+```
+
