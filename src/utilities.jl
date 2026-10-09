@@ -40,6 +40,81 @@ _process_interpolation(str::AbstractString, ::QuoteNode) = str
 _process_interpolation(@nospecialize(expr), quoted::QuoteNode) = Expr(:call, interpolation, expr, quoted)
 
 #
+# Argument defaults.
+#
+
+"""
+Default values of the arguments in a documented method definition, rendered as source text.
+
+`positional` has a `(name, default)` entry for each positional argument, in order. `name` is
+`nothing` for an unnamed or destructured argument, and `default` is `nothing` when the
+argument has no default. `keywords` maps each keyword argument with a default to that
+default.
+"""
+struct ArgumentDefaults
+    positional::Vector{Tuple{Union{Symbol,Nothing},Union{String,Nothing}}}
+    keywords::Dict{Symbol,String}
+end
+
+"""
+$(:SIGNATURES)
+
+Find the default argument values in the method definition `expr`. Returns `nothing` when
+`expr` does not define a method.
+"""
+function argument_defaults(expr::Expr)
+    local call = definition_call(expr)
+    call === nothing && return nothing
+    local positional = Tuple{Union{Symbol,Nothing},Union{String,Nothing}}[]
+    local keywords = Dict{Symbol,String}()
+    for arg in call.args[2:end]
+        if Meta.isexpr(arg, :parameters)
+            for kw in arg.args
+                name, default = argument_default(kw)
+                name === nothing || default === nothing || (keywords[name] = default)
+            end
+        else
+            push!(positional, argument_default(arg))
+        end
+    end
+    return ArgumentDefaults(positional, keywords)
+end
+
+function definition_call(expr::Expr)
+    Meta.isexpr(expr, :macrocall) && return definition_call(last(expr.args))
+    if Meta.isexpr(expr, :function) || Meta.isexpr(expr, :(=))
+        return signature_call(expr.args[1])
+    end
+    return nothing
+end
+definition_call(@nospecialize(other)) = nothing
+
+# Strips `where` clauses and a return type annotation from a method signature.
+function signature_call(@nospecialize(sig))
+    Meta.isexpr(sig, :call) && return sig
+    Meta.isexpr(sig, :where) && return signature_call(sig.args[1])
+    Meta.isexpr(sig, :(::), 2) && return signature_call(sig.args[1])
+    return nothing
+end
+
+function argument_default(@nospecialize(arg))
+    if Meta.isexpr(arg, :kw, 2)
+        local default = arg.args[2]
+        # Line numbers would print the author's local file paths.
+        default isa Expr && (default = Base.remove_linenums!(copy(default)))
+        return (argument_name(arg.args[1]), sprint(Base.show_unquoted, default))
+    end
+    return (argument_name(arg), nothing)
+end
+
+argument_name(name::Symbol) = name
+function argument_name(@nospecialize(arg))
+    Meta.isexpr(arg, :(::), 2) && return argument_name(arg.args[1])
+    Meta.isexpr(arg, :..., 1) && return argument_name(arg.args[1])
+    return nothing
+end
+
+#
 # Method grouping.
 #
 
@@ -268,7 +343,7 @@ simplifications include:
 
   * no `TypeVar`s;
   * no types;
-  * no keyword default values;
+  * no default values, unless `defaults` gives them;
   * `_` printed for unnamed and destructured arguments.
 
 # Examples
@@ -278,10 +353,62 @@ f(x; a = 1, b...) = x
 sig = printmethod(Docs.Binding(Main, :f), f, first(methods(f)))
 ```
 """
-function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method)
+function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method; defaults = nothing)
     local args = string.(arguments(method))
     method.isva && (args[end] *= "...")
-    return printmethod_format(buffer, string(binding.var), args, string.(keywords(func, method)))
+    args, kws = append_defaults(args, string.(keywords(func, method)), method, defaults)
+    return printmethod_format(buffer, string(binding.var), args, kws)
+end
+
+"""
+$(:SIGNATURES)
+
+Whether `method` takes the positional arguments of the definition that `defaults` was
+parsed from, or a leading subset of them.
+"""
+matches_definition(::Method, ::Nothing) = false
+function matches_definition(method::Method, defaults::ArgumentDefaults)
+    local names = arguments(method)
+    length(names) <= length(defaults.positional) || return false
+    return all(zip(names, defaults.positional)) do (name, (expected, _))
+        expected === nothing || Symbol(name) === expected
+    end
+end
+
+"""
+$(:SIGNATURES)
+
+Drop the methods of `group` that Julia generated for positional default values, keeping
+the method that takes every argument of the documented definition.
+"""
+collapse_defaults(group, ::Nothing) = group
+function collapse_defaults(group, defaults::ArgumentDefaults)
+    local matching = filter(m -> matches_definition(m, defaults), group)
+    isempty(matching) && return group
+    local longest = maximum(m -> length(arguments(m)), matching)
+    return filter(group) do m
+        !matches_definition(m, defaults) || length(arguments(m)) == longest
+    end
+end
+
+"""
+$(:SIGNATURES)
+
+Append `=default` to each formatted argument in `args` and keyword in `kws` that has a
+default value in `defaults`. Leaves both unchanged when `method` does not match the
+definition that `defaults` was parsed from.
+"""
+function append_defaults(args, kws, method::Method, defaults)
+    matches_definition(method, defaults) || return args, kws
+    args = map(enumerate(args)) do (i, arg)
+        _, default = defaults.positional[i]
+        default === nothing ? arg : "$arg=$default"
+    end
+    kws = map(kws) do kw
+        default = get(defaults.keywords, Symbol(kw), nothing)
+        default === nothing ? kw : "$kw=$default"
+    end
+    return args, kws
 end
 
 """
@@ -339,7 +466,7 @@ simplifications include:
 
   * no `TypeVar`s;
   * no types;
-  * no keyword default values;
+  * no default values, unless `defaults` gives them;
 
 # Examples
 
@@ -348,7 +475,7 @@ f(x::Int; a = 1, b...) = x
 sig = printmethod(Docs.Binding(Main, :f), f, first(methods(f)))
 ```
 """
-function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method, typesig; print_return_types=true)
+function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method, typesig; print_return_types=true, defaults=nothing)
     # TODO: print qualified?
     local args = string.(arguments(method))
     local kws = string.(keywords(func, method))
@@ -409,6 +536,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
 
         "$arg$type$suffix"
     end
+    args, kws = append_defaults(args, string.(kws), method, defaults)
 
     rt = Base.invokelatest(Base.return_types, func, typesig)
     return_type_string = if (
@@ -426,7 +554,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         buffer,
         string(binding.var),
         args,
-        string.(kws);
+        kws;
         return_type=return_type_string
     )
 end

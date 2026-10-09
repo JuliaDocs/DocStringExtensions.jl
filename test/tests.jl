@@ -2,6 +2,7 @@ const DSE = DocStringExtensions
 
 include("templates.jl")
 include("interpolation.jl")
+include("defaults.jl")
 include("TestModule/M.jl")
 
 # initialize a test repo in test/TestModule which is needed for some tests
@@ -86,6 +87,15 @@ typed_signatures_h_reference() =
         # Used in src/utilities.jl for the untyped printmethod() method.
         @test first(methods(M.k_11)).isva
         @test !first(methods(M.f)).isva
+
+        # Rendering default values as source text.
+        #
+        # Used in src/utilities.jl for the argument_defaults() function.
+        @test sprint(Base.show_unquoted, :(zero(T))) == "zero(T)"
+        @test sprint(Base.show_unquoted, :x) == "x"
+        @test sprint(Base.show_unquoted, "x") == "\"x\""
+        @test sprint(Base.show_unquoted, QuoteNode(:x)) == ":x"
+        @test Base.remove_linenums!(Expr(:block, LineNumberNode(1), :x)) == Expr(:block, :x)
     end
     @testset "format" begin
         # Setup.
@@ -523,6 +533,15 @@ typed_signatures_h_reference() =
             @test fmt(:(InterpolationTestModule.StructOnlyTemplate.k)) == "method `k`\n"
         end
     end
+    @testset "signature defaults" begin
+        let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))
+            names = [:positional, :keywords, :typed, :parametric, :unnamed, :wrapped, :nospecialized, :destructured, :varargs]
+            str = join([fmt(:(DefaultsTestModule.$name)) for name in names], "\n")
+            @test_reference ro_path("signature_defaults.txt") str
+            @test fmt(:(DefaultsTestModule.Templated.templated)) ==
+                "```julia\ntemplated(x, y=1)\n\n```\n\nmethod `templated`\n"
+        end
+    end
     @testset "utilities" begin
         @testset "keywords" begin
             @test DSE.keywords(M.T, first(methods(M.T))) == Symbol[]
@@ -660,6 +679,30 @@ typed_signatures_h_reference() =
                 m = first(methods(f))
                 # Keywords are not ordered, so check for both combinations.
                 @test DSE.printmethod(b, f, m) in ("f(; a, b, c...)", "f(; b, a, c...)")
+            end
+        end
+        @testset "argument_defaults" begin
+            let d = DSE.argument_defaults(:(f(x, y = 1, z::String = "z"; a = :a, b::Int = 2, c, d...) = x))
+                @test d.positional == [(:x, nothing), (:y, "1"), (:z, "\"z\"")]
+                @test d.keywords == Dict(:a => ":a", :b => "2")
+            end
+            @test DSE.argument_defaults(:(function f(x = zero(T)) where {T} end)).positional == [(:x, "zero(T)")]
+            @test DSE.argument_defaults(:(f(x = 1)::Int = x)).positional == [(:x, "1")]
+            @test DSE.argument_defaults(:(@inline f(x = nothing) = x)).positional == [(:x, "nothing")]
+            @test DSE.argument_defaults(:(f(::Int = 0, xs...) = 0)).positional == [(nothing, "0"), (:xs, nothing)]
+            @test DSE.argument_defaults(:(f((a, b), c = 1) = c)).positional == [(nothing, nothing), (:c, "1")]
+            @test DSE.argument_defaults(:(struct S x end)) === nothing
+            @test DSE.argument_defaults(:(function f end)) === nothing
+            @test DSE.argument_defaults(:(const C = 1)) === nothing
+            let (_, default) = DSE.argument_defaults(:(f(w = x -> x + 1) = w)).positional[1]
+                @test !occursin("#=", default)
+            end
+        end
+        @testset "append_defaults" begin
+            let d = DSE.argument_defaults(:(g(x = 1, y = 2, z = 3; kwargs...) = x)),
+                m = which(M.g, Tuple{Any})
+
+                @test DSE.append_defaults(["x"], ["kwargs..."], m, d) == (["x=1"], ["kwargs..."])
             end
         end
         @testset "getmethods" begin
