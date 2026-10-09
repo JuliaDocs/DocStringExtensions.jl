@@ -659,6 +659,14 @@ typed_signatures_h_reference() =
             @test length(DSE.methodgroups(M.h_2, Tuple{M.A{Int}}, M)) == 1
             @test length(DSE.methodgroups(M.h_2, Tuple{M.A{Int}}, M)[1]) == 1
             @test length(DSE.methodgroups(M.h_3, Tuple{M.A}, M)[1]) == 1
+            # The docsystem's typesig for `k_13(x = 1, xs...)`, which Julia 1.12 and later
+            # normalise to `Tuple`.
+            let typesig = Union{Tuple{},Tuple{Any,Vararg{Any}}}
+                @test length(DSE.methodgroups(M.k_13, typesig, M)) == 1
+                @test length(DSE.methodgroups(M.k_13, typesig, M)[1]) == 2
+            end
+            # Both `k_14` methods share a line, and `Union{Tuple{Any},Tuple{Int}} == Tuple{Any}`.
+            @test length(DSE.methodgroups(M.k_14, Tuple{Any}, M)[1]) == 1
         end
         @testset "alltypesigs" begin
             @test DSE.alltypesigs(Union{}) == Any[]

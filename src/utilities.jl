@@ -66,9 +66,15 @@ function methodgroups(func, typesig, modname; exact = true)
     local typesigs = alltypesigs(typesig)
     local results = Vector{Method}[]
     for (key, group) in groups
-        filter!(group) do m
-            local ismod = m.module == modname
-            exact ? (ismod && Base.rewrap_unionall(Base.tuple_type_tail(m.sig), m.sig) in typesigs) : ismod
+        filter!(m -> m.module == modname, group)
+        if exact
+            # Julia 1.12 and later can normalise the union of a definition's signatures
+            # into a single type, such as `Union{Tuple{}, Tuple{Any, Vararg{Any}}} == Tuple`.
+            # When no method matches a component, compare the whole group instead.
+            local matching = filter(m -> argsig(m) in typesigs, group)
+            if !isempty(matching) || Union{map(argsig, group)...} != typesig
+                group = matching
+            end
         end
         isempty(group) || push!(results, group)
     end
@@ -78,6 +84,9 @@ function methodgroups(func, typesig, modname; exact = true)
 
     return results
 end
+
+# The argument types of `m`, without the function's own type.
+argsig(m::Method) = Base.rewrap_unionall(Base.tuple_type_tail(m.sig), m.sig)
 
 """
 $(:SIGNATURES)
