@@ -532,6 +532,17 @@ typed_signatures_h_reference() =
             @test_reference ro_path("typedef_bittype32.txt") str
         end
 
+        @testset "enum instances" begin
+            doc.data = Dict(:binding => Docs.Binding(M, :Color), :typesig => Union{})
+            @test_reference ro_path("enum_instances.txt") formatted(INSTANCES, doc)
+
+            doc.data = Dict(:binding => Docs.Binding(M, :Fruit), :typesig => Union{})
+            @test_reference ro_path("enumx_instances.txt") formatted(INSTANCES, doc)
+
+            doc.data = Dict(:binding => Docs.Binding(M, :T), :typesig => Union{})
+            @test formatted(INSTANCES, doc) == ""
+        end
+
         @testset "README/LICENSE" begin
             doc.data = Dict(:module => DocStringExtensions)
             str = formatted(DSE.README, doc)
@@ -882,6 +893,11 @@ typed_signatures_h_reference() =
         @test_reference ro_path("module_exports.txt") latest(DSE.EXPORTS, doc)
         @test_reference ro_path("module_exports.txt") latest(DSE.PUBLIC, doc)
         @test_reference module_imports_reference() latest(DSE.IMPORTS, doc)
+
+        doc.data = Dict(:binding => Docs.Binding(M, :Color), :typesig => Union{})
+        @test_reference ro_path("enum_instances.txt") latest(DSE.INSTANCES, doc)
+        doc.data = Dict(:binding => Docs.Binding(M, :Fruit), :typesig => Union{})
+        @test_reference ro_path("enumx_instances.txt") latest(DSE.INSTANCES, doc)
     end
 end
 
