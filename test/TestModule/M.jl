@@ -65,4 +65,11 @@ primitive type BitType8 8 end
 
 primitive type BitType32 <: Real 32 end
 
+@enum Color red green=3
+
+# The shape EnumX.jl gives an enum: a module holding the `Enum` subtype `T`.
+module Fruit
+    @enum T Apple=1 Banana=5
+end
+
 end

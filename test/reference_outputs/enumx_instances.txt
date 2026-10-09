@@ -1,0 +1,4 @@
+
+  - `Fruit.Apple` = 1
+  - `Fruit.Banana` = 5
+

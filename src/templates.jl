@@ -25,8 +25,8 @@ Defines a docstring template that will be applied to all docstrings in a module 
 the specified category or tuple of categories of documented bindings.
 
 Effectively, it replaces all the matching docstrings in the module with the template.
-The `DOCSTRING` abbreviation can be used to splice the original docstring into the
-replacement docstring generated from the template.
+Every template string must contain the `DOCSTRING` abbreviation, which marks where the
+original docstring is spliced into the replacement docstring generated from the template.
 
 # Examples
 
@@ -79,22 +79,30 @@ function template(src::LineNumberNode, mod::Module, ex::Expr)
     template(src, mod, ex.args[1], ex.args[2])
 end
 
-function template(source::LineNumberNode, mod::Module, tuple::Expr, docstr::Union{Symbol, Expr})
+function template(source::LineNumberNode, mod::Module, tuple::Expr, docstr::Union{String, Symbol, Expr})
     Meta.isexpr(tuple, :tuple) || error("invalid `@template` syntax on LHS.")
     isdefined(mod, TEMP_SYM) || Core.eval(mod, :(const $(TEMP_SYM) = $(Dict{Symbol, Vector}())))
     local block = Expr(:block)
     for category in tuple.args
         local key = Meta.quot(category)
-        local vec = Meta.isexpr(docstr, :string) ?
-            Expr(:vect, docstr.args...) : :($(docstr).$(TEMP_SYM)[$(key)])
+        local vec =
+            docstr isa String ? :($(checked_template)([$(docstr)])) :
+            Meta.isexpr(docstr, :string) ? :($(checked_template)($(Expr(:vect, docstr.args...)))) :
+            :($(docstr).$(TEMP_SYM)[$(key)])
         push!(block.args, :($(TEMP_SYM)[$(key)] = $(vec)))
     end
     push!(block.args, nothing)
     return esc(block)
 end
 
-function template(src::LineNumberNode, mod::Module, sym::Symbol, docstr::Union{Symbol, Expr})
+function template(src::LineNumberNode, mod::Module, sym::Symbol, docstr::Union{String, Symbol, Expr})
     template(src, mod, Expr(:tuple, sym), docstr)
+end
+
+function checked_template(parts::Vector)
+    any(is_docstr_template, parts) ||
+        throw(ArgumentError("`@template` string has no `\$(DOCSTRING)` to mark where the docstring goes."))
+    return parts
 end
 
 # The signature for the atdocs() calls changed in v0.7

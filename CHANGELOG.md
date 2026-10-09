@@ -12,8 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `TYPEDMETHODLIST`, which lists methods like `METHODLIST` but with argument and return types. `TypedMethodList(false)` leaves out the return types ([#150](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/150), [#197](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/197))
 - Add `TypedMethodSignatures(false)`, which renders typed signatures without return types ([#159](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/159), [#179](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/179))
 - Add a `defaults = true` option to `MethodSignatures` and `TypedMethodSignatures` that prints default argument values, with the methods generated for positional defaults collapsed into one signature ([#19](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/19), [#107](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/107), [#194](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/194))
+- Add `PUBLIC` to list a module's public names, both exported and declared `public` ([#190](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/190))
+- Add `INSTANCES` to list the instances of an enum with their values. It supports `@enum` and EnumX.jl's `@enumx` ([#171](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/171))
 
 ### Fixed
+
+- Fix `EXPORTS` listing names declared `public` but not exported on Julia 1.11 and later ([#190](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/190))
 
 - Fix abbreviations failing to find methods and bindings on Julia 1.12, where `format` runs in a stale world age. Method and binding lookups now go through `Base.invokelatest` ([#185](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/185))
 - `TYPEDSIGNATURES` falls back to the untyped signature when no type signature matches the method, where it used to throw an `ArgumentError` ([#185](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/185))
@@ -21,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix unnamed and destructured arguments printing as an empty name, or as `#temp#` before Julia 1.4. `SIGNATURES` prints them as `_`, and `TYPEDSIGNATURES` as `::T` ([#193](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/193))
 - Fix `SIGNATURES` leaving out the `...` after a vararg ([#193](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/193))
 - Fix objects interpolated into an `@template` never receiving the documented expression from `interpolation` ([#194](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/194))
+- `@template` throws an `ArgumentError` for a template string without `$(DOCSTRING)`, including a plain string literal. These templates used to fail with a `MethodError` when the template was defined or when the docstring was displayed ([#151](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/151))
+- Fix `TYPEDSIGNATURES` throwing for a `@generated` method with abstract argument types on Julia 1.0 and 1.10. It now leaves out the return type, which inference could only give as `Any` ([#157](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/157))
 
 ## [v0.9.5](https://github.com/JuliaDocs/DocStringExtensions.jl/releases/tag/v0.9.5) - 2025-06-06
 
