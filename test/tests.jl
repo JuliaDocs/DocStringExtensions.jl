@@ -4,6 +4,8 @@ include("templates.jl")
 include("interpolation.jl")
 include("defaults.jl")
 include("TestModule/M.jl")
+# `public` is a syntax error before Julia 1.11.
+VERSION >= v"1.11" && include("public.jl")
 
 # initialize a test repo in test/TestModule which is needed for some tests
 function with_test_repo(f)
@@ -88,6 +90,12 @@ typed_signatures_h_reference() =
         @test first(methods(M.k_11)).isva
         @test !first(methods(M.f)).isva
 
+        # Whether a name is exported, since `names` also returns `public` names on 1.11+.
+        #
+        # Used in src/abbreviations.jl for the EXPORTS abbreviation.
+        @test Base.isexported(M, :f)
+        @test !Base.isexported(M, :g_1)
+
         # Whether a method is `@generated`.
         #
         # Used in src/utilities.jl for the typed printmethod() method. Julia before 1.10 has
@@ -124,6 +132,22 @@ typed_signatures_h_reference() =
             # Module exports.
             str = formatted(EXPORTS, doc)
             @test_reference ro_path("module_exports.txt") str
+
+            # Module public names, which are only the exports in a module without `public`.
+            str = formatted(PUBLIC, doc)
+            @test_reference ro_path("module_exports.txt") str
+
+            # Issue 190: `public` names are public but not exported.
+            if VERSION >= v"1.11"
+                doc.data = Dict(
+                    :binding => Docs.Binding(Main, :PublicNames),
+                    :typesig => Union{},
+                )
+                str = formatted(EXPORTS, doc)
+                @test_reference ro_path("module_exports_with_public.txt") str
+                str = formatted(PUBLIC, doc)
+                @test_reference ro_path("module_public.txt") str
+            end
         end
 
         @testset "type fields" begin
@@ -856,6 +880,7 @@ typed_signatures_h_reference() =
             :typesig => Union{},
         )
         @test_reference ro_path("module_exports.txt") latest(DSE.EXPORTS, doc)
+        @test_reference ro_path("module_exports.txt") latest(DSE.PUBLIC, doc)
         @test_reference module_imports_reference() latest(DSE.IMPORTS, doc)
     end
 end

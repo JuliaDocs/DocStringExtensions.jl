@@ -12,8 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `TYPEDMETHODLIST`, which lists methods like `METHODLIST` but with argument and return types. `TypedMethodList(false)` leaves out the return types ([#150](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/150), [#197](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/197))
 - Add `TypedMethodSignatures(false)`, which renders typed signatures without return types ([#159](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/159), [#179](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/179))
 - Add a `defaults = true` option to `MethodSignatures` and `TypedMethodSignatures` that prints default argument values, with the methods generated for positional defaults collapsed into one signature ([#19](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/19), [#107](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/107), [#194](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/194))
+- Add `PUBLIC` to list a module's public names, both exported and declared `public` ([#190](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/190))
 
 ### Fixed
+
+- Fix `EXPORTS` listing names declared `public` but not exported on Julia 1.11 and later ([#190](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/190))
 
 - Fix abbreviations failing to find methods and bindings on Julia 1.12, where `format` runs in a stale world age. Method and binding lookups now go through `Base.invokelatest` ([#185](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/185))
 - `TYPEDSIGNATURES` falls back to the untyped signature when no type signature matches the method, where it used to throw an `ArgumentError` ([#185](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/185))
