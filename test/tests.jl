@@ -26,6 +26,13 @@ function redact_local_info(str)
     return replace(str, r"(tree/).+(/M)" => s"\1[...]\2")
 end
 
+module_imports_reference() =
+    ro_path(VERSION < v"1.12" ? "module_imports_pre_112.txt" : "module_imports_112_and_after.txt")
+method_lists_reference() =
+    ro_path(Sys.iswindows() ? "method_lists_windows.txt" : "method_lists_nonwindows.txt")
+typed_signatures_h_reference() =
+    ro_path(typeof(1) === Int64 ? "typed_method_signatures_64bit.txt" : "typed_method_signatures_32bit.txt")
+
 @testset "DocStringExtensions" begin
     @testset "Base assumptions" begin
         # The package heavily relies on type and docsystem-related methods and types from
@@ -89,12 +96,7 @@ end
                 :typesig => Union{},
             )
             str = formatted(IMPORTS, doc)
-
-            if VERSION < v"1.12"
-                @test_reference ro_path("module_imports_pre_112.txt") str
-            else
-                @test_reference ro_path("module_imports_112_and_after.txt") str
-            end
+            @test_reference module_imports_reference() str
 
             # Module exports.
             str = formatted(EXPORTS, doc)
@@ -123,11 +125,7 @@ end
                 :module => M,
             )
             str = with_test_repo(() -> formatted(METHODLIST, doc))
-            if Sys.iswindows()
-                @test_reference ro_path("method_lists_windows.txt") redact_local_info(str)
-            else
-                @test_reference ro_path("method_lists_nonwindows.txt") redact_local_info(str)
-            end
+            @test_reference method_lists_reference() redact_local_info(str)
 
             # The redaction must not depend on the name of the checkout directory.
             url = "](https://github.com/JuliaDocs/NonExistent.jl/tree/0123abc/M.jl#L5)."
@@ -221,11 +219,7 @@ end
                 :module => M,
             )
             str = formatted(DSE.TYPEDSIGNATURES, doc)
-            if typeof(1) === Int64
-                @test_reference ro_path("typed_method_signatures_64bit.txt") str
-            else
-                @test_reference ro_path("typed_method_signatures_32bit.txt") str
-            end
+            @test_reference typed_signatures_h_reference() str
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :h),
@@ -712,75 +706,45 @@ end
         # which is the scenario that triggers failures on Julia 1.12+ with binding
         # partitions. We use invokelatest in the test to simulate the world-age gap
         # that occurs when docstrings are formatted during macro expansion.
-        buf = IOBuffer()
+        # Each case reuses the reference of the matching `format` testset above.
+        latest(abbr, doc) = Base.invokelatest(formatted, abbr, doc)
+        doc = Docs.DocStr(Core.svec(), nothing, Dict())
 
-        # Test TYPEDSIGNATURES with world-age gap
-        doc = Docs.DocStr(Core.svec(), nothing, Dict(
+        doc.data = Dict(
             :binding => Docs.Binding(M, :h),
             :typesig => Tuple{Int, Int, Int},
             :module => M,
-        ))
-        Base.invokelatest(DSE.format, DSE.TYPEDSIGNATURES, buf, doc)
-        str = String(take!(buf))
-        @test occursin("```julia", str)
-        @test occursin("h(", str)
+        )
+        @test_reference typed_signatures_h_reference() latest(DSE.TYPEDSIGNATURES, doc)
 
-        # Test SIGNATURES with world-age gap
         doc.data = Dict(
             :binding => Docs.Binding(M, :f),
             :typesig => Tuple{Any},
             :module => M,
         )
-        Base.invokelatest(DSE.format, DSE.SIGNATURES, buf, doc)
-        str = String(take!(buf))
-        @test occursin("```julia", str)
-        @test occursin("f(x)", str)
+        @test_reference ro_path("method_signatures.txt") latest(DSE.SIGNATURES, doc)
+        str = with_test_repo(() -> latest(DSE.METHODLIST, doc))
+        @test_reference method_lists_reference() redact_local_info(str)
 
-        # Test METHODLIST with world-age gap
-        doc.data = Dict(
-            :binding => Docs.Binding(M, :f),
-            :typesig => Tuple{Any},
-            :module => M,
-        )
-        with_test_repo() do
-            Base.invokelatest(DSE.format, DSE.METHODLIST, buf, doc)
-        end
-        str = String(take!(buf))
-        @test occursin("```julia", str)
-        @test occursin("f(x)", str)
-
-        # Test FIELDS with world-age gap
         doc.data = Dict(
             :binding => Docs.Binding(M, :T),
-            :fields => Dict(:a => "one"),
+            :fields => Dict(:a => "one", :b => "two"),
         )
-        Base.invokelatest(DSE.format, DSE.FIELDS, buf, doc)
-        str = String(take!(buf))
-        @test occursin("`a`", str)
+        @test_reference ro_path("fields.txt") latest(DSE.FIELDS, doc)
 
-        # Test TYPEDEF with world-age gap
         doc.data = Dict(
             :binding => Docs.Binding(M, :AbstractType1),
             :typesig => Union{},
             :module => M,
         )
-        Base.invokelatest(DSE.format, DSE.TYPEDEF, buf, doc)
-        str = String(take!(buf))
-        @test occursin("abstract type AbstractType1", str)
+        @test_reference ro_path("typedef1.txt") latest(DSE.TYPEDEF, doc)
 
-        # Test EXPORTS with world-age gap
         doc.data = Dict(
             :binding => Docs.Binding(Main, :M),
             :typesig => Union{},
         )
-        Base.invokelatest(DSE.format, DSE.EXPORTS, buf, doc)
-        str = String(take!(buf))
-        @test occursin("[`f`](@ref)", str)
-
-        # Test IMPORTS with world-age gap
-        Base.invokelatest(DSE.format, DSE.IMPORTS, buf, doc)
-        str = String(take!(buf))
-        @test occursin("`Base`", str)
+        @test_reference ro_path("module_exports.txt") latest(DSE.EXPORTS, doc)
+        @test_reference module_imports_reference() latest(DSE.IMPORTS, doc)
     end
 end
 
