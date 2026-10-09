@@ -18,7 +18,13 @@ function with_test_repo(f)
     end
 end
 
-ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
+# `with_test_repo` commits afresh each run and the checkout location differs per machine,
+# so the commit hash and the local path in METHODLIST output are redacted.
+# Two `replace` calls because `replace(s, pairs...)` is missing on older Julia.
+function redact_local_info(str)
+    str = replace(str, r"(defined at \[`).+?(test[/\\]TestModule)" => s"\1[...]\2")
+    return replace(str, r"(tree/).+(/M)" => s"\1[...]\2")
+end
 
 @testset "DocStringExtensions" begin
     @testset "Base assumptions" begin
@@ -82,7 +88,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :binding => Docs.Binding(Main, :M),
                 :typesig => Union{},
             )
-            str = @io2str DSE.format(IMPORTS, ::IO, doc)
+            str = formatted(IMPORTS, doc)
 
             if VERSION < v"1.12"
                 @test_reference ro_path("module_imports_pre_112.txt") str
@@ -91,7 +97,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
             end
 
             # Module exports.
-            str = @io2str DSE.format(EXPORTS, ::IO, doc)
+            str = formatted(EXPORTS, doc)
             @test_reference ro_path("module_exports.txt") str
         end
 
@@ -103,10 +109,10 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                     :b => "two",
                 ),
             )
-            str = @io2str DSE.format(FIELDS, ::IO, doc)
+            str = formatted(FIELDS, doc)
             @test_reference ro_path("fields.txt") str
 
-            str = @io2str DSE.format(TYPEDFIELDS, ::IO, doc)
+            str = formatted(TYPEDFIELDS, doc)
             @test_reference ro_path("typed_fields.txt") str
         end
 
@@ -116,37 +122,21 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :typesig => Tuple{Any},
                 :module => M,
             )
-            str = @io2str with_test_repo() do
-                DSE.format(METHODLIST, ::IO, doc)
-            end
-            # split into multiple replace() calls for older
-            # versions of julia where the replace(s, r => s, r => s...)
-            # method is missing
-            remove_local_info = x -> begin
-                x = replace(
-                    x,
-                    # remove the part of the path that precedes DocStringExtensions.jl/...
-                    # because it will differ per machine
-                    Regex("(defined at \\[`).+(DocStringExtensions.jl)") => s"\1[...]\2",
-                )
-                replace(
-                    x,
-                    # Remove the git hash because it will differ per
-                    # test run
-                    r"(tree/).+(/M)" => s"\1[...]\2"
-                )
-            end
-            # the replacements are needed because the local
-            # Git repo created by with_test_repo() will have
-            # a different commit hash each time the test suite is run
-            # and METHODLIST displays that. Reference tests will fail every
-            # time if we don't remove the hash and the local part of the 
-            # path
+            str = with_test_repo(() -> formatted(METHODLIST, doc))
             if Sys.iswindows()
-                @test_reference ro_path("method_lists_windows.txt") remove_local_info(str)
+                @test_reference ro_path("method_lists_windows.txt") redact_local_info(str)
             else
-                @test_reference ro_path("method_lists_nonwindows.txt") remove_local_info(str)
+                @test_reference ro_path("method_lists_nonwindows.txt") redact_local_info(str)
             end
+
+            # The redaction must not depend on the name of the checkout directory.
+            url = "](https://github.com/JuliaDocs/NonExistent.jl/tree/0123abc/M.jl#L5)."
+            installed = "defined at [`packages/DocStringExtensions/Ab1Cd/test/TestModule/M.jl:5`" * url
+            @test redact_local_info(installed) ==
+                "defined at [`[...]test/TestModule/M.jl:5`](https://github.com/JuliaDocs/NonExistent.jl/tree/[...]/M.jl#L5)."
+            windows = "defined at [`C:\\Users\\u\\.julia\\dev\\DocStringExtensions\\test\\TestModule\\M.jl:5`" * url
+            @test redact_local_info(windows) ==
+                "defined at [`[...]test\\TestModule\\M.jl:5`](https://github.com/JuliaDocs/NonExistent.jl/tree/[...]/M.jl#L5)."
         end
 
         @testset "method signatures" begin
@@ -155,7 +145,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :typesig => Tuple{Any},
                 :module => M,
             )
-            str = @io2str DSE.format(SIGNATURES, ::IO, doc)
+            str = formatted(SIGNATURES, doc)
             @test_reference ro_path("method_signatures.txt") str
 
             doc.data = Dict(
@@ -163,7 +153,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :typesig => Union{Tuple{},Tuple{Any}},
                 :module => M,
             )
-            str = @io2str DSE.format(SIGNATURES, ::IO, doc)
+            str = formatted(SIGNATURES, doc)
             # On 1.10+, automatically generated methods have keywords in the metadata,
             # hence the display difference between Julia versions.
             if VERSION >= v"1.10"
@@ -177,7 +167,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :typesig => Union{Tuple{},Tuple{Any},Tuple{Any,Any},Tuple{Any,Any,Any}},
                 :module => M,
             )
-            str = @io2str DSE.format(SIGNATURES, ::IO, doc)
+            str = formatted(SIGNATURES, doc)
             # On 1.10+, automatically generated methods have keywords in the metadata,
             # hence the display difference between Julia versions.
             if VERSION >= v"1.10"
@@ -191,7 +181,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :typesig => Tuple{Any},
                 :module => M,
             )
-            str = @io2str DSE.format(SIGNATURES, ::IO, doc)
+            str = formatted(SIGNATURES, doc)
             @test_reference ro_path("signatures_tuple_any.txt") str
 
             doc.data = Dict(
@@ -199,7 +189,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :typesig => Union{Tuple{Any,Int,Any}},
                 :module => M,
             )
-            str = @io2str DSE.format(SIGNATURES, ::IO, doc)
+            str = formatted(SIGNATURES, doc)
             @test_reference ro_path("signatures_union_tuple_int_any.txt") str
         end
 
@@ -209,7 +199,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :typesig => Tuple{M.A},
                 :module => M,
             )
-            str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
             str = replace(str, " " => "")
             if Sys.iswindows() && VERSION < v"1.8"
                 @test_reference ro_path("typed_method_signatures_windows_pre_18.txt") str
@@ -222,7 +212,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :typesig => Tuple{String},
                 :module => M,
             )
-            str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
             @test_reference ro_path("typed_method_signatures_tuple_string.txt") str
 
             doc.data = Dict(
@@ -230,7 +220,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :typesig => Tuple{Int,Int,Int},
                 :module => M,
             )
-            str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
             if typeof(1) === Int64
                 @test_reference ro_path("typed_method_signatures_64bit.txt") str
             else
@@ -242,7 +232,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :typesig => Tuple{Int},
                 :module => M,
             )
-            str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
             if typeof(1) === Int64
                 # On 1.10+, automatically generated methods have keywords in the metadata,
                 # hence the display difference between Julia versions.
@@ -266,7 +256,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :typesig => Tuple{T} where T,
                 :module => M,
             )
-            str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
             @test_reference ro_path("typed_method_signatures_k0.txt") str
 
             doc.data = Dict(
@@ -274,7 +264,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :typesig => Union{Tuple{String},Tuple{String,T},Tuple{String,T,T},Tuple{T}} where T<:Number,
                 :module => M,
             )
-            str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
             @test_reference ro_path("typed_method_signatures_k1.txt") str
 
             doc.data = Dict(
@@ -282,7 +272,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :typesig => (Union{Tuple{String,U,T},Tuple{T},Tuple{U}} where T<:Number) where U<:Complex,
                 :module => M,
             )
-            str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
             @test_reference ro_path("typed_method_signatures_k2.txt") str
 
             doc.data = Dict(
@@ -290,7 +280,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :typesig => (Union{Tuple{Any,T,U},Tuple{U},Tuple{T}} where U<:Any) where T<:Any,
                 :module => M,
             )
-            str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
             @test_reference ro_path("typed_method_signatures_k3.txt") str
 
             doc.data = Dict(
@@ -298,7 +288,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :typesig => Union{Tuple{String},Tuple{String,Int}},
                 :module => M,
             )
-            str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
             if VERSION > v"1.3.0"
                 if typeof(1) === Int64
                     @test_reference ro_path("typed_method_signatures_k4_post_13_64bit.txt") str
@@ -317,7 +307,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :typesig => Union{Tuple{Type{T},String},Tuple{Type{T},String,Union{Nothing,Function}},Tuple{T}} where T<:Number,
                 :module => M,
             )
-            str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
             if VERSION > v"1.3.0"
                 @test_reference ro_path("typed_method_signatures_k5_post_13.txt") str
             else
@@ -332,7 +322,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :typesig => Union{Tuple{Vector{T}},Tuple{T}} where T<:Number,
                 :module => M,
             )
-            str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
             if VERSION >= v"1.6.0"
                 @test_reference ro_path("typed_method_signatures_k6_16_and_later.txt") str
             else
@@ -345,7 +335,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :typesig => Union{Tuple{Union{Nothing,T}},Tuple{T},Tuple{Union{Nothing,T},T}} where T<:Integer,
                 :module => M,
             )
-            str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
             if VERSION >= v"1.6" && VERSION < v"1.7"
                 @test_reference ro_path("typed_method_signatures_k7_all_16_versions.txt") str
             else
@@ -357,7 +347,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :typesig => Union{Tuple{Any}},
                 :module => M,
             )
-            str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
             @test_reference ro_path("typed_method_signatures_k8.txt") str
 
             doc.data = Dict(
@@ -365,7 +355,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :typesig => Union{Tuple{T where T}},
                 :module => M,
             )
-            str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
             @test_reference ro_path("typed_method_signatures_k9.txt") str
 
             @static if VERSION > v"1.5-" # see JuliaLang/#40405
@@ -375,7 +365,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                     :typesig => Union{Tuple{Int,Vararg{Any}}},
                     :module => M,
                 )
-                str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
+                str = formatted(DSE.TYPEDSIGNATURES, doc)
                 @test_reference ro_path("typed_method_signatures_k11.txt") str
 
                 doc.data = Dict(
@@ -383,7 +373,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                     :typesig => Union{Tuple{Int,Vararg{Real}}},
                     :module => M,
                 )
-                str = @io2str DSE.format(DSE.TYPEDSIGNATURES, ::IO, doc)
+                str = formatted(DSE.TYPEDSIGNATURES, doc)
                 @test_reference ro_path("typed_method_signatures_k12.txt") str
             end
 
@@ -396,7 +386,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :typesig => Tuple{M.A},
                 :module => M,
             )
-            str = @io2str DSE.format(DSE.TypedMethodSignatures(false), ::IO, doc)
+            str = formatted(DSE.TypedMethodSignatures(false), doc)
             str = replace(str, " " => "")
             if Sys.iswindows() && VERSION < v"1.8"
                 @test_reference ro_path("typed_method_signatures_no_return_h1_windows_pre_18.txt") str
@@ -409,7 +399,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :typesig => Tuple{String},
                 :module => M,
             )
-            str = @io2str DSE.format(DSE.TypedMethodSignatures(false), ::IO, doc)
+            str = formatted(DSE.TypedMethodSignatures(false), doc)
             @test_reference ro_path("typed_method_signatures_no_return_g2.txt") str
 
             doc.data = Dict(
@@ -417,7 +407,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :typesig => Tuple{Int,Int,Int},
                 :module => M,
             )
-            str = @io2str DSE.format(DSE.TypedMethodSignatures(false), ::IO, doc)
+            str = formatted(DSE.TypedMethodSignatures(false), doc)
             if typeof(1) === Int64
                 @test_reference ro_path("typed_method_signatures_no_return_h_64bit.txt") str
             else
@@ -429,7 +419,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :typesig => Tuple{Int},
                 :module => M,
             )
-            str = @io2str DSE.format(DSE.TypedMethodSignatures(false), ::IO, doc)
+            str = formatted(DSE.TypedMethodSignatures(false), doc)
             if typeof(1) === Int64
                 # On 1.10+, automatically generated methods have keywords in the metadata,
                 # hence the display difference between Julia versions.
@@ -456,7 +446,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :typesig => Tuple{Any},
                 :module => M,
             )
-            str = @io2str DSE.format(DSE.FUNCTIONNAME, ::IO, doc)
+            str = formatted(DSE.FUNCTIONNAME, doc)
             @test_reference ro_path("function_names.txt") str
         end
 
@@ -466,7 +456,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :typesig => Union{},
                 :module => M,
             )
-            str = @io2str DSE.format(DSE.TYPEDEF, ::IO, doc)
+            str = formatted(DSE.TYPEDEF, doc)
             @test_reference ro_path("typedef1.txt") str
 
             doc.data = Dict(
@@ -474,7 +464,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :typesig => Union{},
                 :module => M,
             )
-            str = @io2str DSE.format(DSE.TYPEDEF, ::IO, doc)
+            str = formatted(DSE.TYPEDEF, doc)
             @test_reference ro_path("typedef2.txt") str
 
             doc.data = Dict(
@@ -482,7 +472,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :typesig => Union{},
                 :module => M,
             )
-            str = @io2str DSE.format(DSE.TYPEDEF, ::IO, doc)
+            str = formatted(DSE.TYPEDEF, doc)
             @test_reference ro_path("typedef_custom.txt") str
 
             doc.data = Dict(
@@ -490,7 +480,7 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :typesig => Union{},
                 :module => M,
             )
-            str = @io2str DSE.format(DSE.TYPEDEF, ::IO, doc)
+            str = formatted(DSE.TYPEDEF, doc)
             @test_reference ro_path("typedef_bittype8.txt") str
 
             doc.data = Dict(
@@ -498,15 +488,15 @@ ro_path(fn) = joinpath(@__DIR__, "reference_outputs", fn)
                 :typesig => Union{},
                 :module => M,
             )
-            str = @io2str DSE.format(DSE.TYPEDEF, ::IO, doc)
+            str = formatted(DSE.TYPEDEF, doc)
             @test_reference ro_path("typedef_bittype32.txt") str
         end
 
         @testset "README/LICENSE" begin
             doc.data = Dict(:module => DocStringExtensions)
-            str = @io2str DSE.format(DSE.README, ::IO, doc)
+            str = formatted(DSE.README, doc)
             @test_reference ro_path("readme.txt") str
-            str = @io2str DSE.format(DSE.LICENSE, ::IO, doc)
+            str = formatted(DSE.LICENSE, doc)
             @test_reference ro_path("license.txt") str
         end
     end

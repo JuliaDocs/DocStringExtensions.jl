@@ -3,6 +3,7 @@ using Test
 import Markdown
 import LibGit2
 import REPL
-import ReferenceTests: @test_reference, @io2str
+import DeepDiffs
 
+include("reference.jl")
 include("tests.jl")
