@@ -38,6 +38,10 @@ k_8(x) = x
 k_9(x::T where T<:Any) = x
 k_11(x::Int, xs...) = x
 k_12(x::Int, xs::Real...) = x
+
+function l_1 end
+l_1(x::String) = x
+l_1(x::Symbol, y::Bool = true) = x
 k_13(x = 1, xs...) = x
 k_14(x) = x; k_14(x::Int) = x
 

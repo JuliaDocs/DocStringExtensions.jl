@@ -29,6 +29,12 @@ definitions](https://docs.julialang.org/en/v1/manual/methods/#Empty-generic-func
 The [`METHODLIST`](@ref) abbreviation allows you to list all the methods though:
 
 $(METHODLIST)
+
+---
+
+The [`TYPEDMETHODLIST`](@ref) abbreviation lists the same methods with their argument types:
+
+$(TYPEDMETHODLIST)
 """
 function foo end
 
