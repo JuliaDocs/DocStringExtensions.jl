@@ -50,6 +50,14 @@ $(TYPEDSIGNATURES)
 
 ---
 
+Passing `defaults = true` to [`MethodSignatures`](@ref DocStringExtensions.MethodSignatures)
+or [`TypedMethodSignatures`](@ref DocStringExtensions.TypedMethodSignatures) shows the
+default values and prints the two methods as one signature:
+
+$(DocStringExtensions.TypedMethodSignatures(true; defaults = true))
+
+---
+
 The [`FUNCTIONNAME`](@ref) abbreviation can be used to directly include the name of the
 function in the docstring (e.g. here: $(FUNCTIONNAME)). This can be useful when writing your
 own type signatures:

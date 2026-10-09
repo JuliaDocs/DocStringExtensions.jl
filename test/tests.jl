@@ -2,6 +2,7 @@ const DSE = DocStringExtensions
 
 include("templates.jl")
 include("interpolation.jl")
+include("defaults.jl")
 include("TestModule/M.jl")
 
 # initialize a test repo in test/TestModule which is needed for some tests
@@ -80,6 +81,21 @@ typed_signatures_h_reference() =
         else
             @test Base.kwarg_decl(m) == []
         end
+
+        # Whether a method's last positional argument is a vararg.
+        #
+        # Used in src/utilities.jl for the untyped printmethod() method.
+        @test first(methods(M.k_11)).isva
+        @test !first(methods(M.f)).isva
+
+        # Rendering default values as source text.
+        #
+        # Used in src/utilities.jl for the argument_defaults() function.
+        @test sprint(Base.show_unquoted, :(zero(T))) == "zero(T)"
+        @test sprint(Base.show_unquoted, :x) == "x"
+        @test sprint(Base.show_unquoted, "x") == "\"x\""
+        @test sprint(Base.show_unquoted, QuoteNode(:x)) == ":x"
+        @test Base.remove_linenums!(Expr(:block, LineNumberNode(1), :x)) == Expr(:block, :x)
     end
     @testset "format" begin
         # Setup.
@@ -283,17 +299,10 @@ typed_signatures_h_reference() =
                 :module => M,
             )
             str = formatted(DSE.TYPEDSIGNATURES, doc)
-            if VERSION > v"1.3.0"
-                if typeof(1) === Int64
-                    @test_reference ro_path("typed_method_signatures_k4_post_13_64bit.txt") str
-                else
-                    @test_reference ro_path("typed_method_signatures_k4_post_13_32bit.txt") str
-                end
+            if typeof(1) === Int64
+                @test_reference ro_path("typed_method_signatures_k4_64bit.txt") str
             else
-                # TODO: remove this test when julia 1.0.0 support is dropped.
-                # older versions of julia seem to return this
-                # str = "\n```julia\nk_4(#temp#::String)\nk_4(#temp#::String, #temp#::Int64)\n\n```\n\n"
-                @test_reference ro_path("typed_method_signatures_k4_up_to_13.txt") str
+                @test_reference ro_path("typed_method_signatures_k4_32bit.txt") str
             end
 
             doc.data = Dict(
@@ -302,14 +311,7 @@ typed_signatures_h_reference() =
                 :module => M,
             )
             str = formatted(DSE.TYPEDSIGNATURES, doc)
-            if VERSION > v"1.3.0"
-                @test_reference ro_path("typed_method_signatures_k5_post_13.txt") str
-            else
-                # TODO: remove this test when julia 1.0.0 support is dropped.
-                # older versions of julia seem to return this
-                # str = "\n```julia\nk_5(#temp#::Type{T<:Number}, x::String) -> String\nk_5(#temp#::Type{T<:Number}, x::String, func::Union{Nothing, Function}) -> String\n\n```\n\n"
-                @test_reference ro_path("typed_method_signatures_k5_up_to_13.txt") str
-            end
+            @test_reference ro_path("typed_method_signatures_k5.txt") str
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :k_6),
@@ -516,11 +518,28 @@ typed_signatures_h_reference() =
             @test occursin("(MACROS)", fmt(:(TemplateTests.OtherModule.@m)))
             @test fmt(:(TemplateTests.OtherModule.f)) == "method `f`\n"
         end
+        # A template keeps the documented expression only when one of its parts uses it.
+        template_exprs(mod, name) = [part.expr
+            for docstr in values(Docs.meta(mod)[Docs.Binding(mod, name)].docs)
+            for part in docstr.text if part isa DSE.Template]
+        @test all(ex -> ex === nothing, template_exprs(TemplateTests, :f))
+        @test all(ex -> ex isa Expr, template_exprs(InterpolationTestModule.Templated, :h))
     end
     @testset "Interpolation" begin
         let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))
             @test occursin("f(x)", fmt(:(InterpolationTestModule.f)))
             @test occursin("x + 2", fmt(:(InterpolationTestModule.g)))
+            @test fmt(:(InterpolationTestModule.Templated.h)) == "h(x)\n\nmethod `h`\n"
+            @test fmt(:(InterpolationTestModule.StructOnlyTemplate.k)) == "method `k`\n"
+        end
+    end
+    @testset "signature defaults" begin
+        let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))
+            names = [:positional, :keywords, :typed, :parametric, :unnamed, :wrapped, :nospecialized, :destructured, :varargs]
+            str = join([fmt(:(DefaultsTestModule.$name)) for name in names], "\n")
+            @test_reference ro_path("signature_defaults.txt") str
+            @test fmt(:(DefaultsTestModule.Templated.templated)) ==
+                "```julia\ntemplated(x, y=1)\n\n```\n\nmethod `templated`\n"
         end
     end
     @testset "utilities" begin
@@ -586,6 +605,11 @@ typed_signatures_h_reference() =
             let m = first(methods((; a...) -> ()))
                 @test DSE.arguments(m) == Symbol[]
             end
+            # Methods generated for positional defaults name unnamed arguments differently.
+            @test DSE.arguments(which(M.k_4, Tuple{String})) == ["_"]
+            let m = first(methods(((a, b), c) -> c))
+                @test DSE.arguments(m) == ["_", :c]
+            end
         end
         @testset "printmethod" begin
             let b = Docs.Binding(M, :T),
@@ -599,6 +623,20 @@ typed_signatures_h_reference() =
                 m = first(methods(f))
 
                 @test DSE.printmethod(b, f, m) == "K(; a)"
+            end
+            let b = Docs.Binding(Main, :f),
+                f = (x, ::String) -> x,
+                m = first(methods(f))
+
+                @test DSE.printmethod(b, f, m) == "f(x, _)"
+                typed = DSE.printmethod(IOBuffer(), b, f, m, Tuple{Any,String}; print_return_types = false)
+                @test String(take!(typed)) == "f(x, ::String)"
+            end
+            let b = Docs.Binding(M, :k_11),
+                f = M.k_11,
+                m = first(methods(f))
+
+                @test DSE.printmethod(b, f, m) == "k_11(x, xs...)"
             end
             let b = Docs.Binding(M, :f),
                 f = M.f,
@@ -643,6 +681,30 @@ typed_signatures_h_reference() =
                 @test DSE.printmethod(b, f, m) in ("f(; a, b, c...)", "f(; b, a, c...)")
             end
         end
+        @testset "argument_defaults" begin
+            let d = DSE.argument_defaults(:(f(x, y = 1, z::String = "z"; a = :a, b::Int = 2, c, d...) = x))
+                @test d.positional == [(:x, nothing), (:y, "1"), (:z, "\"z\"")]
+                @test d.keywords == Dict(:a => ":a", :b => "2")
+            end
+            @test DSE.argument_defaults(:(function f(x = zero(T)) where {T} end)).positional == [(:x, "zero(T)")]
+            @test DSE.argument_defaults(:(f(x = 1)::Int = x)).positional == [(:x, "1")]
+            @test DSE.argument_defaults(:(@inline f(x = nothing) = x)).positional == [(:x, "nothing")]
+            @test DSE.argument_defaults(:(f(::Int = 0, xs...) = 0)).positional == [(nothing, "0"), (:xs, nothing)]
+            @test DSE.argument_defaults(:(f((a, b), c = 1) = c)).positional == [(nothing, nothing), (:c, "1")]
+            @test DSE.argument_defaults(:(struct S x end)) === nothing
+            @test DSE.argument_defaults(:(function f end)) === nothing
+            @test DSE.argument_defaults(:(const C = 1)) === nothing
+            let (_, default) = DSE.argument_defaults(:(f(w = x -> x + 1) = w)).positional[1]
+                @test !occursin("#=", default)
+            end
+        end
+        @testset "append_defaults" begin
+            let d = DSE.argument_defaults(:(g(x = 1, y = 2, z = 3; kwargs...) = x)),
+                m = which(M.g, Tuple{Any})
+
+                @test DSE.append_defaults(["x"], ["kwargs..."], m, d) == (["x=1"], ["kwargs..."])
+            end
+        end
         @testset "getmethods" begin
             @test length(DSE.getmethods(M.f, Union{})) == 1
             @test length(DSE.getmethods(M.f, Tuple{})) == 0
@@ -659,6 +721,14 @@ typed_signatures_h_reference() =
             @test length(DSE.methodgroups(M.h_2, Tuple{M.A{Int}}, M)) == 1
             @test length(DSE.methodgroups(M.h_2, Tuple{M.A{Int}}, M)[1]) == 1
             @test length(DSE.methodgroups(M.h_3, Tuple{M.A}, M)[1]) == 1
+            # The docsystem's typesig for `k_13(x = 1, xs...)`, which Julia 1.12 and later
+            # normalise to `Tuple`.
+            let typesig = Union{Tuple{},Tuple{Any,Vararg{Any}}}
+                @test length(DSE.methodgroups(M.k_13, typesig, M)) == 1
+                @test length(DSE.methodgroups(M.k_13, typesig, M)[1]) == 2
+            end
+            # Both `k_14` methods share a line, and `Union{Tuple{Any},Tuple{Int}} == Tuple{Any}`.
+            @test length(DSE.methodgroups(M.k_14, Tuple{Any}, M)[1]) == 1
         end
         @testset "alltypesigs" begin
             @test DSE.alltypesigs(Union{}) == Any[]

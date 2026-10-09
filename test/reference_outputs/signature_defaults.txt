@@ -1,0 +1,44 @@
+```julia
+positional(x, y=1, z="z"; kwargs...)
+
+```
+
+```julia
+keywords(x; a=:a, b=2.0, c, d...)
+
+```
+
+```julia
+typed(x::Float64, y::Float64=2.0; z=nothing)
+
+```
+
+```julia
+parametric(x::Real, y::Real=zero(T))
+
+```
+
+```julia
+unnamed(::String, ::Float64=0.0)
+
+```
+
+```julia
+wrapped(x, y=nothing)
+
+```
+
+```julia
+nospecialized(x, y=1)
+
+```
+
+```julia
+destructured(_, c=1)
+
+```
+
+```julia
+varargs(x=1, xs...)
+
+```

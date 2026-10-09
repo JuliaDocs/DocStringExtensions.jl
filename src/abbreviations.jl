@@ -286,11 +286,20 @@ end
 #
 
 """
-The singleton type for [`SIGNATURES`](@ref) abbreviations.
+The type for [`SIGNATURES`](@ref) abbreviations.
 
 $(:FIELDS)
 """
-struct MethodSignatures <: Abbreviation end
+struct MethodSignatures <: Abbreviation
+    show_defaults::Bool
+    defaults::Union{ArgumentDefaults,Nothing}
+end
+
+MethodSignatures(; defaults::Bool = false) = MethodSignatures(defaults, nothing)
+
+interpolation(abbr::MethodSignatures, expr::Expr) =
+    abbr.show_defaults ? MethodSignatures(true, argument_defaults(expr)) : abbr
+needs_expression(abbr::MethodSignatures) = abbr.show_defaults
 
 """
 An [`Abbreviation`](@ref) for including a simplified representation of all the method
@@ -307,10 +316,15 @@ defines method taking two positional arguments, `x` and `y`, and two keywords, `
 f(x, y; a, b...)
 ```
 ````
+
+!!! tip "Showing Default Values"
+    Default values of positional and keyword arguments are omitted. To show them, use
+    `\$(DocStringExtensions.MethodSignatures(defaults = true))`. The methods that Julia
+    generates for positional defaults are then printed as a single signature.
 """
 const SIGNATURES = MethodSignatures()
 
-function format(::MethodSignatures, buf, doc)
+function format(abbr::MethodSignatures, buf, doc)
     local binding = doc.data[:binding]
     local typesig = doc.data[:typesig]
     local modname = doc.data[:module]
@@ -321,8 +335,8 @@ function format(::MethodSignatures, buf, doc)
         println(buf)
         println(buf, "```julia")
         for group in groups
-            for method in group
-                printmethod(buf, binding, func, method)
+            for method in collapse_defaults(group, abbr.defaults)
+                printmethod(buf, binding, func, method; defaults = abbr.defaults)
                 println(buf)
             end
         end
@@ -342,7 +356,16 @@ $(:FIELDS)
 """
 struct TypedMethodSignatures <: Abbreviation
     return_types::Bool
+    show_defaults::Bool
+    defaults::Union{ArgumentDefaults,Nothing}
 end
+
+TypedMethodSignatures(return_types::Bool; defaults::Bool = false) =
+    TypedMethodSignatures(return_types, defaults, nothing)
+
+interpolation(abbr::TypedMethodSignatures, expr::Expr) =
+    abbr.show_defaults ? TypedMethodSignatures(abbr.return_types, true, argument_defaults(expr)) : abbr
+needs_expression(abbr::TypedMethodSignatures) = abbr.show_defaults
 
 """
 An [`Abbreviation`](@ref) for including a simplified representation of all the method
@@ -354,6 +377,12 @@ the simplifications that are applied.
     type is printed as `Any`. To reduce clutter, the return type may be omitted by
     calling [`TypedMethodSignatures`](@ref) and passing `false` to its constructor:
     `\$(DocStringExtensions.TypedMethodSignatures(false))`.
+
+!!! tip "Showing Default Values"
+    Default values of positional and keyword arguments are omitted. To show them, pass
+    `defaults = true`: `\$(DocStringExtensions.TypedMethodSignatures(true; defaults = true))`.
+    The methods that Julia generates for positional defaults are then printed as a single
+    signature.
 
 # Examples
 
@@ -381,7 +410,7 @@ function format(tms::TypedMethodSignatures, buf, doc)
         group = groups[end]
         println(buf)
         println(buf, "```julia")
-        for (i, method) in enumerate(group)
+        for method in collapse_defaults(group, tms.defaults)
             N = length(arguments(method))
             # return a list of tuples that represent type signatures
             tuples = find_tuples(typesig)
@@ -405,11 +434,11 @@ function format(tms::TypedMethodSignatures, buf, doc)
             end
             if idx === nothing
                 # Fall back to untyped signature if no matching tuple is found.
-                printmethod(buf, binding, func, method)
+                printmethod(buf, binding, func, method; defaults = tms.defaults)
             else
                 t = tuples[idx]
                 printmethod(buf, binding, func, method, t;
-                    print_return_types=tms.return_types)
+                    print_return_types=tms.return_types, defaults = tms.defaults)
             end
             println(buf)
         end
@@ -638,10 +667,13 @@ is_docstr_template(other) = false
 Internal abbreviation type used to wrap templated docstrings.
 
 `Location` is a `Symbol`, either `:before` or `:after`. `dict` stores a
-reference to a module's templates.
+reference to a module's templates. `expr` is the documented expression, which is
+passed to [`interpolation`](@ref) for each part of the template, or `nothing` when
+no part uses it.
 """
 struct Template{Location} <: Abbreviation
     dict::Dict{Symbol,Vector{Any}}
+    expr::Union{Expr,Nothing}
 end
 
 function format(abbr::Template, buf, doc)
@@ -655,7 +687,8 @@ function format(abbr::Template, buf, doc)
         # We don't call `DocStringExtensions.format` here since we need to be
         # able to format any content in docstrings, rather than just
         # abbreviations.
-        Docs.formatdoc(buf, doc, parts[index])
+        part = abbr.expr === nothing ? parts[index] : interpolation(parts[index], abbr.expr)
+        Docs.formatdoc(buf, doc, part)
     end
 end
 

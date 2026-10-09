@@ -10,11 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Add `TypedMethodSignatures(false)`, which renders typed signatures without return types ([#159](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/159), [#179](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/179))
+- Add a `defaults = true` option to `MethodSignatures` and `TypedMethodSignatures` that prints default argument values, with the methods generated for positional defaults collapsed into one signature ([#19](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/19), [#107](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/107), [#194](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/194))
 
 ### Fixed
 
 - Fix abbreviations failing to find methods and bindings on Julia 1.12, where `format` runs in a stale world age. Method and binding lookups now go through `Base.invokelatest` ([#185](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/185))
 - `TYPEDSIGNATURES` falls back to the untyped signature when no type signature matches the method, where it used to throw an `ArgumentError` ([#185](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/185))
+- Fix `SIGNATURES` and `TYPEDSIGNATURES` printing nothing on Julia 1.12 and later for a definition with a positional default before a vararg, such as `f(x = 1, xs...)` ([#193](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/193))
+- Fix unnamed and destructured arguments printing as an empty name, or as `#temp#` before Julia 1.4. `SIGNATURES` prints them as `_`, and `TYPEDSIGNATURES` as `::T` ([#193](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/193))
+- Fix `SIGNATURES` leaving out the `...` after a vararg ([#193](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/193))
+- Fix objects interpolated into an `@template` never receiving the documented expression from `interpolation` ([#194](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/194))
 
 ## [v0.9.5](https://github.com/JuliaDocs/DocStringExtensions.jl/releases/tag/v0.9.5) - 2025-06-06
 
