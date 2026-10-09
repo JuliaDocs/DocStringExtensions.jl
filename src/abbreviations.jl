@@ -250,7 +250,57 @@ defined at [`<path>:<line>`](<github-url>).
 """
 const METHODLIST = MethodList()
 
-function format(::MethodList, buf, doc)
+
+#
+# `TypedMethodList`
+#
+
+"""
+The type for [`TYPEDMETHODLIST`](@ref) abbreviations.
+
+$(:FIELDS)
+"""
+struct TypedMethodList <: Abbreviation
+    return_types::Bool
+end
+
+"""
+An [`Abbreviation`](@ref) for including a list of all the methods, with their argument
+types, that match a documented `Method`, `Function`, or `DataType` within the current module.
+This is the typed counterpart of [`METHODLIST`](@ref), as [`TYPEDSIGNATURES`](@ref) is of
+[`SIGNATURES`](@ref).
+
+!!! tip "Disabling the Return Type"
+    The return type of each method is printed as inferred, which is often `Any`. To omit
+    it, call [`TypedMethodList`](@ref) and pass `false` to its constructor:
+    `\$(DocStringExtensions.TypedMethodList(false))`.
+
+# Examples
+
+The generated markdown text will look similar to the following example where a function
+`f` defines two different methods (one that takes a number, and the other a string):
+
+````markdown
+```julia
+f(num::Number) -> Number
+```
+
+defined at [`<path>:<line>`](<github-url>).
+
+```julia
+f(str::String) -> String
+```
+
+defined at [`<path>:<line>`](<github-url>).
+````
+"""
+const TYPEDMETHODLIST = TypedMethodList(true)
+
+printlisted(buf, ::MethodList, binding, func, method) = printmethod(buf, binding, func, method)
+printlisted(buf, abbr::TypedMethodList, binding, func, method) =
+    printmethod(buf, binding, func, method, argsig(method); print_return_types = abbr.return_types)
+
+function format(abbr::Union{MethodList,TypedMethodList}, buf, doc)
     local binding = doc.data[:binding]
     local typesig = doc.data[:typesig]
     local modname = doc.data[:module]
@@ -261,7 +311,7 @@ function format(::MethodList, buf, doc)
         for group in groups
             println(buf, "```julia")
             for method in group
-                printmethod(buf, binding, func, method)
+                printlisted(buf, abbr, binding, func, method)
                 println(buf)
             end
             println(buf, "```\n")
