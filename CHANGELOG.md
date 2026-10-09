@@ -14,23 +14,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fix abbreviations failing to find methods and bindings on Julia 1.12, where `format` runs in a stale world age. Method and binding lookups now go through `Base.invokelatest` ([#185](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/185))
-- Fix tests on Julia 1.12 ([#178](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/178))
+- `TYPEDSIGNATURES` falls back to the untyped signature when no type signature matches the method, where it used to throw an `ArgumentError` ([#185](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/185))
 
 ## [v0.9.5](https://github.com/JuliaDocs/DocStringExtensions.jl/releases/tag/v0.9.5) - 2025-06-06
 
 ### Fixed
 
-- Fix failures on Julia nightly ([#176](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/176))
+- Fix keyword argument lookup on Julia nightly, where `methods(f).mt` no longer exists ([#176](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/176))
 
 ## [v0.9.4](https://github.com/JuliaDocs/DocStringExtensions.jl/releases/tag/v0.9.4) - 2025-03-28
 
 ### Added
 
-- Support capturing `Expr` values for use in abbreviations ([#133](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/133))
+- Add the exported `interpolation(object, expr)` hook, so an object interpolated into a docstring can see the expression being documented ([#133](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/133))
 
 ### Changed
 
-- Remove the `LibGit2` dependency ([#172](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/172))
+- Remove the `LibGit2` dependency. `METHODLIST` source links come from `Base.url` and no longer read the package's git remote, unless the `TRAVIS_*` environment variables are set ([#172](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/172))
 - Clarify the `@template` docstring ([#152](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/152))
 
 ### Fixed
@@ -41,19 +41,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Fix an extra newline before field descriptions in `FIELDS` and `TYPEDFIELDS` ([#139](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/139))
-- Fix broadcasting over `Base.rewrap_unionall` when collecting all type signatures, which made `SIGNATURES` output nondeterministic ([#102](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/102), [#141](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/141))
+- Fix field descriptions in `FIELDS` and `TYPEDFIELDS` starting on a new line, a regression in v0.9.2 ([#139](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/139))
+- Fix `SIGNATURES` and `TYPEDSIGNATURES` leaving out methods whose signatures have `where` type parameters ([#102](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/102), [#141](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/141))
 
 ## [v0.9.2](https://github.com/JuliaDocs/DocStringExtensions.jl/releases/tag/v0.9.2) - 2022-10-21
 
 ### Changed
 
-- Condense `FIELDS` and `TYPEDFIELDS` output by removing the blank line after each field name ([#63](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/63), [#136](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/136))
+- Condense `FIELDS` and `TYPEDFIELDS` output by putting each field's description on the same line as its name, after a colon ([#63](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/63), [#136](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/136))
 
 ### Fixed
 
 - Fix keyword argument handling on Julia master and filter a new internal symbol out of argument lists ([#137](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/137))
-- Fix argument ordering on newer Windows versions ([#138](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/138))
+- Fix `TYPEDSIGNATURES` choosing the wrong signature on Windows with Julia 1.8 and later ([#138](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/138))
 
 ## [v0.9.1](https://github.com/JuliaDocs/DocStringExtensions.jl/releases/tag/v0.9.1) - 2022-07-26
 
@@ -70,19 +70,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v0.8.6](https://github.com/JuliaDocs/DocStringExtensions.jl/releases/tag/v0.8.6) - 2021-10-25
 
+### Changed
+
+- `TYPEDSIGNATURES` prints a constrained type parameter as its bound, such as `y::Number` instead of `y::T<:Number`, and leaves an unconstrained one untyped ([#125](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/125))
+
 ### Fixed
 
-- Fix test failures on Julia 1.8 and improve printing of parametric types ([#124](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/124), [#125](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/125))
+- Fix `TYPEDSIGNATURES` for methods such as `f(x::T) where T`, and fix tests on Julia 1.8 ([#124](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/124), [#125](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/125))
 
 ## [v0.8.5](https://github.com/JuliaDocs/DocStringExtensions.jl/releases/tag/v0.8.5) - 2021-06-09
 
-### Changed
+### Removed
 
-- Move test dependencies out of `[deps]` ([#114](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/114))
-- Remove internal `isabstracttype` and `isbitstype` definitions ([#116](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/116))
+- Drop support for Julia 0.7 ([#114](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/114))
 
 ### Fixed
 
+- Fix loading on Julia 1.7, which removed the `DataType.abstract` and `DataType.mutable` fields ([#116](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/116))
 - Fix `Vararg` arguments printing without `...` ([#46](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/46), [#113](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/113))
 
 ## [v0.8.4](https://github.com/JuliaDocs/DocStringExtensions.jl/releases/tag/v0.8.4) - 2021-03-23
@@ -90,13 +94,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fix `TYPEDEF` omitting type parameters of abstract types ([#104](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/104), [#105](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/105))
-- Fix tests on Julia 1.6 and later ([#106](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/106))
 
 ## [v0.8.3](https://github.com/JuliaDocs/DocStringExtensions.jl/releases/tag/v0.8.3) - 2020-08-27
 
 ### Fixed
 
-- `@template` now expands templates at format time instead of definition time. This fixes templates with `Base.@__doc__` and `@kwdef` structs, and a `TYPEDSIGNATURES` error on Julia master ([#73](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/73), [#93](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/93), [#98](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/98), [#96](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/96))
+- `@template` now expands templates at format time instead of definition time. This fixes templates on definitions documented through `Base.@__doc__`, and a `TYPEDSIGNATURES` error on Julia master ([#73](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/73), [#93](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/93), [#96](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/96))
 
 ## [v0.8.2](https://github.com/JuliaDocs/DocStringExtensions.jl/releases/tag/v0.8.2) - 2020-06-15
 
@@ -122,7 +125,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Put an upper bound on the compatible Julia version ([#80](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/80))
+- Restrict Julia compat to 0.7 and 1.x ([#80](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/80))
 
 ## [v0.7.0](https://github.com/JuliaDocs/DocStringExtensions.jl/releases/tag/v0.7.0) - 2019-03-11
 
@@ -152,9 +155,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v0.4.6](https://github.com/JuliaDocs/DocStringExtensions.jl/releases/tag/v0.4.6) - 2018-08-11
 
-### Fixed
+### Changed
 
-- Update signature handling for Julia 0.7 and 1.0 ([#64](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/64))
+- `TYPEDEF` prints Julia 0.7 and 1.0 type syntax (`mutable struct`, `abstract type`, `primitive type`) ([#64](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/64))
 
 ## [v0.4.5](https://github.com/JuliaDocs/DocStringExtensions.jl/releases/tag/v0.4.5) - 2018-07-03
 
@@ -195,8 +198,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Fix `SIGNATURES` for methods with `UnionAll` arguments ([#38](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/38))
-- Fix deprecation warnings ([#37](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/37), [#40](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/40))
+- Fix `SIGNATURES` for methods with `UnionAll` arguments, and `@template` for method definitions with `where` clauses ([#32](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/32), [#38](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/38))
+- Fix `@template` for types on Julia 0.7, where the `struct` and `primitive` expression heads replaced `type` and `bitstype` ([#37](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/37))
+- Fix deprecation warnings ([#36](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/36), [#40](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/40))
 
 ## [v0.3.4](https://github.com/JuliaDocs/DocStringExtensions.jl/releases/tag/v0.3.4) - 2017-07-25
 
@@ -220,17 +224,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Fix subtype introspection on Julia 0.6 ([#25](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/25))
+- Fix method and type introspection for the new `UnionAll` type representation on Julia 0.6 ([#25](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/25))
 
 ## [v0.3.0](https://github.com/JuliaDocs/DocStringExtensions.jl/releases/tag/v0.3.0) - 2016-11-21
 
 ### Added
 
 - Add docstring templates with `@template` ([#23](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/23))
+- Add the `DOCSTRING` abbreviation for use in templates ([#23](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/23))
 
 ### Fixed
 
-- Fix `takebuf_string` deprecations
+- Fix `takebuf_string` deprecations ([#23](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/23))
 
 ## [v0.2.1](https://github.com/JuliaDocs/DocStringExtensions.jl/releases/tag/v0.2.1) - 2016-09-14
 
@@ -250,7 +255,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Deduplicate methods in `METHODLIST` ([#15](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/15))
+- Deduplicate methods in `METHODLIST` and `SIGNATURES` ([#14](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/14), [#15](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/15))
 
 ## [v0.1.0](https://github.com/JuliaDocs/DocStringExtensions.jl/releases/tag/v0.1.0) - 2016-08-02
 
