@@ -638,10 +638,13 @@ is_docstr_template(other) = false
 Internal abbreviation type used to wrap templated docstrings.
 
 `Location` is a `Symbol`, either `:before` or `:after`. `dict` stores a
-reference to a module's templates.
+reference to a module's templates. `expr` is the documented expression, which is
+passed to [`interpolation`](@ref) for each part of the template, or `nothing` when
+no part uses it.
 """
 struct Template{Location} <: Abbreviation
     dict::Dict{Symbol,Vector{Any}}
+    expr::Union{Expr,Nothing}
 end
 
 function format(abbr::Template, buf, doc)
@@ -655,7 +658,8 @@ function format(abbr::Template, buf, doc)
         # We don't call `DocStringExtensions.format` here since we need to be
         # able to format any content in docstrings, rather than just
         # abbreviations.
-        Docs.formatdoc(buf, doc, parts[index])
+        part = abbr.expr === nothing ? parts[index] : interpolation(parts[index], abbr.expr)
+        Docs.formatdoc(buf, doc, part)
     end
 end
 

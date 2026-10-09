@@ -508,11 +508,19 @@ typed_signatures_h_reference() =
             @test occursin("(MACROS)", fmt(:(TemplateTests.OtherModule.@m)))
             @test fmt(:(TemplateTests.OtherModule.f)) == "method `f`\n"
         end
+        # A template keeps the documented expression only when one of its parts uses it.
+        template_exprs(mod, name) = [part.expr
+            for docstr in values(Docs.meta(mod)[Docs.Binding(mod, name)].docs)
+            for part in docstr.text if part isa DSE.Template]
+        @test all(ex -> ex === nothing, template_exprs(TemplateTests, :f))
+        @test all(ex -> ex isa Expr, template_exprs(InterpolationTestModule.Templated, :h))
     end
     @testset "Interpolation" begin
         let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))
             @test occursin("f(x)", fmt(:(InterpolationTestModule.f)))
             @test occursin("x + 2", fmt(:(InterpolationTestModule.g)))
+            @test fmt(:(InterpolationTestModule.Templated.h)) == "h(x)\n\nmethod `h`\n"
+            @test fmt(:(InterpolationTestModule.StructOnlyTemplate.k)) == "method `k`\n"
         end
     end
     @testset "utilities" begin

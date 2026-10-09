@@ -111,12 +111,25 @@ function template_hook(source::LineNumberNode, mod::Module, docstr, expr::Expr)
         # We unwrap interpolated strings so that we can add the `:before` and
         # `:after` abbreviations. Otherwise they're just left as is.
         unwrapped = Meta.isexpr(docstr, :string) ? docstr.args : [docstr]
-        before, after = Template{:before}(dict), Template{:after}(dict)
+        # Templates outlive macro expansion, so keep `expr` only when a part uses it.
+        captured = uses_expression(dict) ? expr : nothing
+        before, after = Template{:before}(dict, captured), Template{:after}(dict, captured)
         # Rebuild the original docstring, but with the template abbreviations
         # surrounding it.
         docstr = Expr(:string, before, unwrapped..., after)
     end
     return (source, mod, docstr, expr)
+end
+
+uses_expression(dict) = any(parts -> any(needs_expression, parts), values(dict))
+
+# Whether `interpolation` may use the documented expression for a template `part`. This
+# runs during macro expansion for every category, so it must not call `interpolation`.
+needs_expression(::AbstractString) = false
+function needs_expression(part)
+    parentmodule(typeof(part)) === DocStringExtensions && return false
+    local method = Base.invokelatest(which, interpolation, Tuple{typeof(part),Expr})
+    return method.sig !== Tuple{typeof(interpolation),Any,Any}
 end
 
 function template_hook(docstr, expr::Expr)

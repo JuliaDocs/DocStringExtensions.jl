@@ -20,4 +20,44 @@ $(TestType(2))
 """
 g(x) = x + 2
 
+module Templated
+
+using DocStringExtensions
+import ..TestType
+
+@template METHODS =
+    """
+    $(TestType(1))
+
+    $(DOCSTRING)
+    """
+
+"method `h`"
+h(x) = x + 3
+
+end
+
+struct StructOnly end
+
+DocStringExtensions.interpolation(::StructOnly, ex::Expr) =
+    Meta.isexpr(ex, :struct) ? "struct" : error("`StructOnly` only documents structs")
+
+module StructOnlyTemplate
+
+using DocStringExtensions
+import ..StructOnly
+
+# Deciding whether to keep `expr` must not call `interpolation` on another category's parts.
+@template TYPES =
+    """
+    $(StructOnly())
+
+    $(DOCSTRING)
+    """
+
+"method `k`"
+k(x) = x
+
+end
+
 end
