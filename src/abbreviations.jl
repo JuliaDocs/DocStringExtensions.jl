@@ -386,13 +386,13 @@ $(:FIELDS)
 """
 struct MethodSignatures <: Abbreviation
     show_defaults::Bool
-    defaults::Union{ArgumentDefaults,Nothing}
+    definition::Union{DefinitionArguments,Nothing}
 end
 
 MethodSignatures(; defaults::Bool = false) = MethodSignatures(defaults, nothing)
 
 interpolation(abbr::MethodSignatures, expr::Expr) =
-    abbr.show_defaults ? MethodSignatures(true, argument_defaults(expr)) : abbr
+    MethodSignatures(abbr.show_defaults, definition_arguments(expr))
 
 """
 An [`Abbreviation`](@ref) for including a simplified representation of all the method
@@ -423,13 +423,14 @@ function format(abbr::MethodSignatures, buf, doc)
     local modname = doc.data[:module]
     local func = Base.invokelatest(Docs.resolve, binding)
     local groups = methodgroups(func, typesig, modname)
+    local defaults = abbr.show_defaults ? abbr.definition : nothing
 
     if !isempty(groups)
         println(buf)
         println(buf, "```julia")
         for group in groups
-            for method in collapse_defaults(group, abbr.defaults)
-                printmethod(buf, binding, func, method; defaults = abbr.defaults)
+            for method in collapse_defaults(group, defaults)
+                printmethod(buf, binding, func, method; definition = abbr.definition, defaults = defaults)
                 println(buf)
             end
         end
@@ -450,14 +451,14 @@ $(:FIELDS)
 struct TypedMethodSignatures <: Abbreviation
     return_types::Bool
     show_defaults::Bool
-    defaults::Union{ArgumentDefaults,Nothing}
+    definition::Union{DefinitionArguments,Nothing}
 end
 
 TypedMethodSignatures(return_types::Bool; defaults::Bool = false) =
     TypedMethodSignatures(return_types, defaults, nothing)
 
 interpolation(abbr::TypedMethodSignatures, expr::Expr) =
-    abbr.show_defaults ? TypedMethodSignatures(abbr.return_types, true, argument_defaults(expr)) : abbr
+    TypedMethodSignatures(abbr.return_types, abbr.show_defaults, definition_arguments(expr))
 
 """
 An [`Abbreviation`](@ref) for including a simplified representation of all the method
@@ -498,11 +499,12 @@ function format(tms::TypedMethodSignatures, buf, doc)
     # the methodgroups always appears to return a Vector and the size depends on whether parametric types are used
     # and whether default arguments are used
     local groups = methodgroups(func, typesig, modname)
+    local defaults = tms.show_defaults ? tms.definition : nothing
     if !isempty(groups)
         group = groups[end]
         println(buf)
         println(buf, "```julia")
-        for method in collapse_defaults(group, tms.defaults)
+        for method in collapse_defaults(group, defaults)
             N = length(arguments(method))
             # return a list of tuples that represent type signatures
             tuples = find_tuples(typesig)
@@ -526,11 +528,11 @@ function format(tms::TypedMethodSignatures, buf, doc)
             end
             if idx === nothing
                 # Fall back to untyped signature if no matching tuple is found.
-                printmethod(buf, binding, func, method; defaults = tms.defaults)
+                printmethod(buf, binding, func, method; definition = tms.definition, defaults = defaults)
             else
                 t = tuples[idx]
                 printmethod(buf, binding, func, method, t;
-                    print_return_types=tms.return_types, defaults = tms.defaults)
+                    print_return_types=tms.return_types, definition = tms.definition, defaults = defaults)
             end
             println(buf)
         end

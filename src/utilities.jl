@@ -40,44 +40,45 @@ _process_interpolation(str::AbstractString, ::QuoteNode) = str
 _process_interpolation(@nospecialize(expr), quoted::QuoteNode) = Expr(:call, interpolation, expr, quoted)
 
 #
-# Argument defaults.
+# Definition arguments.
 #
 
 """
-Default values of the arguments in a documented method definition, rendered as source text.
+The positional and keyword arguments of a documented method definition, rendered as source
+text.
 
 `positional` has a `(name, default)` entry for each positional argument, in order. `name` is
-`nothing` for an unnamed or destructured argument, and `default` is `nothing` when the
-argument has no default. `keywords` maps each keyword argument with a default to that
-default.
+the argument's name, the destructuring of a destructured argument such as `"(a, b)"`, or
+`"_"` for an unnamed argument. `default` is `nothing` when the argument has no default.
+`keywords` maps the name of each keyword argument with a default to that default.
 """
-struct ArgumentDefaults
-    positional::Vector{Tuple{Union{Symbol,Nothing},Union{String,Nothing}}}
-    keywords::Dict{Symbol,String}
+struct DefinitionArguments
+    positional::Vector{Tuple{String,Union{String,Nothing}}}
+    keywords::Dict{String,String}
 end
 
 """
 $(:SIGNATURES)
 
-Find the default argument values in the method definition `expr`. Returns `nothing` when
-`expr` does not define a method.
+Find the arguments of the method definition `expr`. Returns `nothing` when `expr` does not
+define a method.
 """
-function argument_defaults(expr::Expr)
+function definition_arguments(expr::Expr)
     local call = definition_call(expr)
     call === nothing && return nothing
-    local positional = Tuple{Union{Symbol,Nothing},Union{String,Nothing}}[]
-    local keywords = Dict{Symbol,String}()
+    local positional = Tuple{String,Union{String,Nothing}}[]
+    local keywords = Dict{String,String}()
     for arg in call.args[2:end]
         if Meta.isexpr(arg, :parameters)
             for kw in arg.args
                 name, default = argument_default(kw)
-                name === nothing || default === nothing || (keywords[name] = default)
+                default === nothing || (keywords[name] = default)
             end
         else
             push!(positional, argument_default(arg))
         end
     end
-    return ArgumentDefaults(positional, keywords)
+    return DefinitionArguments(positional, keywords)
 end
 
 function definition_call(expr::Expr)
@@ -107,11 +108,12 @@ function argument_default(@nospecialize(arg))
     return (argument_name(arg), nothing)
 end
 
-argument_name(name::Symbol) = name
+argument_name(name::Symbol) = string(name)
 function argument_name(@nospecialize(arg))
     Meta.isexpr(arg, :(::), 2) && return argument_name(arg.args[1])
     Meta.isexpr(arg, :..., 1) && return argument_name(arg.args[1])
-    return nothing
+    Meta.isexpr(arg, :tuple) && return sprint(Base.show_unquoted, arg)
+    return "_"
 end
 
 #
@@ -344,7 +346,11 @@ simplifications include:
   * no `TypeVar`s;
   * no types;
   * no default values, unless `defaults` gives them;
-  * `_` printed for unnamed and destructured arguments.
+  * `_` printed for unnamed arguments, and for destructured arguments unless `definition`
+    gives them.
+
+`definition` and `defaults` are the [`DefinitionArguments`](@ref) of the documented method
+definition, or `nothing`.
 
 # Examples
 
@@ -353,8 +359,8 @@ f(x; a = 1, b...) = x
 sig = printmethod(Docs.Binding(Main, :f), f, first(methods(f)))
 ```
 """
-function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method; defaults = nothing)
-    local args = string.(arguments(method))
+function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method; definition = nothing, defaults = nothing)
+    local args = argument_names(method, definition)
     method.isva && (args[end] *= "...")
     args, kws = append_defaults(args, string.(keywords(func, method)), method, defaults)
     return printmethod_format(buffer, string(binding.var), args, kws)
@@ -363,15 +369,31 @@ end
 """
 $(:SIGNATURES)
 
-Whether `method` takes the positional arguments of the definition that `defaults` was
-parsed from, or a leading subset of them.
+The positional argument names of `method`, with each destructured argument written as it
+appears in `definition`.
+"""
+function argument_names(method::Method, definition)
+    local args = string.(arguments(method))
+    matches_definition(method, definition) || return args
+    return map(enumerate(args)) do (i, arg)
+        name, _ = definition.positional[i]
+        arg == "_" ? name : arg
+    end
+end
+
+"""
+$(:SIGNATURES)
+
+Whether `method` takes the positional arguments of `definition`, or a leading subset of
+them.
 """
 matches_definition(::Method, ::Nothing) = false
-function matches_definition(method::Method, defaults::ArgumentDefaults)
-    local names = arguments(method)
-    length(names) <= length(defaults.positional) || return false
-    return all(zip(names, defaults.positional)) do (name, (expected, _))
-        expected === nothing || Symbol(name) === expected
+function matches_definition(method::Method, definition::DefinitionArguments)
+    local names = string.(arguments(method))
+    length(names) <= length(definition.positional) || return false
+    # `_` stands for an argument whose name one side does not know, such as `@nospecialize(x)`.
+    return all(zip(names, definition.positional)) do (name, (expected, _))
+        name == "_" || expected == "_" || name == expected
     end
 end
 
@@ -379,15 +401,15 @@ end
 $(:SIGNATURES)
 
 Drop the methods of `group` that Julia generated for positional default values, keeping
-the method that takes every argument of the documented definition.
+the method that takes every argument of `definition`.
 """
 collapse_defaults(group, ::Nothing) = group
-function collapse_defaults(group, defaults::ArgumentDefaults)
-    local matching = filter(m -> matches_definition(m, defaults), group)
+function collapse_defaults(group, definition::DefinitionArguments)
+    local matching = filter(m -> matches_definition(m, definition), group)
     isempty(matching) && return group
     local longest = maximum(m -> length(arguments(m)), matching)
     return filter(group) do m
-        !matches_definition(m, defaults) || length(arguments(m)) == longest
+        !matches_definition(m, definition) || length(arguments(m)) == longest
     end
 end
 
@@ -395,17 +417,17 @@ end
 $(:SIGNATURES)
 
 Append `=default` to each formatted argument in `args` and keyword in `kws` that has a
-default value in `defaults`. Leaves both unchanged when `method` does not match the
-definition that `defaults` was parsed from.
+default value in `definition`. Leaves both unchanged when `method` does not match
+`definition`.
 """
-function append_defaults(args, kws, method::Method, defaults)
-    matches_definition(method, defaults) || return args, kws
+function append_defaults(args, kws, method::Method, definition)
+    matches_definition(method, definition) || return args, kws
     args = map(enumerate(args)) do (i, arg)
-        _, default = defaults.positional[i]
+        _, default = definition.positional[i]
         default === nothing ? arg : "$arg=$default"
     end
     kws = map(kws) do kw
-        default = get(defaults.keywords, Symbol(kw), nothing)
+        default = get(definition.keywords, kw, nothing)
         default === nothing ? kw : "$kw=$default"
     end
     return args, kws
@@ -468,6 +490,8 @@ simplifications include:
   * no types;
   * no default values, unless `defaults` gives them;
 
+`definition` and `defaults` are as for the untyped `printmethod`.
+
 # Examples
 
 ```julia
@@ -475,9 +499,9 @@ f(x::Int; a = 1, b...) = x
 sig = printmethod(Docs.Binding(Main, :f), f, first(methods(f)))
 ```
 """
-function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method, typesig; print_return_types=true, defaults=nothing)
+function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method, typesig; print_return_types=true, definition=nothing, defaults=nothing)
     # TODO: print qualified?
-    local args = string.(arguments(method))
+    local args = argument_names(method, definition)
     local kws = string.(keywords(func, method))
 
     # find inner tuple type
@@ -536,7 +560,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
 
         "$arg$type$suffix"
     end
-    args, kws = append_defaults(args, string.(kws), method, defaults)
+    args, kws = append_defaults(args, kws, method, defaults)
 
     # Inference cannot run a generator on abstract argument types: Julia 1.0 throws and 1.10
     # hits a `BoundsError` in Base, while other versions can only infer `Any`.
