@@ -283,17 +283,10 @@ typed_signatures_h_reference() =
                 :module => M,
             )
             str = formatted(DSE.TYPEDSIGNATURES, doc)
-            if VERSION > v"1.3.0"
-                if typeof(1) === Int64
-                    @test_reference ro_path("typed_method_signatures_k4_post_13_64bit.txt") str
-                else
-                    @test_reference ro_path("typed_method_signatures_k4_post_13_32bit.txt") str
-                end
+            if typeof(1) === Int64
+                @test_reference ro_path("typed_method_signatures_k4_64bit.txt") str
             else
-                # TODO: remove this test when julia 1.0.0 support is dropped.
-                # older versions of julia seem to return this
-                # str = "\n```julia\nk_4(#temp#::String)\nk_4(#temp#::String, #temp#::Int64)\n\n```\n\n"
-                @test_reference ro_path("typed_method_signatures_k4_up_to_13.txt") str
+                @test_reference ro_path("typed_method_signatures_k4_32bit.txt") str
             end
 
             doc.data = Dict(
@@ -302,14 +295,7 @@ typed_signatures_h_reference() =
                 :module => M,
             )
             str = formatted(DSE.TYPEDSIGNATURES, doc)
-            if VERSION > v"1.3.0"
-                @test_reference ro_path("typed_method_signatures_k5_post_13.txt") str
-            else
-                # TODO: remove this test when julia 1.0.0 support is dropped.
-                # older versions of julia seem to return this
-                # str = "\n```julia\nk_5(#temp#::Type{T<:Number}, x::String) -> String\nk_5(#temp#::Type{T<:Number}, x::String, func::Union{Nothing, Function}) -> String\n\n```\n\n"
-                @test_reference ro_path("typed_method_signatures_k5_up_to_13.txt") str
-            end
+            @test_reference ro_path("typed_method_signatures_k5.txt") str
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :k_6),
@@ -586,6 +572,11 @@ typed_signatures_h_reference() =
             let m = first(methods((; a...) -> ()))
                 @test DSE.arguments(m) == Symbol[]
             end
+            # Methods generated for positional defaults name unnamed arguments differently.
+            @test DSE.arguments(which(M.k_4, Tuple{String})) == ["_"]
+            let m = first(methods(((a, b), c) -> c))
+                @test DSE.arguments(m) == ["_", :c]
+            end
         end
         @testset "printmethod" begin
             let b = Docs.Binding(M, :T),
@@ -599,6 +590,14 @@ typed_signatures_h_reference() =
                 m = first(methods(f))
 
                 @test DSE.printmethod(b, f, m) == "K(; a)"
+            end
+            let b = Docs.Binding(Main, :f),
+                f = (x, ::String) -> x,
+                m = first(methods(f))
+
+                @test DSE.printmethod(b, f, m) == "f(x, _)"
+                typed = DSE.printmethod(IOBuffer(), b, f, m, Tuple{Any,String}; print_return_types = false)
+                @test String(take!(typed)) == "f(x, ::String)"
             end
             let b = Docs.Binding(M, :f),
                 f = M.f,

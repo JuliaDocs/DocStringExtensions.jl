@@ -269,7 +269,7 @@ simplifications include:
   * no `TypeVar`s;
   * no types;
   * no keyword default values;
-  * `_` printed where `#unused#` arguments are found.
+  * `_` printed for unnamed and destructured arguments.
 
 # Examples
 
@@ -401,6 +401,10 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         if t!==Any
             type = "::$t"
         end
+        # An unnamed argument with a type prints as `::T`.
+        if arg == "_" && !isempty(type)
+            arg = ""
+        end
 
         "$arg$type$suffix"
     end
@@ -524,12 +528,18 @@ function arguments(m::Method)
     end
     if argnames !== nothing
         local args = map(argnames[1:nargs(m)]) do arg
-            arg === Symbol("#unused#") ? "_" : arg
+            isself(arg) ? arg : isunnamed(arg) ? "_" : arg
         end
-        return filter(arg -> arg !== Symbol("#self#") && arg !== Symbol("#ctor-self#"), args)
+        return filter(!isself, args)
     end
     return Symbol[]
 end
+
+isself(arg) = arg === Symbol("#self#") || arg === Symbol("#ctor-self#")
+
+# Unnamed and destructured arguments get compiler names such as `#unused#`, `#temp#`
+# or an empty symbol.
+isunnamed(arg) = isempty(string(arg)) || occursin('#', string(arg))
 
 #
 # Source URLs.
