@@ -278,10 +278,11 @@ f(x; a = 1, b...) = x
 sig = printmethod(Docs.Binding(Main, :f), f, first(methods(f)))
 ```
 """
-printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method) =
-    printmethod_format(buffer, string(binding.var),
-        string.(arguments(method)),
-        string.(keywords(func, method)))
+function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method)
+    local args = string.(arguments(method))
+    method.isva && (args[end] *= "...")
+    return printmethod_format(buffer, string(binding.var), args, string.(keywords(func, method)))
+end
 
 """
 $(:SIGNATURES)

@@ -80,6 +80,12 @@ typed_signatures_h_reference() =
         else
             @test Base.kwarg_decl(m) == []
         end
+
+        # Whether a method's last positional argument is a vararg.
+        #
+        # Used in src/utilities.jl for the untyped printmethod() method.
+        @test first(methods(M.k_11)).isva
+        @test !first(methods(M.f)).isva
     end
     @testset "format" begin
         # Setup.
@@ -598,6 +604,12 @@ typed_signatures_h_reference() =
                 @test DSE.printmethod(b, f, m) == "f(x, _)"
                 typed = DSE.printmethod(IOBuffer(), b, f, m, Tuple{Any,String}; print_return_types = false)
                 @test String(take!(typed)) == "f(x, ::String)"
+            end
+            let b = Docs.Binding(M, :k_11),
+                f = M.k_11,
+                m = first(methods(f))
+
+                @test DSE.printmethod(b, f, m) == "k_11(x, xs...)"
             end
             let b = Docs.Binding(M, :f),
                 f = M.f,
