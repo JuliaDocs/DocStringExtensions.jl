@@ -116,7 +116,9 @@ function template_hook(source::LineNumberNode, mod::Module, docstr, expr::Expr)
     # Mirrors how `Docs` turns a docstring into the lazily formatted text of a `DocStr`.
     local body = Meta.isexpr(docstr, :string) ? docstr.args : [docstr]
     docstr = Expr(:call, record!, recorded, Expr(:call, Core.svec, before, body..., after))
-    local out = expander(source, mod, docstr, expr)
+    # Passed as an argument, a definition would be lowered as an expression, which breaks
+    # keyword constructors inside a `struct`. `:toplevel` keeps it a statement.
+    local out = Expr(:toplevel, expander(source, mod, docstr, expr))
     local dict = getfield(mod, TEMP_SYM)
     return Expr(:call, resolve_templates!, dict, recorded, before, after, QuoteNode(expr), out)
 end
@@ -130,9 +132,18 @@ function resolve_templates!(dict, recorded::Ref{Docs.DocStr}, before::Template, 
     local parts = get_template(dict, template_key(data[:binding], data[:typesig]))
     before.parts = interpolate(parts[1:(findfirst(is_docstr_template, parts) - 1)], expr)
     after.parts = interpolate(parts[(findlast(is_docstr_template, parts) + 1):end], expr)
-    return value
+    return documented_value(value, data[:binding], expr)
 end
 
 interpolate(parts, expr::Expr) = Any[interpolation(part, expr) for part in parts]
+
+@static if VERSION < v"1.5"
+    # A nested `:toplevel` evaluates to `nothing` here, where `@doc` gives the binding, or the
+    # module for a `module` docstring. A macro that documents through `@__doc__` gets the binding.
+    documented_value(value, binding::Docs.Binding, expr::Expr) =
+        Meta.isexpr(expr, :module) ? Base.invokelatest(Docs.resolve, binding) : binding
+else
+    documented_value(value, binding::Docs.Binding, expr::Expr) = value
+end
 
 get_template(t::Dict, k::Symbol) = haskey(t, k) ? t[k] : get(t, :DEFAULT, Any[DOCSTRING])

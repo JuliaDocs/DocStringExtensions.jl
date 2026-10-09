@@ -596,15 +596,40 @@ typed_signatures_h_reference() =
 
             @test occursin("(DEFAULT)", fmt(:(TemplateTests.LateTemplate.early)))
             @test occursin("(METHODS)", fmt(:(TemplateTests.LateTemplate.late)))
+
+            @test occursin("(TYPES)", fmt(:(TemplateTests.KeywordConstructor)))
+            @test occursin("(TYPES)", fmt(:(TemplateTests.ParametricKeywordConstructor)))
         end
-        # `@doc` evaluates to the same value whether or not the module has templates.
+        # `@doc` evaluates to the same value whether or not the module has templates. A value
+        # from `Untemplated` matches one from `TemplateTests` that names the same thing.
+        same_value(templated, untemplated::Docs.Binding) =
+            templated == Docs.Binding(TemplateTests, untemplated.var)
+        same_value(templated, untemplated::Union{Module,Function,Type}) =
+            templated isa Union{Module,Function,Type} && nameof(templated) == nameof(untemplated)
+        same_value(templated, untemplated) = templated === untemplated
+        documented_values(documented) =
+            (Core.eval(TemplateTests, documented), Core.eval(TemplateTests.Untemplated, documented))
         let templated = TemplateTests.DOC_VALUES, untemplated = TemplateTests.Untemplated.DOC_VALUES
-            @test templated.method === (untemplated.method isa Docs.Binding ?
-                Docs.Binding(TemplateTests, :valued) : TemplateTests.valued)
-            @test templated.type === (untemplated.type isa Docs.Binding ?
-                Docs.Binding(TemplateTests, :Valued) : untemplated.type)
-            @test templated.constant === (untemplated.constant isa Docs.Binding ?
-                Docs.Binding(TemplateTests, :VALUED) : untemplated.constant)
+            @test same_value(templated.method, untemplated.method)
+            @test same_value(templated.type, untemplated.type)
+            @test same_value(templated.constant, untemplated.constant)
+        end
+        # Each is evaluated as a top-level statement, the only place a `struct` with a keyword
+        # constructor lowers.
+        for documented in (
+                :(@doc "struct `ValuedKeyword`" struct ValuedKeyword x::Int; ValuedKeyword(; x = 1) = new(x) end),
+                :(@doc "module `ValuedModule`" module ValuedModule end),
+                :(@doc "constants `VALUED_A` and `VALUED_B`" (VALUED_A, VALUED_B)),
+            )
+            @test same_value(documented_values(documented)...)
+        end
+        # Before Julia 1.5 the value of a macro that documents through `@__doc__` is lost.
+        let values = documented_values(:(@doc "struct `ValuedKwdef`" Base.@kwdef struct ValuedKwdef a = 1 end))
+            if VERSION < v"1.5"
+                @test_broken same_value(values...)
+            else
+                @test same_value(values...)
+            end
         end
         # A template keeps the interpolated parts for its category, never the documented expression.
         template_parts(mod, name) = [part

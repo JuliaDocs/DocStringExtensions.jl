@@ -89,11 +89,25 @@ function declared end
 "method `interpolating` with $(SIGNATURES) inside"
 interpolating(x) = x
 
+"struct `KeywordConstructor`"
+struct KeywordConstructor
+    x::Int
+    KeywordConstructor(; x = 1) = new(x)
+end
+
+"struct `ParametricKeywordConstructor`"
+struct ParametricKeywordConstructor{T}
+    x::T
+    ParametricKeywordConstructor{T}(x; y = 1) where {T} = new{T}(x)
+end
+
 const DOC_VALUES = (
     method = (@doc "method `valued`" valued(x) = x),
     type = (@doc "struct `Valued`" struct Valued end),
     constant = (@doc "constant `VALUED`" const VALUED = 1),
 )
+const VALUED_A = 1
+const VALUED_B = 2
 
 module Untemplated
     const DOC_VALUES = (
@@ -101,6 +115,8 @@ module Untemplated
         type = (@doc "struct `Valued`" struct Valued end),
         constant = (@doc "constant `VALUED`" const VALUED = 1),
     )
+    const VALUED_A = 1
+    const VALUED_B = 2
 end
 
 module InnerModule
