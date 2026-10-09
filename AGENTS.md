@@ -9,6 +9,7 @@ DocStringExtensions adds abbreviations and templates to Julia's docsystem. An ab
 - `src/utilities.jl` holds the method, signature, and source-URL introspection that the abbreviations call.
 - `docs/` is the Documenter site. `docs/make.jl` builds it.
 - `test/` holds the suite. `test/AGENTS.md` covers how it is written.
+- `CHANGELOG.md` follows Keep a Changelog. Record user-facing changes under `Unreleased`, with issue and PR links written inline.
 
 ## Constraints
 
