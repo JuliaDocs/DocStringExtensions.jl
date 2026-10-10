@@ -36,6 +36,17 @@ method_lists_reference(name = "method_lists") =
 # Julia 1.6 lists the methods that a default argument generates in the opposite order.
 typed_method_lists_reference(name) =
     method_lists_reference(VERSION >= v"1.6" && VERSION < v"1.7" ? name * "_16" : name)
+
+# The first part of `ex`, depth first, that `f` accepts, or `nothing`.
+function find_expression(f, ex)
+    f(ex) && return ex
+    ex isa Expr || return nothing
+    for arg in ex.args
+        local found = find_expression(f, arg)
+        found === nothing || return found
+    end
+    return nothing
+end
 typed_signatures_h_reference() =
     ro_path(typeof(1) === Int64 ? "typed_method_signatures_64bit.txt" : "typed_method_signatures_32bit.txt")
 
@@ -631,12 +642,16 @@ typed_signatures_h_reference() =
         @test !isempty(templates(TemplateTests, :early))
         @test all(part -> part.expr == :(early(x)), templates(TemplateTests, :early))
         # Forwarding replaces the `Docs.doc!` call and leaves the documented definition as it is.
-        let out = Docs.docm(LineNumberNode(1), TemplateTests, "docs", :(walked(x) = x)),
+        let find = find_expression,
+            definition(ex) = Meta.isexpr(ex, :(=)) && ex.args[1] == :(walked(x)),
+            calling(callee) = ex -> Meta.isexpr(ex, :call) && ex.args[1] === callee,
+            out = Docs.docm(LineNumberNode(1), TemplateTests, "docs", :(walked(x) = x)),
             forwarded = DSE.forward_doc_calls(out)
 
-            @test forwarded.args[1] === out.args[1]
-            @test forwarded.args[end].args[1] === DSE.forward_doc!
-            @test out.args[end].args[1] === Docs.doc!
+            @test find(definition, forwarded) === find(definition, out)
+            @test find(calling(Docs.doc!), forwarded) === nothing
+            @test find(calling(DSE.forward_doc!), forwarded) !== nothing
+            @test find(calling(Docs.doc!), out) !== nothing
         end
         # Issue 151: a template without `DOCSTRING` is rejected where it is defined.
         for template in ("test", Expr(:string, "test ", :SIGNATURES))
