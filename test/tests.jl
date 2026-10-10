@@ -653,6 +653,8 @@ typed_signatures_h_reference() =
             @test find(calling(DSE.forward_doc!), forwarded) !== nothing
             @test find(calling(Docs.doc!), out) !== nothing
         end
+        # A precompile directive whose signature no longer matches compiles nothing.
+        @test all(((f, types),) -> precompile(f, types), DSE.PRECOMPILED)
         # Issue 151: a template without `DOCSTRING` is rejected where it is defined.
         for template in ("test", Expr(:string, "test ", :SIGNATURES))
             mod = Module()

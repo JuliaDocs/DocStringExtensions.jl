@@ -160,3 +160,14 @@ hooked(docstr) = Meta.isexpr(docstr, :string) && any(is_hook_part, docstr.args)
 is_hook_part(part) = isa(part, Template) || Meta.isexpr(part, :call) && part.args[1] === interpolation
 
 get_template(t::Dict, k::Symbol) = haskey(t, k) ? t[k] : get(t, :DEFAULT, Any[DOCSTRING])
+
+# Every templated package calls these, so compiling them here saves each one doing it.
+const PRECOMPILED = (
+    (template_hook, (LineNumberNode, Module, String, Expr)),
+    (Template{:before}, (Dict{Symbol,Vector}, Expr)),
+    (Template{:after}, (Dict{Symbol,Vector}, Expr)),
+    (template_parts, (Template{:before}, Symbol)),
+    (template_parts, (Template{:after}, Symbol)),
+    (forward_doc!, (Module, Docs.Binding, Docs.DocStr, Any)),
+)
+foreach(((f, types),) -> precompile(f, types), PRECOMPILED)
