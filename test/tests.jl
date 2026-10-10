@@ -558,7 +558,7 @@ typed_signatures_h_reference() =
         let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))
             @test occursin("(DEFAULT)", fmt(:(TemplateTests.K)))
             @test occursin("(TYPES)", fmt(:(TemplateTests.T)))
-            @test occursin("(TYPES)", fmt(:(TemplateTests.S)))
+            @test length(collect(eachmatch(r"\(TYPES\)", fmt(:(TemplateTests.S))))) == 1
             @test occursin("(TYPES)", fmt(:(TemplateTests.ISSUE_115)))
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.f)))
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.g)))
