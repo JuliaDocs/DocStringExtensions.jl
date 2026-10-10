@@ -109,6 +109,7 @@ end
 # On v0.6 and below it seems it was assumed to be (docstr::String, expr::Expr), but on v0.7
 # it is (source::LineNumberNode, mod::Module, docstr::String, expr::Expr)
 function template_hook(source::LineNumberNode, mod::Module, docstr, expr::Expr, define...)
+    hooked(docstr) && return (source, mod, docstr, expr, define...)
     docstr = _capture_expression(docstr, expr)
     # During macro expansion we only need to wrap docstrings in special
     # abbreviations that later print out what was before and after the
@@ -128,6 +129,11 @@ function template_hook(source::LineNumberNode, mod::Module, docstr, expr::Expr, 
     end
     return (source, mod, docstr, expr, define...)
 end
+
+# Before Julia 1.6, `Docs` documents each definition a macro marks with `@__doc__` by passing
+# the docstring this hook returned back through `@doc`.
+hooked(docstr) = Meta.isexpr(docstr, :string) && any(is_hook_part, docstr.args)
+is_hook_part(part) = isa(part, Template) || Meta.isexpr(part, :call) && part.args[1] === interpolation
 
 uses_expression(dict) = any(parts -> any(needs_expression, parts), values(dict))
 
