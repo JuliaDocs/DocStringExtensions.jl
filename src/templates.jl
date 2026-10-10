@@ -4,23 +4,6 @@ const setter! = Core.atdoc!
 """
 $(:SIGNATURES)
 
-Set the docstring expander function to first call `func` before calling the default expander.
-
-To remove a hook that has been applied using this method call [`hook!()`](@ref).
-"""
-hook!(func) = setter!((args...) -> expander(func(args...)...))
-
-"""
-$(:SIGNATURES)
-
-Reset the docstring expander to only call the default expander function. This clears any
-'hook' that has been set using [`hook!(func)`](@ref).
-"""
-hook!() = setter!(expander)
-
-"""
-$(:SIGNATURES)
-
 Defines a docstring template that will be applied to all docstrings in a module that match
 the specified category or tuple of categories of documented bindings.
 
@@ -139,7 +122,6 @@ end
 
 # `Docs.docm` registers a docstring by calling `Docs.doc!`, which `forward_doc!` replaces.
 forward_doc_calls(@nospecialize(other)) = other
-forward_doc_calls(quoted::QuoteNode) = QuoteNode(forward_doc_calls(quoted.value))
 function forward_doc_calls(ex::Expr)
     local args = Any[forward_doc_calls(arg) for arg in ex.args]
     Meta.isexpr(ex, :call) && args[1] === Docs.doc! && (args[1] = forward_doc!)
@@ -147,23 +129,23 @@ function forward_doc_calls(ex::Expr)
 end
 
 # The documented object is defined by now, so the template is resolved and its documented
-# expression dropped. A signature documented before its method keeps its `Template` parts.
+# expression dropped. A binding that does not exist yet keeps its `Template` parts.
 function forward_doc!(mod::Module, binding::Docs.Binding, str::Docs.DocStr, sig = Union{})
-    isdefined(binding.mod, binding.var) && resolve_templates!(str, template_key(binding, sig))
+    isdefined(binding.mod, binding.var) && (str = resolve_templates(str, template_key(binding, sig)))
     return Docs.doc!(mod, binding, str, sig)
 end
 
-function resolve_templates!(str::Docs.DocStr, key::Symbol)
+# A new `DocStr`, since bindings documented together share one and each needs its own template.
+function resolve_templates(str::Docs.DocStr, key::Symbol)
     local text = Any[]
     for part in str.text
         part isa Template ? append!(text, template_parts(part, key)) : push!(text, part)
     end
-    str.text = Core.svec(text...)
-    return str
+    return Docs.DocStr(Core.svec(text...), str.object, copy(str.data))
 end
 
-# Before Julia 1.6, `Docs` documents each definition a macro marks with `@__doc__` by passing
-# the docstring this hook returned back through `@doc`.
+# `Docs` documents each definition a macro marks with `@__doc__` by passing the docstring this
+# hook returned back through `@doc`.
 hooked(docstr) = Meta.isexpr(docstr, :string) && any(is_hook_part, docstr.args)
 is_hook_part(part) = isa(part, Template) || Meta.isexpr(part, :call) && part.args[1] === interpolation
 

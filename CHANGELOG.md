@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `@template` applies a template when its docstring is defined, not when it is displayed, so a templated docstring no longer stores the documented expression in the package image. A signature documented before its method keeps its template until display ([#210](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/210))
+- `@template` applies a template when its docstring is defined, not when it is displayed, so a templated docstring no longer stores the documented expression in the package image. A docstring for a binding that does not exist yet keeps its template until display. Bindings documented together, such as `@doc "..." (f, T)`, each get the template for their own category, where they all used the last binding's ([#210](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/210))
 
 ### Fixed
 

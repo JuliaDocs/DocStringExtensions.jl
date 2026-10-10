@@ -55,14 +55,16 @@ typed_signatures_h_reference() =
         #
         # Used in src/templates.jl by forward_doc_calls(), which replaces each call to the
         # `Docs.doc!` function object, and by the template_hook() method for the `@doc` calls
-        # that `@__doc__` leaves to be expanded later.
+        # that `@__doc__` leaves to be expanded later. forward_doc!() takes the same arguments:
+        # a signature, or none for a module.
         let calls(f, ex) = ex isa Expr ? Int(f(ex)) + reduce(+, Int[calls(f, arg) for arg in ex.args]; init = 0) : 0,
             doc_call(ex) = Meta.isexpr(ex, :call) && ex.args[1] === Docs.doc!,
+            doc_call_with(nargs) = ex -> doc_call(ex) && length(ex.args) == nargs + 1,
             doc_macro(ex) = Meta.isexpr(ex, :macrocall) && ex.args[1] === Symbol("@doc"),
             docm(ex) = Docs.docm(LineNumberNode(1), @__MODULE__, "docs", ex)
 
-            @test calls(doc_call, docm(:(f(x) = x))) == 1
-            @test calls(doc_call, docm(:(module DocmModule end))) == 1
+            @test calls(doc_call_with(4), docm(:(f(x) = x))) == 1
+            @test calls(doc_call_with(3), docm(:(module DocmModule end))) == 1
             @test calls(doc_call, docm(:((f, g)))) == 2
             let out = docm(:(Base.@kwdef struct DocmStruct end)),
                 arity = VERSION < v"1.6" ? 5 : 7
@@ -593,6 +595,11 @@ typed_signatures_h_reference() =
             @test doc_value(TemplateTests.DOC_VALUE) == doc_value(Untemplated.DOC_VALUE)
             @test fmt(:(TemplateTests.LateTemplate.before)) == "method `before`\n"
             @test fmt(:(TemplateTests.LateTemplate.after)) == "(LATE)\n\nmethod `after`\n"
+            # Bindings documented together each get the template for their own category.
+            @test occursin("(DEFAULT)", fmt(:(TemplateTests.paired)))
+            @test occursin("(TYPES)", fmt(:(TemplateTests.Paired)))
+            @test occursin("(DEFAULT)", fmt(:(TemplateTests.Documented)))
+            @test occursin("(DEFAULT)", fmt(:(TemplateTests.Redocumented)))
 
             @test occursin("(DEFAULT)", fmt(:(TemplateTests.InnerModule.K)))
             @test occursin("(DEFAULT)", fmt(:(TemplateTests.InnerModule.T)))
@@ -614,6 +621,11 @@ typed_signatures_h_reference() =
         @test isempty(templates(TemplateTests, :f))
         @test isempty(templates(TemplateTests, :S))
         @test isempty(templates(TemplateTests, :Inner))
+        @test isempty(templates(TemplateTests, :Paired))
+        # A module's docstring is kept in the module itself.
+        let docstr = Docs.meta(TemplateTests.Documented)[Docs.Binding(TemplateTests, :Documented)].docs[Union{}]
+            @test !any(part -> part isa DSE.Template, docstr.text)
+        end
         @test isempty(templates(TemplateTests.InnerModule, :T))
         @test isempty(templates(InterpolationTestModule.Templated, :h))
         @test !isempty(templates(TemplateTests, :early))

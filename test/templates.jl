@@ -67,6 +67,16 @@ end
 
 const DOC_VALUE = @doc "method `valued`" valued(x) = x
 
+paired(x) = x
+struct Paired end
+@doc "function `paired` and type `Paired`" (paired, Paired)
+
+"module `Documented`"
+module Documented end
+
+module Redocumented end
+Core.@doc "module `Redocumented` documented with `define = false`" module Redocumented end false
+
 module InnerModule
 
     import ..TemplateTests
