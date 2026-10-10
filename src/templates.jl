@@ -44,7 +44,24 @@ different categories.
 ```
 
 The template definition above will define a template for module docstrings based on the
-template for modules found in module `ModName`.
+template for modules found in module `ModName`. `ModName` must already define a `MODULES`
+template, so a module cannot copy a template from itself. The usual pattern defines the
+template in a parent module and copies it into each submodule:
+
+```julia
+module Parent
+using DocStringExtensions
+@template MODULES = \"""
+    \$(DOCSTRING)
+    \$(EXPORTS)
+    \"""
+
+module Child
+using DocStringExtensions
+@template MODULES = Parent
+end
+end
+```
 
 !!! note
 
@@ -72,7 +89,7 @@ function template(source::LineNumberNode, mod::Module, tuple::Expr, docstr::Unio
         local vec =
             docstr isa String ? :($(checked_template)([$(docstr)])) :
             Meta.isexpr(docstr, :string) ? :($(checked_template)($(Expr(:vect, docstr.args...)))) :
-            :($(docstr).$(TEMP_SYM)[$(key)])
+            :($(copied_template)($(docstr), $(key)))
         push!(block.args, :($(TEMP_SYM)[$(key)] = $(vec)))
     end
     push!(block.args, nothing)
@@ -87,6 +104,16 @@ function checked_template(parts::Vector)
     any(is_docstr_template, parts) ||
         throw(ArgumentError("`@template` string has no `\$(DOCSTRING)` to mark where the docstring goes."))
     return parts
+end
+
+function copied_template(source::Module, category::Symbol)
+    isdefined(source, TEMP_SYM) && haskey(getfield(source, TEMP_SYM), category) &&
+        return getfield(source, TEMP_SYM)[category]
+    local name = nameof(source)
+    throw(ArgumentError(
+        "module `$name` has no `$category` template to copy. " *
+        "Define one with `@template $category = \"...\"` in `$name` before copying it."
+    ))
 end
 
 # Runs in place of `Core.atdoc`, so it calls the default expander itself.

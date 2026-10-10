@@ -671,6 +671,15 @@ typed_signatures_h_reference() =
             Core.eval(mod, :(using DocStringExtensions))
             @test_throws ArgumentError Core.eval(mod, :(@template DEFAULT = $template))
         end
+        # Issue 117: copying a template the source module does not define names the module and category.
+        let mod = Module(:Parent)
+            Core.eval(mod, :(using DocStringExtensions))
+            Core.eval(mod, :(module Child end))
+            for source in (:Parent, :Child)
+                result = @test_throws ArgumentError Core.eval(mod, :(@template MODULES = $source))
+                @test occursin("`$source` has no `MODULES` template", result.value.msg)
+            end
+        end
     end
     @testset "Interpolation" begin
         let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))
