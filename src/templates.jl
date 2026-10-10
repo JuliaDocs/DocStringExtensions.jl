@@ -24,7 +24,8 @@ $(:SIGNATURES)
 Defines a docstring template that will be applied to all docstrings in a module that match
 the specified category or tuple of categories of documented bindings.
 
-Effectively, it replaces all the matching docstrings in the module with the template.
+Effectively, it replaces each matching docstring that follows it in the module with the
+template. Docstrings defined before the `@template` are left as they are.
 Every template string must contain the `DOCSTRING` abbreviation, which marks where the
 original docstring is spliced into the replacement docstring generated from the template.
 
@@ -105,11 +106,19 @@ function checked_template(parts::Vector)
     return parts
 end
 
-# The signature for the atdocs() calls changed in v0.7
-# On v0.6 and below it seems it was assumed to be (docstr::String, expr::Expr), but on v0.7
-# it is (source::LineNumberNode, mod::Module, docstr::String, expr::Expr)
+# Runs in place of `Core.atdoc`, so it calls the default expander itself.
 function template_hook(source::LineNumberNode, mod::Module, docstr, expr::Expr, define...)
-    hooked(docstr) && return (source, mod, docstr, expr, define...)
+    hooked(docstr) || (docstr = hook_docstring(mod, docstr, expr))
+    local out = expander(source, mod, docstr, expr, define...)
+    return isdefined(mod, TEMP_SYM) ? forward_doc_calls(out) : out
+end
+# On Julia 1.6 and later, the `@doc` calls that `@__doc__` leaves carry two leading arguments
+# that `Docs.docm` drops.
+template_hook(source::LineNumberNode, mod::Module, _, _, docstr, expr::Expr, define::Bool) =
+    template_hook(source, mod, docstr, expr, define)
+template_hook(args...) = expander(args...)
+
+function hook_docstring(mod::Module, docstr, expr::Expr)
     docstr = _capture_expression(docstr, expr)
     # During macro expansion we only need to wrap docstrings in special
     # abbreviations that later print out what was before and after the
@@ -127,7 +136,32 @@ function template_hook(source::LineNumberNode, mod::Module, docstr, expr::Expr, 
         # surrounding it.
         docstr = Expr(:string, before, unwrapped..., after)
     end
-    return (source, mod, docstr, expr, define...)
+    return docstr
+end
+
+# `Docs.docm` registers a docstring by calling `Docs.doc!`, which `forward_doc!` replaces.
+forward_doc_calls(@nospecialize(other)) = other
+forward_doc_calls(quoted::QuoteNode) = QuoteNode(forward_doc_calls(quoted.value))
+function forward_doc_calls(ex::Expr)
+    local args = Any[forward_doc_calls(arg) for arg in ex.args]
+    Meta.isexpr(ex, :call) && args[1] === Docs.doc! && (args[1] = forward_doc!)
+    return Expr(ex.head, args...)
+end
+
+# The documented object is defined by now, so the template is resolved and its documented
+# expression dropped. A signature documented before its method keeps its `Template` parts.
+function forward_doc!(mod::Module, binding::Docs.Binding, str::Docs.DocStr, sig = Union{})
+    isdefined(binding.mod, binding.var) && resolve_templates!(str, template_key(binding, sig))
+    return Docs.doc!(mod, binding, str, sig)
+end
+
+function resolve_templates!(str::Docs.DocStr, key::Symbol)
+    local text = Any[]
+    for part in str.text
+        part isa Template ? append!(text, template_parts(part, key)) : push!(text, part)
+    end
+    str.text = Core.svec(text...)
+    return str
 end
 
 # Before Julia 1.6, `Docs` documents each definition a macro marks with `@__doc__` by passing
@@ -145,12 +179,5 @@ function needs_expression(part)
     local method = Base.invokelatest(which, interpolation, Tuple{typeof(part),Expr})
     return method.sig !== Tuple{typeof(interpolation),Any,Any}
 end
-
-function template_hook(docstr, expr::Expr)
-    source, mod, docstr, expr::Expr = template_hook(LineNumberNode(0), current_module(), docstr, expr)
-    docstr, expr
-end
-
-template_hook(args...) = args
 
 get_template(t::Dict, k::Symbol) = haskey(t, k) ? t[k] : get(t, :DEFAULT, Any[DOCSTRING])

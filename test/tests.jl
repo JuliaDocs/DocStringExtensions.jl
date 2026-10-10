@@ -51,6 +51,27 @@ typed_signatures_h_reference() =
         # like that, please add a test here.
         #
 
+        # How `Docs.docm` registers a docstring.
+        #
+        # Used in src/templates.jl by forward_doc_calls(), which replaces each call to the
+        # `Docs.doc!` function object, and by the template_hook() method for the `@doc` calls
+        # that `@__doc__` leaves to be expanded later.
+        let calls(f, ex) = ex isa Expr ? Int(f(ex)) + reduce(+, Int[calls(f, arg) for arg in ex.args]; init = 0) : 0,
+            doc_call(ex) = Meta.isexpr(ex, :call) && ex.args[1] === Docs.doc!,
+            doc_macro(ex) = Meta.isexpr(ex, :macrocall) && ex.args[1] === Symbol("@doc"),
+            docm(ex) = Docs.docm(LineNumberNode(1), @__MODULE__, "docs", ex)
+
+            @test calls(doc_call, docm(:(f(x) = x))) == 1
+            @test calls(doc_call, docm(:(module DocmModule end))) == 1
+            @test calls(doc_call, docm(:((f, g)))) == 2
+            let out = docm(:(Base.@kwdef struct DocmStruct end)),
+                arity = VERSION < v"1.6" ? 5 : 7
+
+                @test calls(doc_call, out) == 0
+                @test calls(ex -> doc_macro(ex) && length(ex.args) == arity, out) == 1
+            end
+        end
+
         # Getting keyword arguments of a method.
         #
         # Used in src/utilities.jl for the keywords() function.
@@ -565,6 +586,13 @@ typed_signatures_h_reference() =
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.h)))
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.@m)))
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.r)))
+            @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.early)))
+            @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.Inner)))
+            # `@doc` returns the binding before Julia 1.13 and the documented value from 1.13.
+            doc_value(v) = v isa Docs.Binding ? (:binding, v.var) : (:value, nameof(v))
+            @test doc_value(TemplateTests.DOC_VALUE) == doc_value(Untemplated.DOC_VALUE)
+            @test fmt(:(TemplateTests.LateTemplate.before)) == "method `before`\n"
+            @test fmt(:(TemplateTests.LateTemplate.after)) == "(LATE)\n\nmethod `after`\n"
 
             @test occursin("(DEFAULT)", fmt(:(TemplateTests.InnerModule.K)))
             @test occursin("(DEFAULT)", fmt(:(TemplateTests.InnerModule.T)))
@@ -577,12 +605,19 @@ typed_signatures_h_reference() =
             @test occursin("(MACROS)", fmt(:(TemplateTests.OtherModule.@m)))
             @test fmt(:(TemplateTests.OtherModule.f)) == "method `f`\n"
         end
-        # A template keeps the documented expression only when one of its parts uses it.
-        template_exprs(mod, name) = [part.expr
+        # A template resolves when its docstring is defined, so the stored docstring keeps no
+        # `Template`, and with it no documented expression. A binding that does not exist yet
+        # keeps its `Template` until the docstring is displayed.
+        templates(mod, name) = [part
             for docstr in values(Docs.meta(mod)[Docs.Binding(mod, name)].docs)
             for part in docstr.text if part isa DSE.Template]
-        @test all(ex -> ex === nothing, template_exprs(TemplateTests, :f))
-        @test all(ex -> ex isa Expr, template_exprs(InterpolationTestModule.Templated, :h))
+        @test isempty(templates(TemplateTests, :f))
+        @test isempty(templates(TemplateTests, :S))
+        @test isempty(templates(TemplateTests, :Inner))
+        @test isempty(templates(TemplateTests.InnerModule, :T))
+        @test isempty(templates(InterpolationTestModule.Templated, :h))
+        @test !isempty(templates(TemplateTests, :early))
+        @test all(part -> part.expr === nothing, templates(TemplateTests, :early))
         # Issue 151: a template without `DOCSTRING` is rejected where it is defined.
         for template in ("test", Expr(:string, "test ", :SIGNATURES))
             mod = Module()

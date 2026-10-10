@@ -818,17 +818,19 @@ struct Template{Location} <: Abbreviation
 end
 
 function format(abbr::Template, buf, doc)
-    # Find the applicable template based on the kind of docstr.
-    parts = get_template(abbr.dict, template_key(doc))
-    # Replace the abbreviation with either the parts of the template found
-    # before the `DOCSTRING` abbreviation, or after it.
-    for index in included_range(abbr, parts)
+    for part in template_parts(abbr, template_key(doc))
         # We don't call `DocStringExtensions.format` here since we need to be
         # able to format any content in docstrings, rather than just
         # abbreviations.
-        part = abbr.expr === nothing ? parts[index] : interpolation(parts[index], abbr.expr)
         Docs.formatdoc(buf, doc, part)
     end
+end
+
+# The parts of the template for `key` found before the `DOCSTRING` abbreviation, or after it.
+function template_parts(abbr::Template, key::Symbol)
+    local parts = get_template(abbr.dict, key)
+    return Any[abbr.expr === nothing ? parts[index] : interpolation(parts[index], abbr.expr)
+        for index in included_range(abbr, parts)]
 end
 
 function included_range(abbr::Template, parts::Vector)
@@ -842,7 +844,7 @@ function included_range(abbr::Template, parts::Vector)
     return build_range(abbr, find_index(abbr))
 end
 
-function template_key(doc::Docs.DocStr)
+function template_key(binding::Docs.Binding, typesig)
     # Local helper methods for extracting the template key from a docstring.
     ismacro(b::Docs.Binding) = startswith(string(b.var), '@')
     objname(obj::Union{Function,Module,DataType,UnionAll,Core.IntrinsicFunction}, b::Docs.Binding) = nameof(obj)
@@ -856,9 +858,9 @@ function template_key(doc::Docs.DocStr)
     _key(::DataType, sig, binding)               = :METHODS
     _key(other, sig, binding)                    = :DEFAULT
 
-    binding = doc.data[:binding]
     obj = Base.invokelatest(Docs.resolve, binding)
     name = objname(obj, binding)
-    key = name === binding.var ? _key(obj, doc.data[:typesig], binding) : :CONSTANTS
+    key = name === binding.var ? _key(obj, typesig, binding) : :CONSTANTS
     return key
 end
+template_key(doc::Docs.DocStr) = template_key(doc.data[:binding], doc.data[:typesig])
