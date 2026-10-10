@@ -108,7 +108,7 @@ end
 # The signature for the atdocs() calls changed in v0.7
 # On v0.6 and below it seems it was assumed to be (docstr::String, expr::Expr), but on v0.7
 # it is (source::LineNumberNode, mod::Module, docstr::String, expr::Expr)
-function template_hook(source::LineNumberNode, mod::Module, docstr, expr::Expr)
+function template_hook(source::LineNumberNode, mod::Module, docstr, expr::Expr, define...)
     docstr = _capture_expression(docstr, expr)
     # During macro expansion we only need to wrap docstrings in special
     # abbreviations that later print out what was before and after the
@@ -126,7 +126,7 @@ function template_hook(source::LineNumberNode, mod::Module, docstr, expr::Expr)
         # surrounding it.
         docstr = Expr(:string, before, unwrapped..., after)
     end
-    return (source, mod, docstr, expr)
+    return (source, mod, docstr, expr, define...)
 end
 
 uses_expression(dict) = any(parts -> any(needs_expression, parts), values(dict))

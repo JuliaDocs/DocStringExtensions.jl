@@ -53,6 +53,9 @@ g(::Type{T}) where {T} = T # Issue 32
 "macro `@m`"
 macro m(x) end
 
+r(x) = x
+Core.@doc "method `r` documented with `define = false`, as Revise does" r(x) = x false
+
 module InnerModule
 
     import ..TemplateTests

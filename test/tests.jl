@@ -561,6 +561,7 @@ typed_signatures_h_reference() =
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.g)))
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.h)))
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.@m)))
+            @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.r)))
 
             @test occursin("(DEFAULT)", fmt(:(TemplateTests.InnerModule.K)))
             @test occursin("(DEFAULT)", fmt(:(TemplateTests.InnerModule.T)))
