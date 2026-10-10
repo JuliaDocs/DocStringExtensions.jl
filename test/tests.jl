@@ -630,6 +630,14 @@ typed_signatures_h_reference() =
         @test isempty(templates(InterpolationTestModule.Templated, :h))
         @test !isempty(templates(TemplateTests, :early))
         @test all(part -> part.expr == :(early(x)), templates(TemplateTests, :early))
+        # Forwarding replaces the `Docs.doc!` call and leaves the documented definition as it is.
+        let out = Docs.docm(LineNumberNode(1), TemplateTests, "docs", :(walked(x) = x)),
+            forwarded = DSE.forward_doc_calls(out)
+
+            @test forwarded.args[1] === out.args[1]
+            @test forwarded.args[end].args[1] === DSE.forward_doc!
+            @test out.args[end].args[1] === Docs.doc!
+        end
         # Issue 151: a template without `DOCSTRING` is rejected where it is defined.
         for template in ("test", Expr(:string, "test ", :SIGNATURES))
             mod = Module()

@@ -840,19 +840,21 @@ function included_range(abbr::Template, parts::Vector)
     return build_range(abbr, find_index(abbr))
 end
 
-function template_key(binding::Docs.Binding, typesig)
+# Runs as each templated docstring is registered. Specialising on the documented object would
+# compile, and cache in the documenting package's image, an instance for every function.
+function template_key(binding::Docs.Binding, @nospecialize(typesig))
     # Local helper methods for extracting the template key from a docstring.
     ismacro(b::Docs.Binding) = startswith(string(b.var), '@')
-    objname(obj::Union{Function,Module,DataType,UnionAll,Core.IntrinsicFunction}, b::Docs.Binding) = nameof(obj)
-    objname(obj, b::Docs.Binding) = Symbol("") # Empty to force resolving to `:CONSTANTS` below.
+    objname(@nospecialize(obj::Union{Function,Module,DataType,UnionAll,Core.IntrinsicFunction}), b::Docs.Binding) = nameof(obj)
+    objname(@nospecialize(obj), b::Docs.Binding) = Symbol("") # Empty to force resolving to `:CONSTANTS` below.
     # Select the key returned based on input argument types.
-    _key(::Module, sig, binding)                 = :MODULES
-    _key(::Function, ::typeof(Union{}), binding) = ismacro(binding) ? :MACROS : :FUNCTIONS
-    _key(::Function, sig, binding)               = ismacro(binding) ? :MACROS : :METHODS
-    _key(::DataType, ::typeof(Union{}), binding) = :TYPES
-    _key(::UnionAll, ::typeof(Union{}), binding) = :TYPES
-    _key(::DataType, sig, binding)               = :METHODS
-    _key(other, sig, binding)                    = :DEFAULT
+    _key(@nospecialize(::Module), @nospecialize(sig), binding)   = :MODULES
+    _key(@nospecialize(::Function), ::typeof(Union{}), binding)  = ismacro(binding) ? :MACROS : :FUNCTIONS
+    _key(@nospecialize(::Function), @nospecialize(sig), binding) = ismacro(binding) ? :MACROS : :METHODS
+    _key(@nospecialize(::DataType), ::typeof(Union{}), binding)  = :TYPES
+    _key(@nospecialize(::UnionAll), ::typeof(Union{}), binding)  = :TYPES
+    _key(@nospecialize(::DataType), @nospecialize(sig), binding) = :METHODS
+    _key(@nospecialize(other), @nospecialize(sig), binding)      = :DEFAULT
 
     obj = Base.invokelatest(Docs.resolve, binding)
     name = objname(obj, binding)

@@ -121,16 +121,26 @@ function hook_docstring(mod::Module, docstr, expr::Expr)
 end
 
 # `Docs.docm` registers a docstring by calling `Docs.doc!`, which `forward_doc!` replaces.
+# Only the expressions leading to such a call are copied, so a large definition is not.
 forward_doc_calls(@nospecialize(other)) = other
 function forward_doc_calls(ex::Expr)
-    local args = Any[forward_doc_calls(arg) for arg in ex.args]
-    Meta.isexpr(ex, :call) && args[1] === Docs.doc! && (args[1] = forward_doc!)
-    return Expr(ex.head, args...)
+    local args = ex.args
+    for (index, arg) in enumerate(ex.args)
+        local forwarded = forward_doc_calls(arg)
+        forwarded === arg && continue
+        args === ex.args && (args = copy(ex.args))
+        args[index] = forwarded
+    end
+    if Meta.isexpr(ex, :call) && args[1] === Docs.doc!
+        args === ex.args && (args = copy(ex.args))
+        args[1] = forward_doc!
+    end
+    return args === ex.args ? ex : Expr(ex.head, args...)
 end
 
 # The documented object is defined by now, so the template is resolved and its documented
 # expression dropped. A binding that does not exist yet keeps its `Template` parts.
-function forward_doc!(mod::Module, binding::Docs.Binding, str::Docs.DocStr, sig = Union{})
+function forward_doc!(mod::Module, binding::Docs.Binding, str::Docs.DocStr, @nospecialize(sig = Union{}))
     isdefined(binding.mod, binding.var) && (str = resolve_templates(str, template_key(binding, sig)))
     return Docs.doc!(mod, binding, str, sig)
 end
