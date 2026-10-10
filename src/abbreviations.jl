@@ -393,7 +393,6 @@ MethodSignatures(; defaults::Bool = false) = MethodSignatures(defaults, nothing)
 
 interpolation(abbr::MethodSignatures, expr::Expr) =
     abbr.show_defaults ? MethodSignatures(true, argument_defaults(expr)) : abbr
-needs_expression(abbr::MethodSignatures) = abbr.show_defaults
 
 """
 An [`Abbreviation`](@ref) for including a simplified representation of all the method
@@ -459,7 +458,6 @@ TypedMethodSignatures(return_types::Bool; defaults::Bool = false) =
 
 interpolation(abbr::TypedMethodSignatures, expr::Expr) =
     abbr.show_defaults ? TypedMethodSignatures(abbr.return_types, true, argument_defaults(expr)) : abbr
-needs_expression(abbr::TypedMethodSignatures) = abbr.show_defaults
 
 """
 An [`Abbreviation`](@ref) for including a simplified representation of all the method
@@ -809,12 +807,11 @@ Internal abbreviation type used to wrap templated docstrings.
 
 `Location` is a `Symbol`, either `:before` or `:after`. `dict` stores a
 reference to a module's templates. `expr` is the documented expression, which is
-passed to [`interpolation`](@ref) for each part of the template, or `nothing` when
-no part uses it.
+passed to [`interpolation`](@ref) for each part of the template.
 """
 struct Template{Location} <: Abbreviation
     dict::Dict{Symbol,Vector{Any}}
-    expr::Union{Expr,Nothing}
+    expr::Expr
 end
 
 function format(abbr::Template, buf, doc)
@@ -829,8 +826,7 @@ end
 # The parts of the template for `key` found before the `DOCSTRING` abbreviation, or after it.
 function template_parts(abbr::Template, key::Symbol)
     local parts = get_template(abbr.dict, key)
-    return Any[abbr.expr === nothing ? parts[index] : interpolation(parts[index], abbr.expr)
-        for index in included_range(abbr, parts)]
+    return Any[interpolation(parts[index], abbr.expr) for index in included_range(abbr, parts)]
 end
 
 function included_range(abbr::Template, parts::Vector)

@@ -617,7 +617,7 @@ typed_signatures_h_reference() =
         @test isempty(templates(TemplateTests.InnerModule, :T))
         @test isempty(templates(InterpolationTestModule.Templated, :h))
         @test !isempty(templates(TemplateTests, :early))
-        @test all(part -> part.expr === nothing, templates(TemplateTests, :early))
+        @test all(part -> part.expr == :(early(x)), templates(TemplateTests, :early))
         # Issue 151: a template without `DOCSTRING` is rejected where it is defined.
         for template in ("test", Expr(:string, "test ", :SIGNATURES))
             mod = Module()
