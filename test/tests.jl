@@ -33,6 +33,9 @@ module_imports_reference() =
     ro_path(VERSION < v"1.12" ? "module_imports_pre_112.txt" : "module_imports_112_and_after.txt")
 method_lists_reference(name = "method_lists") =
     ro_path(name * (Sys.iswindows() ? "_windows.txt" : "_nonwindows.txt"))
+# Julia 1.6 lists the methods that a default argument generates in the opposite order.
+typed_method_lists_reference(name) =
+    method_lists_reference(VERSION >= v"1.6" && VERSION < v"1.7" ? name * "_16" : name)
 typed_signatures_h_reference() =
     ro_path(typeof(1) === Int64 ? "typed_method_signatures_64bit.txt" : "typed_method_signatures_32bit.txt")
 
@@ -191,10 +194,10 @@ typed_signatures_h_reference() =
                 :module => M,
             )
             str = with_test_repo(() -> formatted(TYPEDMETHODLIST, doc))
-            @test_reference method_lists_reference("typed_method_lists") redact_local_info(str)
+            @test_reference typed_method_lists_reference("typed_method_lists") redact_local_info(str)
 
             str = with_test_repo(() -> formatted(DSE.TypedMethodList(false), doc))
-            @test_reference method_lists_reference("typed_method_lists_no_return") redact_local_info(str)
+            @test_reference typed_method_lists_reference("typed_method_lists_no_return") redact_local_info(str)
         end
 
         @testset "method signatures" begin
@@ -872,7 +875,7 @@ typed_signatures_h_reference() =
             :module => M,
         )
         str = with_test_repo(() -> latest(DSE.TYPEDMETHODLIST, doc))
-        @test_reference method_lists_reference("typed_method_lists") redact_local_info(str)
+        @test_reference typed_method_lists_reference("typed_method_lists") redact_local_info(str)
 
         doc.data = Dict(
             :binding => Docs.Binding(M, :T),
