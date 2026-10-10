@@ -23,4 +23,5 @@ makedocs(
 
 deploydocs(
     repo = "github.com/JuliaDocs/DocStringExtensions.jl.git",
+    push_preview = true,
 )
