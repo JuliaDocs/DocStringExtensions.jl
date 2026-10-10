@@ -60,24 +60,28 @@ end
 """
 $(:SIGNATURES)
 
-Find the arguments of the method definition `expr`. Returns `nothing` when `expr` does not
-define a method.
+Find the arguments of the method definition `expr`, with their default values when
+`show_defaults` is set. Returns `nothing` when `expr` does not define a method, or when the
+arguments would not change what a signature prints.
 """
-function definition_arguments(expr::Expr)
+function definition_arguments(expr::Expr, show_defaults::Bool)
     local call = definition_call(expr)
     call === nothing && return nothing
     local positional = Tuple{String,Union{String,Nothing}}[]
     local keywords = Dict{String,String}()
     for arg in call.args[2:end]
         if Meta.isexpr(arg, :parameters)
+            show_defaults || continue
             for kw in arg.args
                 name, default = argument_default(kw)
                 default === nothing || (keywords[name] = default)
             end
         else
-            push!(positional, argument_default(arg))
+            push!(positional, show_defaults ? argument_default(arg) : (argument_name(arg), nothing))
         end
     end
+    # Without defaults, only a destructured argument prints differently from the method.
+    show_defaults || any(arg -> startswith(first(arg), "("), positional) || return nothing
     return DefinitionArguments(positional, keywords)
 end
 
@@ -110,6 +114,7 @@ end
 
 argument_name(name::Symbol) = string(name)
 function argument_name(@nospecialize(arg))
+    Meta.isexpr(arg, :kw, 2) && return argument_name(arg.args[1])
     Meta.isexpr(arg, :(::), 2) && return argument_name(arg.args[1])
     Meta.isexpr(arg, :..., 1) && return argument_name(arg.args[1])
     Meta.isexpr(arg, :tuple) && return sprint(Base.show_unquoted, arg)
@@ -345,12 +350,12 @@ simplifications include:
 
   * no `TypeVar`s;
   * no types;
-  * no default values, unless `defaults` gives them;
+  * no default values, unless `definition` gives them;
   * `_` printed for unnamed arguments, and for destructured arguments unless `definition`
     gives them.
 
-`definition` and `defaults` are the [`DefinitionArguments`](@ref) of the documented method
-definition, or `nothing`.
+`definition` is the [`DefinitionArguments`](@ref) of the documented method definition, or
+`nothing`.
 
 # Examples
 
@@ -359,10 +364,10 @@ f(x; a = 1, b...) = x
 sig = printmethod(Docs.Binding(Main, :f), f, first(methods(f)))
 ```
 """
-function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method; definition = nothing, defaults = nothing)
+function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method; definition = nothing)
     local args = argument_names(method, definition)
     method.isva && (args[end] *= "...")
-    args, kws = append_defaults(args, string.(keywords(func, method)), method, defaults)
+    args, kws = append_defaults(args, string.(keywords(func, method)), method, definition)
     return printmethod_format(buffer, string(binding.var), args, kws)
 end
 
@@ -488,9 +493,9 @@ simplifications include:
 
   * no `TypeVar`s;
   * no types;
-  * no default values, unless `defaults` gives them;
+  * no default values, unless `definition` gives them;
 
-`definition` and `defaults` are as for the untyped `printmethod`.
+`definition` is as for the untyped `printmethod`.
 
 # Examples
 
@@ -499,7 +504,7 @@ f(x::Int; a = 1, b...) = x
 sig = printmethod(Docs.Binding(Main, :f), f, first(methods(f)))
 ```
 """
-function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method, typesig; print_return_types=true, definition=nothing, defaults=nothing)
+function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method, typesig; print_return_types=true, definition=nothing)
     # TODO: print qualified?
     local args = argument_names(method, definition)
     local kws = string.(keywords(func, method))
@@ -560,7 +565,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
 
         "$arg$type$suffix"
     end
-    args, kws = append_defaults(args, kws, method, defaults)
+    args, kws = append_defaults(args, kws, method, definition)
 
     # Inference cannot run a generator on abstract argument types: Julia 1.0 throws and 1.10
     # hits a `BoundsError` in Base, while other versions can only infer `Any`.

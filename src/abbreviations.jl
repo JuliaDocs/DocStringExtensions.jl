@@ -392,7 +392,7 @@ end
 MethodSignatures(; defaults::Bool = false) = MethodSignatures(defaults, nothing)
 
 interpolation(abbr::MethodSignatures, expr::Expr) =
-    MethodSignatures(abbr.show_defaults, definition_arguments(expr))
+    MethodSignatures(abbr.show_defaults, definition_arguments(expr, abbr.show_defaults))
 
 """
 An [`Abbreviation`](@ref) for including a simplified representation of all the method
@@ -430,7 +430,7 @@ function format(abbr::MethodSignatures, buf, doc)
         println(buf, "```julia")
         for group in groups
             for method in collapse_defaults(group, defaults)
-                printmethod(buf, binding, func, method; definition = abbr.definition, defaults = defaults)
+                printmethod(buf, binding, func, method; definition = abbr.definition)
                 println(buf)
             end
         end
@@ -458,7 +458,7 @@ TypedMethodSignatures(return_types::Bool; defaults::Bool = false) =
     TypedMethodSignatures(return_types, defaults, nothing)
 
 interpolation(abbr::TypedMethodSignatures, expr::Expr) =
-    TypedMethodSignatures(abbr.return_types, abbr.show_defaults, definition_arguments(expr))
+    TypedMethodSignatures(abbr.return_types, abbr.show_defaults, definition_arguments(expr, abbr.show_defaults))
 
 """
 An [`Abbreviation`](@ref) for including a simplified representation of all the method
@@ -528,11 +528,11 @@ function format(tms::TypedMethodSignatures, buf, doc)
             end
             if idx === nothing
                 # Fall back to untyped signature if no matching tuple is found.
-                printmethod(buf, binding, func, method; definition = tms.definition, defaults = defaults)
+                printmethod(buf, binding, func, method; definition = tms.definition)
             else
                 t = tuples[idx]
                 printmethod(buf, binding, func, method, t;
-                    print_return_types=tms.return_types, definition = tms.definition, defaults = defaults)
+                    print_return_types=tms.return_types, definition = tms.definition)
             end
             println(buf)
         end

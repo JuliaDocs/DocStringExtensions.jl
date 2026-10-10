@@ -13,3 +13,9 @@ nested(((a, b), c))
 nested(((a, b), c), d)
 
 ```
+
+```julia
+unshowable((a, b))
+unshowable((a, b), x)
+
+```
