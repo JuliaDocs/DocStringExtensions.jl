@@ -56,6 +56,27 @@ macro m(x) end
 r(x) = x
 Core.@doc "method `r` documented with `define = false`, as Revise does" r(x) = x false
 
+"method `early` documented before it is defined"
+early(x)
+early(x) = x
+
+struct Inner
+    x
+    @doc "inner constructor `Inner`" Inner(x::Int) = new(x)
+end
+
+const DOC_VALUE = @doc "method `valued`" valued(x) = x
+
+paired(x) = x
+struct Paired end
+@doc "function `paired` and type `Paired`" (paired, Paired)
+
+"module `Documented`"
+module Documented end
+
+module Redocumented end
+Core.@doc "module `Redocumented` documented with `define = false`" module Redocumented end false
+
 module InnerModule
 
     import ..TemplateTests
@@ -95,6 +116,24 @@ module InnerModule
     macro m(x) end
 end
 
+module LateTemplate
+
+    using DocStringExtensions
+
+    "method `before`"
+    before(x) = x
+
+    @template DEFAULT =
+        """
+        (LATE)
+
+        $(DOCSTRING)
+        """
+
+    "method `after`"
+    after(x) = x
+end
+
 module OtherModule
 
     import ..TemplateTests
@@ -116,5 +155,11 @@ module OtherModule
     "method `f`"
     f(x) = x
 end
+
+end
+
+module Untemplated
+
+const DOC_VALUE = @doc "method `valued`" valued(x) = x
 
 end

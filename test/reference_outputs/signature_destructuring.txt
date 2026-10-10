@@ -1,0 +1,21 @@
+```julia
+pair((a, b))
+
+```
+
+```julia
+typed((a, b)::Tuple, (c, d), e::String)
+
+```
+
+```julia
+nested(((a, b), c))
+nested(((a, b), c), d)
+
+```
+
+```julia
+unshowable((a, b))
+unshowable((a, b), x)
+
+```

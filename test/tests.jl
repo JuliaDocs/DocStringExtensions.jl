@@ -3,6 +3,7 @@ const DSE = DocStringExtensions
 include("templates.jl")
 include("interpolation.jl")
 include("defaults.jl")
+include("destructuring.jl")
 include("TestModule/M.jl")
 # `public` is a syntax error before Julia 1.11.
 VERSION >= v"1.11" && include("public.jl")
@@ -36,6 +37,18 @@ method_lists_reference(name = "method_lists") =
 # Julia 1.6 lists the methods that a default argument generates in the opposite order.
 typed_method_lists_reference(name) =
     method_lists_reference(VERSION >= v"1.6" && VERSION < v"1.7" ? name * "_16" : name)
+definition_arguments_with_defaults(expr) = DSE.definition_arguments(expr, true)
+
+# The first part of `ex`, depth first, that `f` accepts, or `nothing`.
+function find_expression(f, ex)
+    f(ex) && return ex
+    ex isa Expr || return nothing
+    for arg in ex.args
+        local found = find_expression(f, arg)
+        found === nothing || return found
+    end
+    return nothing
+end
 typed_signatures_h_reference() =
     ro_path(typeof(1) === Int64 ? "typed_method_signatures_64bit.txt" : "typed_method_signatures_32bit.txt")
 
@@ -50,6 +63,29 @@ typed_signatures_h_reference() =
         # undocumented features that are not tested here. Should you come across anything
         # like that, please add a test here.
         #
+
+        # How `Docs.docm` registers a docstring.
+        #
+        # Used in src/templates.jl by forward_doc_calls(), which replaces each call to the
+        # `Docs.doc!` function object, and by the template_hook() method for the `@doc` calls
+        # that `@__doc__` leaves to be expanded later. forward_doc!() takes the same arguments:
+        # a signature, or none for a module.
+        let calls(f, ex) = ex isa Expr ? Int(f(ex)) + reduce(+, Int[calls(f, arg) for arg in ex.args]; init = 0) : 0,
+            doc_call(ex) = Meta.isexpr(ex, :call) && ex.args[1] === Docs.doc!,
+            doc_call_with(nargs) = ex -> doc_call(ex) && length(ex.args) == nargs + 1,
+            doc_macro(ex) = Meta.isexpr(ex, :macrocall) && ex.args[1] === Symbol("@doc"),
+            docm(ex) = Docs.docm(LineNumberNode(1), @__MODULE__, "docs", ex)
+
+            @test calls(doc_call_with(4), docm(:(f(x) = x))) == 1
+            @test calls(doc_call_with(3), docm(:(module DocmModule end))) == 1
+            @test calls(doc_call, docm(:((f, g)))) == 2
+            let out = docm(:(Base.@kwdef struct DocmStruct end)),
+                arity = VERSION < v"1.6" ? 5 : 7
+
+                @test calls(doc_call, out) == 0
+                @test calls(ex -> doc_macro(ex) && length(ex.args) == arity, out) == 1
+            end
+        end
 
         # Getting keyword arguments of a method.
         #
@@ -108,11 +144,13 @@ typed_signatures_h_reference() =
 
         # Rendering default values as source text.
         #
-        # Used in src/utilities.jl for the argument_defaults() function.
+        # Used in src/utilities.jl for the definition_arguments() function.
         @test sprint(Base.show_unquoted, :(zero(T))) == "zero(T)"
         @test sprint(Base.show_unquoted, :x) == "x"
         @test sprint(Base.show_unquoted, "x") == "\"x\""
         @test sprint(Base.show_unquoted, QuoteNode(:x)) == ":x"
+        # A destructured argument prints as it is written.
+        @test sprint(Base.show_unquoted, :((a, (b, c)))) == "(a, (b, c))"
         @test Base.remove_linenums!(Expr(:block, LineNumberNode(1), :x)) == Expr(:block, :x)
     end
     @testset "format" begin
@@ -565,6 +603,18 @@ typed_signatures_h_reference() =
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.h)))
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.@m)))
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.r)))
+            @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.early)))
+            @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.Inner)))
+            # `@doc` returns the binding before Julia 1.13 and the documented value from 1.13.
+            doc_value(v) = v isa Docs.Binding ? (:binding, v.var) : (:value, nameof(v))
+            @test doc_value(TemplateTests.DOC_VALUE) == doc_value(Untemplated.DOC_VALUE)
+            @test fmt(:(TemplateTests.LateTemplate.before)) == "method `before`\n"
+            @test fmt(:(TemplateTests.LateTemplate.after)) == "(LATE)\n\nmethod `after`\n"
+            # Bindings documented together each get the template for their own category.
+            @test occursin("(DEFAULT)", fmt(:(TemplateTests.paired)))
+            @test occursin("(TYPES)", fmt(:(TemplateTests.Paired)))
+            @test occursin("(DEFAULT)", fmt(:(TemplateTests.Documented)))
+            @test occursin("(DEFAULT)", fmt(:(TemplateTests.Redocumented)))
 
             @test occursin("(DEFAULT)", fmt(:(TemplateTests.InnerModule.K)))
             @test occursin("(DEFAULT)", fmt(:(TemplateTests.InnerModule.T)))
@@ -577,12 +627,44 @@ typed_signatures_h_reference() =
             @test occursin("(MACROS)", fmt(:(TemplateTests.OtherModule.@m)))
             @test fmt(:(TemplateTests.OtherModule.f)) == "method `f`\n"
         end
-        # A template keeps the documented expression only when one of its parts uses it.
-        template_exprs(mod, name) = [part.expr
+        # A template resolves when its docstring is defined, so the stored docstring keeps no
+        # `Template`, and with it no documented expression. A binding that does not exist yet
+        # keeps its `Template` until the docstring is displayed.
+        templates(mod, name) = [part
             for docstr in values(Docs.meta(mod)[Docs.Binding(mod, name)].docs)
             for part in docstr.text if part isa DSE.Template]
-        @test all(ex -> ex === nothing, template_exprs(TemplateTests, :f))
-        @test all(ex -> ex isa Expr, template_exprs(InterpolationTestModule.Templated, :h))
+        @test isempty(templates(TemplateTests, :f))
+        @test isempty(templates(TemplateTests, :S))
+        @test isempty(templates(TemplateTests, :Inner))
+        @test isempty(templates(TemplateTests, :Paired))
+        # A module's docstring is kept in the module itself.
+        let docstr = Docs.meta(TemplateTests.Documented)[Docs.Binding(TemplateTests, :Documented)].docs[Union{}]
+            @test !any(part -> part isa DSE.Template, docstr.text)
+        end
+        @test isempty(templates(TemplateTests.InnerModule, :T))
+        @test isempty(templates(InterpolationTestModule.Templated, :h))
+        @test !isempty(templates(TemplateTests, :early))
+        @test all(part -> part.expr == :(early(x)), templates(TemplateTests, :early))
+        # Forwarding replaces the `Docs.doc!` call and leaves the documented definition as it is.
+        let find = find_expression,
+            definition(ex) = Meta.isexpr(ex, :(=)) && ex.args[1] == :(walked(x)),
+            calling(callee) = ex -> Meta.isexpr(ex, :call) && ex.args[1] === callee,
+            out = Docs.docm(LineNumberNode(1), TemplateTests, "docs", :(walked(x) = x)),
+            forwarded = DSE.forward_doc_calls(out)
+
+            @test find(definition, forwarded) === find(definition, out)
+            @test find(calling(Docs.doc!), forwarded) === nothing
+            @test find(calling(DSE.forward_doc!), forwarded) !== nothing
+            @test find(calling(Docs.doc!), out) !== nothing
+        end
+        # A precompile directive whose signature no longer matches compiles nothing.
+        @test all(((f, types),) -> precompile(f, types), DSE.PRECOMPILED)
+        # The resolved template keeps the definition's arguments in place of the expression.
+        let parts = [part
+                for docstr in values(Docs.meta(DefaultsTestModule.Templated)[Docs.Binding(DefaultsTestModule.Templated, :templated)].docs)
+                for part in docstr.text]
+            @test any(part -> part isa DSE.MethodSignatures && part.definition !== nothing, parts)
+        end
         # Issue 151: a template without `DOCSTRING` is rejected where it is defined.
         for template in ("test", Expr(:string, "test ", :SIGNATURES))
             mod = Module()
@@ -605,6 +687,15 @@ typed_signatures_h_reference() =
             @test_reference ro_path("signature_defaults.txt") str
             @test fmt(:(DefaultsTestModule.Templated.templated)) ==
                 "```julia\ntemplated(x, y=1)\n\n```\n\nmethod `templated`\n"
+        end
+    end
+    @testset "signature destructuring" begin
+        let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))
+            names = [:pair, :typed, :nested, :unshowable]
+            str = join([fmt(:(DestructuringTestModule.$name)) for name in names], "\n")
+            @test_reference ro_path("signature_destructuring.txt") str
+            @test fmt(:(DestructuringTestModule.Templated.templated)) ==
+                "```julia\ntemplated((x, y))\n\n```\n\nmethod `templated`\n"
         end
     end
     @testset "utilities" begin
@@ -754,25 +845,32 @@ typed_signatures_h_reference() =
                 @test DSE.printmethod(b, f, m) in ("f(; a, b, c...)", "f(; b, a, c...)")
             end
         end
-        @testset "argument_defaults" begin
-            let d = DSE.argument_defaults(:(f(x, y = 1, z::String = "z"; a = :a, b::Int = 2, c, d...) = x))
-                @test d.positional == [(:x, nothing), (:y, "1"), (:z, "\"z\"")]
-                @test d.keywords == Dict(:a => ":a", :b => "2")
+        @testset "definition_arguments" begin
+            let d = definition_arguments_with_defaults(:(f(x, y = 1, z::String = "z"; a = :a, b::Int = 2, c, d...) = x))
+                @test d.positional == [("x", nothing), ("y", "1"), ("z", "\"z\"")]
+                @test d.keywords == Dict("a" => ":a", "b" => "2")
             end
-            @test DSE.argument_defaults(:(function f(x = zero(T)) where {T} end)).positional == [(:x, "zero(T)")]
-            @test DSE.argument_defaults(:(f(x = 1)::Int = x)).positional == [(:x, "1")]
-            @test DSE.argument_defaults(:(@inline f(x = nothing) = x)).positional == [(:x, "nothing")]
-            @test DSE.argument_defaults(:(f(::Int = 0, xs...) = 0)).positional == [(nothing, "0"), (:xs, nothing)]
-            @test DSE.argument_defaults(:(f((a, b), c = 1) = c)).positional == [(nothing, nothing), (:c, "1")]
-            @test DSE.argument_defaults(:(struct S x end)) === nothing
-            @test DSE.argument_defaults(:(function f end)) === nothing
-            @test DSE.argument_defaults(:(const C = 1)) === nothing
-            let (_, default) = DSE.argument_defaults(:(f(w = x -> x + 1) = w)).positional[1]
+            @test definition_arguments_with_defaults(:(function f(x = zero(T)) where {T} end)).positional == [("x", "zero(T)")]
+            @test definition_arguments_with_defaults(:(f(x = 1)::Int = x)).positional == [("x", "1")]
+            @test definition_arguments_with_defaults(:(@inline f(x = nothing) = x)).positional == [("x", "nothing")]
+            @test definition_arguments_with_defaults(:(f(::Int = 0, xs...) = 0)).positional == [("_", "0"), ("xs", nothing)]
+            @test definition_arguments_with_defaults(:(f((a, b), c = 1) = c)).positional == [("(a, b)", nothing), ("c", "1")]
+            @test definition_arguments_with_defaults(:(f((a, b)::Tuple) = a)).positional == [("(a, b)", nothing)]
+            @test definition_arguments_with_defaults(:(struct S x end)) === nothing
+            @test definition_arguments_with_defaults(:(function f end)) === nothing
+            @test definition_arguments_with_defaults(:(const C = 1)) === nothing
+            # Without defaults, only a destructured argument changes what a signature prints.
+            @test DSE.definition_arguments(:(f(x, y = 1; k = 2) = x), false) === nothing
+            let d = DSE.definition_arguments(:(f((a, b), y = 1; k = 2) = a), false)
+                @test d.positional == [("(a, b)", nothing), ("y", nothing)]
+                @test isempty(d.keywords)
+            end
+            let (_, default) = definition_arguments_with_defaults(:(f(w = x -> x + 1) = w)).positional[1]
                 @test !occursin("#=", default)
             end
         end
         @testset "append_defaults" begin
-            let d = DSE.argument_defaults(:(g(x = 1, y = 2, z = 3; kwargs...) = x)),
+            let d = definition_arguments_with_defaults(:(g(x = 1, y = 2, z = 3; kwargs...) = x)),
                 m = which(M.g, Tuple{Any})
 
                 @test DSE.append_defaults(["x"], ["kwargs..."], m, d) == (["x=1"], ["kwargs..."])

@@ -34,7 +34,7 @@ nospecialized(x, y=1)
 ```
 
 ```julia
-destructured(_, c=1)
+destructured((a, b), c=1)
 
 ```
 

@@ -4,27 +4,11 @@ const setter! = Core.atdoc!
 """
 $(:SIGNATURES)
 
-Set the docstring expander function to first call `func` before calling the default expander.
-
-To remove a hook that has been applied using this method call [`hook!()`](@ref).
-"""
-hook!(func) = setter!((args...) -> expander(func(args...)...))
-
-"""
-$(:SIGNATURES)
-
-Reset the docstring expander to only call the default expander function. This clears any
-'hook' that has been set using [`hook!(func)`](@ref).
-"""
-hook!() = setter!(expander)
-
-"""
-$(:SIGNATURES)
-
 Defines a docstring template that will be applied to all docstrings in a module that match
 the specified category or tuple of categories of documented bindings.
 
-Effectively, it replaces all the matching docstrings in the module with the template.
+Effectively, it replaces each matching docstring that follows it in the module with the
+template. Docstrings defined before the `@template` are left as they are.
 Every template string must contain the `DOCSTRING` abbreviation, which marks where the
 original docstring is spliced into the replacement docstring generated from the template.
 
@@ -105,11 +89,19 @@ function checked_template(parts::Vector)
     return parts
 end
 
-# The signature for the atdocs() calls changed in v0.7
-# On v0.6 and below it seems it was assumed to be (docstr::String, expr::Expr), but on v0.7
-# it is (source::LineNumberNode, mod::Module, docstr::String, expr::Expr)
+# Runs in place of `Core.atdoc`, so it calls the default expander itself.
 function template_hook(source::LineNumberNode, mod::Module, docstr, expr::Expr, define...)
-    hooked(docstr) && return (source, mod, docstr, expr, define...)
+    hooked(docstr) || (docstr = hook_docstring(mod, docstr, expr))
+    local out = expander(source, mod, docstr, expr, define...)
+    return isdefined(mod, TEMP_SYM) ? forward_doc_calls(out) : out
+end
+# On Julia 1.6 and later, the `@doc` calls that `@__doc__` leaves carry two leading arguments
+# that `Docs.docm` drops.
+template_hook(source::LineNumberNode, mod::Module, _, _, docstr, expr::Expr, define::Bool) =
+    template_hook(source, mod, docstr, expr, define)
+template_hook(args...) = expander(args...)
+
+function hook_docstring(mod::Module, docstr, expr::Expr)
     docstr = _capture_expression(docstr, expr)
     # During macro expansion we only need to wrap docstrings in special
     # abbreviations that later print out what was before and after the
@@ -120,37 +112,62 @@ function template_hook(source::LineNumberNode, mod::Module, docstr, expr::Expr, 
         # We unwrap interpolated strings so that we can add the `:before` and
         # `:after` abbreviations. Otherwise they're just left as is.
         unwrapped = Meta.isexpr(docstr, :string) ? docstr.args : [docstr]
-        # Templates outlive macro expansion, so keep `expr` only when a part uses it.
-        captured = uses_expression(dict) ? expr : nothing
-        before, after = Template{:before}(dict, captured), Template{:after}(dict, captured)
+        before, after = Template{:before}(dict, expr), Template{:after}(dict, expr)
         # Rebuild the original docstring, but with the template abbreviations
         # surrounding it.
         docstr = Expr(:string, before, unwrapped..., after)
     end
-    return (source, mod, docstr, expr, define...)
+    return docstr
 end
 
-# Before Julia 1.6, `Docs` documents each definition a macro marks with `@__doc__` by passing
-# the docstring this hook returned back through `@doc`.
+# `Docs.docm` registers a docstring by calling `Docs.doc!`, which `forward_doc!` replaces.
+# Only the expressions leading to such a call are copied, so a large definition is not.
+forward_doc_calls(@nospecialize(other)) = other
+function forward_doc_calls(ex::Expr)
+    local args = ex.args
+    for (index, arg) in enumerate(ex.args)
+        local forwarded = forward_doc_calls(arg)
+        forwarded === arg && continue
+        args === ex.args && (args = copy(ex.args))
+        args[index] = forwarded
+    end
+    if Meta.isexpr(ex, :call) && args[1] === Docs.doc!
+        args === ex.args && (args = copy(ex.args))
+        args[1] = forward_doc!
+    end
+    return args === ex.args ? ex : Expr(ex.head, args...)
+end
+
+# The documented object is defined by now, so the template is resolved and its documented
+# expression dropped. A binding that does not exist yet keeps its `Template` parts.
+function forward_doc!(mod::Module, binding::Docs.Binding, str::Docs.DocStr, @nospecialize(sig = Union{}))
+    isdefined(binding.mod, binding.var) && (str = resolve_templates(str, template_key(binding, sig)))
+    return Docs.doc!(mod, binding, str, sig)
+end
+
+# A new `DocStr`, since bindings documented together share one and each needs its own template.
+function resolve_templates(str::Docs.DocStr, key::Symbol)
+    local text = Any[]
+    for part in str.text
+        part isa Template ? append!(text, template_parts(part, key)) : push!(text, part)
+    end
+    return Docs.DocStr(Core.svec(text...), str.object, copy(str.data))
+end
+
+# `Docs` documents each definition a macro marks with `@__doc__` by passing the docstring this
+# hook returned back through `@doc`.
 hooked(docstr) = Meta.isexpr(docstr, :string) && any(is_hook_part, docstr.args)
 is_hook_part(part) = isa(part, Template) || Meta.isexpr(part, :call) && part.args[1] === interpolation
 
-uses_expression(dict) = any(parts -> any(needs_expression, parts), values(dict))
-
-# Whether `interpolation` may use the documented expression for a template `part`. This
-# runs during macro expansion for every category, so it must not call `interpolation`.
-needs_expression(::AbstractString) = false
-function needs_expression(part)
-    parentmodule(typeof(part)) === DocStringExtensions && return false
-    local method = Base.invokelatest(which, interpolation, Tuple{typeof(part),Expr})
-    return method.sig !== Tuple{typeof(interpolation),Any,Any}
-end
-
-function template_hook(docstr, expr::Expr)
-    source, mod, docstr, expr::Expr = template_hook(LineNumberNode(0), current_module(), docstr, expr)
-    docstr, expr
-end
-
-template_hook(args...) = args
-
 get_template(t::Dict, k::Symbol) = haskey(t, k) ? t[k] : get(t, :DEFAULT, Any[DOCSTRING])
+
+# Every templated package calls these, so compiling them here saves each one doing it.
+const PRECOMPILED = (
+    (template_hook, (LineNumberNode, Module, String, Expr)),
+    (Template{:before}, (Dict{Symbol,Vector}, Expr)),
+    (Template{:after}, (Dict{Symbol,Vector}, Expr)),
+    (template_parts, (Template{:before}, Symbol)),
+    (template_parts, (Template{:after}, Symbol)),
+    (forward_doc!, (Module, Docs.Binding, Docs.DocStr, Any)),
+)
+foreach(((f, types),) -> precompile(f, types), PRECOMPILED)
