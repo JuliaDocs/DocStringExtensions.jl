@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix objects interpolated into an `@template` never receiving the documented expression from `interpolation` ([#194](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/194))
 - `@template` throws an `ArgumentError` for a template string without `$(DOCSTRING)`, including a plain string literal. These templates used to fail with a `MethodError` when the template was defined or when the docstring was displayed ([#151](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/151))
 - Fix `TYPEDSIGNATURES` throwing for a `@generated` method with abstract argument types on Julia 1.0 and 1.10. It now leaves out the return type, which inference could only give as `Any` ([#157](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/157))
+- Fix `@template` skipping docstrings documented through the five-argument `@doc` form, which passes a `define` flag. Templates now apply to docstrings that Revise re-evaluates ([#207](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/207))
 
 ## [v0.9.5](https://github.com/JuliaDocs/DocStringExtensions.jl/releases/tag/v0.9.5) - 2025-06-06
 
