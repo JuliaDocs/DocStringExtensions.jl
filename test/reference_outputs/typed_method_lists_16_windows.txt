@@ -1,0 +1,15 @@
+
+```julia
+l_1(x::String) -> String
+```
+
+defined at [`[...]test\TestModule\M.jl:43`](https://github.com/JuliaDocs/NonExistent.jl/tree/[...]/M.jl#L43).
+
+```julia
+l_1(x::Symbol) -> Symbol
+l_1(x::Symbol, y::Bool) -> Symbol
+```
+
+defined at [`[...]test\TestModule\M.jl:44`](https://github.com/JuliaDocs/NonExistent.jl/tree/[...]/M.jl#L44).
+
+
