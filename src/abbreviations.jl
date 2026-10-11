@@ -412,7 +412,7 @@ function format(abbr::Union{MethodList,TypedMethodList}, buf, doc)
                 local method = group[1]
                 local file = string(method.file)
                 local line = method.line
-                local path = cleanpath(file)
+                local path = sourcepath(file, modname)
                 local URL = url(method)
                 isempty(URL) || println(buf, "defined at [`$path:$line`]($URL).")
             end

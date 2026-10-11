@@ -7,6 +7,11 @@ include("destructuring.jl")
 include("TestModule/M.jl")
 # `public` is a syntax error before Julia 1.11.
 VERSION >= v"1.11" && include("public.jl")
+# A package with a submodule in a subdirectory of `src`.
+let packages = joinpath(@__DIR__, "packages")
+    packages in LOAD_PATH || push!(LOAD_PATH, packages)
+end
+import Nested
 
 # initialize a test repo in test/TestModule which is needed for some tests
 function with_test_repo(f)
@@ -945,6 +950,16 @@ typed_signatures_h_reference() =
             ) do
                 @test occursin("github.com/JuliaDocs/NonExistent/tree/<commit>/test/TestModule/M.jl", DSE.url(first(methods(M.f))))
             end
+        end
+        @testset "sourcepath" begin
+            # A package module's files are shown relative to the package root, wherever it lives.
+            file = string(first(methods(DSE.cleanpath)).file)
+            @test DSE.sourcepath(file, DSE) == "src/utilities.jl"
+            file = string(first(methods(Nested.Inner.f)).file)
+            @test DSE.sourcepath(file, Nested.Inner) == "src/inner/Inner.jl"
+            # `M` is not part of a package.
+            file = string(first(methods(M.f)).file)
+            @test DSE.sourcepath(file, M) == DSE.cleanpath(file)
         end
         @testset "comparemethods" begin
             let f = first(methods(M.f)),

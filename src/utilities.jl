@@ -292,6 +292,22 @@ end
 """
 $(:SIGNATURES)
 
+The path of `file` relative to the root of the package that defines module `mod`, with `/`
+separators. Falls back to [`cleanpath`](@ref) when `mod` is not part of a package or `file`
+is outside it.
+"""
+function sourcepath(file::AbstractString, mod::Module)
+    local entry = pathof(Base.moduleroot(mod))
+    if entry !== nothing
+        local root = joinpath(dirname(dirname(entry)), "")
+        startswith(file, root) && return replace(relpath(file, root), '\\' => '/')
+    end
+    return cleanpath(file)
+end
+
+"""
+$(:SIGNATURES)
+
 Parse all docstrings defined within a module `mod`.
 """
 function parsedocs(mod::Module)
