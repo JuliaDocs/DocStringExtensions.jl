@@ -695,7 +695,7 @@ typed_signatures_h_reference() =
             str = join([fmt(:(DefaultsTestModule.$name)) for name in names], "\n")
             @test_reference ro_path("signature_defaults.txt") str
             @test fmt(:(DefaultsTestModule.Templated.templated)) ==
-                "```julia\ntemplated(x, y=1)\n\n```\n\nmethod `templated`\n"
+                "```julia\ntemplated(x, y=1)\n```\n\nmethod `templated`\n"
         end
     end
     @testset "signature destructuring" begin
@@ -704,7 +704,7 @@ typed_signatures_h_reference() =
             str = join([fmt(:(DestructuringTestModule.$name)) for name in names], "\n")
             @test_reference ro_path("signature_destructuring.txt") str
             @test fmt(:(DestructuringTestModule.Templated.templated)) ==
-                "```julia\ntemplated((x, y))\n\n```\n\nmethod `templated`\n"
+                "```julia\ntemplated((x, y))\n```\n\nmethod `templated`\n"
         end
     end
     @testset "utilities" begin

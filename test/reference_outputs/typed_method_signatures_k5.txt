@@ -6,6 +6,5 @@ k_5(
     x::String,
     func::Union{Nothing, Function}
 ) -> String
-
 ```
 

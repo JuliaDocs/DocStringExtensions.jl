@@ -1,6 +1,5 @@
 
 ```julia
 k_12(x::Int64, xs::Real...) -> Int64
-
 ```
 

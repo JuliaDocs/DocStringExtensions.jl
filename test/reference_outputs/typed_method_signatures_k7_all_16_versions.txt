@@ -7,6 +7,5 @@ k_7(
     x::Union{Nothing, T} where T<:Integer,
     y::Integer
 ) -> Union{Nothing, T} where T<:Integer
-
 ```
 
