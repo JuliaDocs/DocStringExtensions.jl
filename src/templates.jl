@@ -105,7 +105,7 @@ function template(source::LineNumberNode, mod::Module, tuple::Expr, docstr::Unio
             docstr isa String ? :($(checked_template)([$(docstr)])) :
             Meta.isexpr(docstr, :string) ? :($(checked_template)($(Expr(:vect, docstr.args...)))) :
             :($(copied_template)($(docstr), $(key)))
-        push!(block.args, :($(TEMP_SYM)[$(key)] = $(vec)))
+        push!(block.args, :($(TEMP_SYM)[$(checked_category)($(key))] = $(vec)))
     end
     push!(block.args, nothing)
     return esc(block)
@@ -113,6 +113,15 @@ end
 
 function template(src::LineNumberNode, mod::Module, sym::Symbol, docstr::Union{String, Symbol, Expr})
     template(src, mod, Expr(:tuple, sym), docstr)
+end
+
+const TEMPLATE_CATEGORIES = (:DEFAULT, :FUNCTIONS, :METHODS, :MACROS, :TYPES, :MODULES, :CONSTANTS)
+
+function checked_category(category)
+    category in TEMPLATE_CATEGORIES || throw(ArgumentError(
+        "`@template` category `$category` is not one of $(join(TEMPLATE_CATEGORIES, ", "))."
+    ))
+    return category
 end
 
 function checked_template(parts::Vector)
