@@ -1,6 +1,5 @@
 
 ```julia
 k_6(x::Array{T<:Number, 1}) -> Vector{T} where T<:Number
-
 ```
 

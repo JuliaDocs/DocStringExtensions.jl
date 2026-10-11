@@ -434,7 +434,7 @@ function format(abbr::MethodSignatures, buf, doc)
                 println(buf)
             end
         end
-        println(buf, "\n```\n")
+        println(buf, "```\n")
     end
 end
 
@@ -536,7 +536,7 @@ function format(tms::TypedMethodSignatures, buf, doc)
             end
             println(buf)
         end
-        println(buf, "\n```\n")
+        println(buf, "```\n")
     end
 end
 

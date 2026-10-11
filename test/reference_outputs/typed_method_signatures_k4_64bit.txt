@@ -2,6 +2,5 @@
 ```julia
 k_4(::String)
 k_4(::String, ::Int64)
-
 ```
 
