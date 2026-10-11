@@ -97,5 +97,7 @@ k_15(x::T, xs::T...) where {T <: Number} = x
 k_16(x::Real, xs::Vararg{Int,2}) = x
 k_17(xs::Vararg{T,2}) where {T <: Integer} = 1
 k_18(x::Int, xs::Vararg{Int,0}) = x
+k_19(x::S) where {T, S <: Ref{T}} = x
+k_20(xs::Vararg{T,N}) where {T, N} = 1
 
 end

@@ -1,5 +1,5 @@
 
 ```julia
-k_17(xs::Vararg{Integer, 2}) -> Int64
+k_17(xs::Vararg{T, 2}) where T<:Integer -> Int64
 ```
 

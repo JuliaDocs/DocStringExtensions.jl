@@ -1,5 +1,9 @@
 
 ```julia
-k_2(x::String, y::Complex, z::Number) -> String
+k_2(
+    x::String,
+    y::U,
+    z::T
+) where {U<:Complex, T<:Number} -> String
 ```
 

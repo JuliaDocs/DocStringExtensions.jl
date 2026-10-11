@@ -325,7 +325,7 @@ Decides whether a length of method is too big to be visually appealing.
 """
 method_length_over_limit(len::Int) = len > 60
 
-function printmethod_format(buffer::IOBuffer, binding::String, args::Vector{String}, kws::Vector{String}; return_type = "")
+function printmethod_format(buffer::IOBuffer, binding::String, args::Vector{String}, kws::Vector{String}; where_clause = "", return_type = "")
 
     sep_delim = " "
     paren_delim = ""
@@ -339,6 +339,7 @@ function printmethod_format(buffer::IOBuffer, binding::String, args::Vector{Stri
             2*max(0, length(args)-1) +
             2*length(kws) +
             1 +
+            length(where_clause) +
             length(return_type))
 
         sep_delim = "\n"
@@ -354,6 +355,7 @@ function printmethod_format(buffer::IOBuffer, binding::String, args::Vector{Stri
         join(buffer, Ref(indent).*kws, ",$sep_delim")
     end
     print(buffer, "$paren_delim)")
+    print(buffer, where_clause)
     print(buffer, return_type)
     return buffer
 end
@@ -505,7 +507,8 @@ end
 $(:TYPEDSIGNATURES)
 
 Print a method signature to `buffer` with the argument types from `typesig`, followed by
-the inferred return type when `print_return_types` is set. Default values are left out
+the inferred return type when `print_return_types` is set. Type parameters keep their names
+and are declared in a `where` clause after the arguments. Default values are left out
 unless `definition` gives them.
 
 `definition` is as for the untyped `printmethod`.
@@ -522,44 +525,25 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     local args = argument_names(method, definition)
     local kws = string.(keywords(func, method))
 
-    # find inner tuple type
-    function find_inner_tuple_type(t)
-        # t is always either a UnionAll which represents a generic type or a Tuple where each parameter is the argument
-        if t isa DataType && t <: Tuple
-            t
-        elseif t isa UnionAll
-            find_inner_tuple_type(t.body)
-        else
-            error("Expected `typeof($t)` to be `Tuple` or `UnionAll` but found `$(typeof(t))`")
+    local typevars = Any[]
+    local body = typesig
+    while body isa UnionAll
+        pushfirst!(typevars, body.var)
+        body = body.body
+    end
+    body isa DataType && body <: Tuple ||
+        error("Expected `typeof($body)` to be `Tuple` or `UnionAll` but found `$(typeof(body))`")
+    # Innermost first: a type parameter used only in a later parameter's bound is still used.
+    local used = Any[]
+    for v in typevars
+        if Base.has_typevar(body, v) || any(u -> Base.has_typevar(u.lb, v) || Base.has_typevar(u.ub, v), used)
+            pushfirst!(used, v)
         end
     end
+    local env = foldl((io, v) -> IOContext(io, :unionall_env => v), used; init = IOContext(devnull))
+    typestring(t) = sprint(show, t; context = env)
 
-    function get_typesig(t::Union, org::Union)
-        if t.a isa TypeVar
-            UnionAll(t.a, get_typesig(t.b, org))
-        elseif t.b isa TypeVar
-            UnionAll(t.b, t)
-        else
-            t
-        end
-    end
-
-    function get_typesig(typ::TypeVar, org)
-        UnionAll(typ, org)
-    end
-
-    function get_typesig(typ, org)
-        typ
-    end
-
-    # if `typesig` is an UnionAll, it may be
-    # e.g. Tuple{Vector{T}} where T<:Number
-    # or   Tuple{String, T, T} where T<:Number
-    # or   Tuple{Type{T}, String, Union{Nothing, Function}} where T<:Number
-    # in the other case, it's usually something like Tuple{Vector{Int}}.
-    argtypes = typesig isa UnionAll ?
-            [get_typesig(t, t) for t in find_inner_tuple_type(typesig).types] :
-            collect(typesig.types)
+    argtypes = collect(body.types)
     if expanded_vararg(method)
         local n = length(argtypes) - length(args) + 1
         # `Vararg{T,0}` leaves no `T` in the signature.
@@ -575,11 +559,11 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
             if n === nothing
                 suffix = "..."
             else
-                type = "::Vararg{$(get_typesig(t, t)), $n}"
+                type = "::Vararg{$(typestring(t)), $n}"
             end
         end
         if t!==Any && isempty(type)
-            type = "::$t"
+            type = "::$(typestring(t))"
         end
         # An unnamed argument with a type prints as `::T`.
         if arg == "_" && !isempty(type)
@@ -607,11 +591,17 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         string(binding.var),
         args,
         kws;
+        where_clause=where_clause(used),
         return_type=return_type_string
     )
 end
 
 printmethod(b, f, m) = String(take!(printmethod(IOBuffer(), b, f, m)))
+
+where_clause(typevars) =
+    isempty(typevars) ? "" :
+    length(typevars) == 1 ? " where $(typevars[1])" :
+    " where {$(join(typevars, ", "))}"
 
 """
 $(:SIGNATURES)
@@ -646,15 +636,17 @@ expanded_vararg(method::Method) =
 """
 $(:SIGNATURES)
 
-The `n` of a `Vararg{T,n}` type, or `nothing` when `n` is not fixed.
+The `n` of a `Vararg{T,n}` type, an `Int` or a method's type parameter, or `nothing` when
+the vararg has no count.
 """
 function vararg_length(t)
     local n = @static if VERSION > v"1.7-"
         isdefined(t, :N) ? t.N : nothing
     else
-        Base.unwrap_unionall(t).parameters[2]
+        # Before Julia 1.7, `xs::T...` is `Vararg{T,N} where N`, binding its own `N`.
+        t isa UnionAll ? nothing : t.parameters[2]
     end
-    return n isa Int ? n : nothing
+    return n isa Union{Int,TypeVar} ? n : nothing
 end
 
 """

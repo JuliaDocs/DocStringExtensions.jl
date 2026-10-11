@@ -1,5 +1,7 @@
 
 ```julia
-k_6(x::Array{T<:Number, 1}) -> Vector{T} where T<:Number
+k_6(
+    x::Vector{T}
+) where T<:Number -> Vector{T} where T<:Number
 ```
 

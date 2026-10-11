@@ -1,5 +1,5 @@
 
 ```julia
-k_15(x::Number, xs::T<:Number...) -> Number
+k_15(x::T, xs::T...) where T<:Number -> Number
 ```
 

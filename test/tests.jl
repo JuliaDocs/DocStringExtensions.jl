@@ -178,6 +178,19 @@ typed_signatures_h_reference() =
         @test Base.tuple_type_tail(first(methods(M.k_16)).sig) == Tuple{Real,Int,Int}
         @test DSE.vararg_length(Vararg{Int,2}) == 2
         @test DSE.vararg_length(last(Tuple{Int,Vararg{Int}}.types)) === nothing
+        let N = TypeVar(:N)
+            @test DSE.vararg_length(Vararg{Int,N}) === N
+        end
+
+        # Printing a type parameter by name inside a method's `where` clause.
+        #
+        # Used in src/utilities.jl for the typed printmethod() method.
+        let T = TypeVar(:T, Number)
+            @test Base.has_typevar(Tuple{Vector{T}}, T)
+            @test !Base.has_typevar(Tuple{String}, T)
+            @test sprint(show, Union{Nothing,T}; context = :unionall_env => T) == "Union{Nothing, T}"
+            @test sprint(show, T) == "T<:Number"
+        end
 
         # Rendering default values as source text.
         #
@@ -916,6 +929,21 @@ typed_signatures_h_reference() =
                 @test DSE.printmethod(b, f, m) == "f(x, _)"
                 typed = DSE.printmethod(IOBuffer(), b, f, m, Tuple{Any,String}; print_return_types = false)
                 @test String(take!(typed)) == "f(x, ::String)"
+            end
+            let b = Docs.Binding(M, :k_19),
+                f = M.k_19,
+                m = first(methods(f))
+
+                # `T` appears only in the bound of `S`.
+                typed = DSE.printmethod(IOBuffer(), b, f, m, DSE.argsig(m); print_return_types = false)
+                @test String(take!(typed)) == "k_19(x::S) where {T, S<:Ref{T}}"
+            end
+            let b = Docs.Binding(M, :k_20),
+                f = M.k_20,
+                m = first(methods(f))
+
+                typed = DSE.printmethod(IOBuffer(), b, f, m, DSE.argsig(m); print_return_types = false)
+                @test String(take!(typed)) == "k_20(xs::Vararg{T, N}) where {T, N}"
             end
             let b = Docs.Binding(M, :k_11),
                 f = M.k_11,
