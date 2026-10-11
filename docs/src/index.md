@@ -4,19 +4,15 @@
 DocStringExtensions
 ```
 
-## Index
+To start using the package, see [Setup](@ref setup).
 
-```@index
-Pages = ["index.md"]
-```
+## Abbreviations
 
-## Reference
-
-```@autodocs
-Modules = [DocStringExtensions]
-Order = [:constant]
-```
-
-```@docs
-DocStringExtensions.@template
-```
+| Abbreviation                                        | Examples                                      | Reference                                      |
+|:--------------------------------------------------- |:--------------------------------------------- |:---------------------------------------------- |
+| `SIGNATURES`, `TYPEDSIGNATURES`, `FUNCTIONNAME`     | [Functions and methods](@ref examples-functions) | [Functions and methods](@ref reference-functions) |
+| `METHODLIST`, `TYPEDMETHODLIST`                     | [Functions and methods](@ref examples-functions) | [Functions and methods](@ref reference-functions) |
+| `TYPEDEF`, `FIELDS`, `TYPEDFIELDS`                  | [Types](@ref examples-types)                  | [Types](@ref reference-types)                  |
+| `INSTANCES`                                         | [Enums](@ref examples-enums)                  | [Enums](@ref reference-enums)                  |
+| `EXPORTS`, `PUBLIC`, `IMPORTS`, `README`, `LICENSE` | [Modules](@ref examples-modules)              | [Modules](@ref reference-modules)              |
+| `@template`, `DOCSTRING`                            | [Templates](@ref examples-templates)          | [Templates](@ref reference-templates)          |

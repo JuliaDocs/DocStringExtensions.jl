@@ -4,15 +4,35 @@ const setter! = Core.atdoc!
 """
 $(:SIGNATURES)
 
-Defines a docstring template that will be applied to all docstrings in a module that match
-the specified category or tuple of categories of documented bindings.
+Defines a docstring template for a category, or a tuple of categories, of documented
+bindings in the current module.
 
-Effectively, it replaces each matching docstring that follows it in the module with the
-template. Docstrings defined before the `@template` are left as they are.
-Every template string must contain the `DOCSTRING` abbreviation, which marks where the
-original docstring is spliced into the replacement docstring generated from the template.
+Each matching docstring that follows the `@template` is replaced by the template, with the
+original docstring placed where the template's [`DOCSTRING`](@ref) abbreviation is. Every
+template must contain `DOCSTRING`. Docstrings defined before the `@template` are left as
+they are, so define templates before the definitions they should apply to. A template applies
+only in the module that defines it. Submodules need their own, or a copy as shown below.
 
 # Examples
+
+```jldoctest
+julia> module Geometry
+       using DocStringExtensions
+       @template (FUNCTIONS, METHODS) = \"""
+           \$(TYPEDSIGNATURES)
+           \$(DOCSTRING)
+           \"""
+       "Compute the area of a square."
+       area(side::Int) = side^2
+       end;
+
+julia> @doc Geometry.area
+  area(side::Int64) -> Int64
+
+  Compute the area of a square.
+```
+
+The remaining examples show the other forms of `@template`.
 
 ```julia
 @template DEFAULT =
@@ -22,10 +42,7 @@ original docstring is spliced into the replacement docstring generated from the 
     \"""
 ```
 
-`DEFAULT` is the default template that is applied to a docstring if no other template
-definitions match the documented expression. The `DOCSTRING` abbreviation is used to mark
-the location in the template where the actual docstring body will be spliced into each
-docstring.
+`DEFAULT` applies to a docstring when no template for its own category exists.
 
 ```julia
 @template (FUNCTIONS, METHODS, MACROS) =
@@ -36,17 +53,16 @@ docstring.
     \"""
 ```
 
-A tuple of categories can be specified when a docstring template should be used for several
-different categories.
+A tuple of categories gives several categories the same template.
 
 ```julia
 @template MODULES = ModName
 ```
 
-The template definition above will define a template for module docstrings based on the
-template for modules found in module `ModName`. `ModName` must already define a `MODULES`
-template, so a module cannot copy a template from itself. The usual pattern defines the
-template in a parent module and copies it into each submodule:
+A module name on the right copies that module's template for the same category. `ModName`
+must already define a `MODULES` template, so a module cannot copy a template from itself.
+To share templates across a package, define them in the parent module and copy them into
+each submodule:
 
 ```julia
 module Parent
@@ -67,7 +83,6 @@ end
 
     Supported categories are `DEFAULT`, `FUNCTIONS`, `METHODS`, `MACROS`, `TYPES`,
     `MODULES`, and `CONSTANTS`.
-
 """
 macro template(ex)
     template(__source__, __module__, ex)

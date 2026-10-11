@@ -4,12 +4,25 @@
 
 | **Documentation**                                                               | **Build Status**                                                                                |
 |:-------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------:|
-| [![][docs-stable-img]][docs-stable-url] [![][docs-latest-img]][docs-latest-url] | [![CI][github-action-img]][github-action-url] [![][codecov-img]][codecov-url] |
+| [![][docs-stable-img]][docs-stable-url] [![][docs-dev-img]][docs-dev-url] | [![CI][github-action-img]][github-action-url] [![][codecov-img]][codecov-url] |
+
+DocStringExtensions generates parts of a docstring from the code it documents. Interpolate
+an abbreviation into a docstring, and it expands to Markdown when the docstring is shown:
+
+```julia
+using DocStringExtensions
+
+"""
+$(TYPEDSIGNATURES)
+
+Compute the area of a circle with radius `r`.
+"""
+area(r::Float64) = π * r^2
+```
+
+`?area` in the REPL then shows the signature `area(r::Float64) -> Float64` above the summary.
 
 ## Installation
-
-The package can be added using the Julia package manager. From the Julia REPL, type `]`
-to enter the Pkg REPL mode and run
 
 ```
 pkg> add DocStringExtensions
@@ -17,22 +30,25 @@ pkg> add DocStringExtensions
 
 ## Documentation
 
-- [**STABLE**][docs-stable-url] &mdash; **most recently tagged version of the documentation.**
-- [**LATEST**][docs-latest-url] &mdash; *in-development version of the documentation.*
+- [Stable][docs-stable-url]: the most recent release.
+- [Dev][docs-dev-url]: the `master` branch.
 
-## Project Status
+## Supported Julia versions
 
-The package is tested and developed against Julia `1.0`, as well as the latest `stable` and `nightly` versions on Linux, OS X, and Windows,
-but there are versions of the package that work on older versions of Julia.
+CI tests these Julia versions:
 
-## Contributing and Questions
+- Linux: 1.0, 1.6, the LTS, the latest release, and nightly.
+- macOS and Windows: the latest release.
 
-Contributions are very welcome, as are feature requests and suggestions. Please open an [issue][issues-url] if you encounter any problems. If you have a question then feel free to ask for help in the [Gitter chat room][gitter-url].
+## Contributing and questions
 
-[gitter-url]: https://gitter.im/juliadocs/users
+Open an [issue][issues-url] for bugs and feature requests. Ask questions on the
+[Julia Discourse][discourse-url].
 
-[docs-latest-img]: https://img.shields.io/badge/docs-latest-blue.svg
-[docs-latest-url]: https://DocStringExtensions.juliadocs.org/latest
+[discourse-url]: https://discourse.julialang.org
+
+[docs-dev-img]: https://img.shields.io/badge/docs-dev-blue.svg
+[docs-dev-url]: https://DocStringExtensions.juliadocs.org/dev
 
 [docs-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
 [docs-stable-url]: https://DocStringExtensions.juliadocs.org/stable

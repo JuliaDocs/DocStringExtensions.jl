@@ -223,7 +223,7 @@ $(:SIGNATURES)
 Collect and return all methods of function `f` matching signature `sig`.
 
 This is similar to `methods(f, sig)`, but handles type signatures found in `DocStr` objects
-more consistently that `methods`.
+more consistently than `methods`.
 """
 getmethods(f, sig) = unique(getmethods!(Method[], f, sig))
 
@@ -279,7 +279,7 @@ groupby(f, K, V, data) = groupby!(f, Dict{K, V}(), data)
 """
 $(:SIGNATURES)
 
-Remove the `Pkg.dir` part of a file `path` if it exists.
+Remove the depot prefix from a file `path` inside a depot, such as an installed package.
 """
 function cleanpath(path::AbstractString)
     for depot in DEPOT_PATH
@@ -488,12 +488,9 @@ end
 """
 $(:TYPEDSIGNATURES)
 
-Print a simplified representation of a method signature to `buffer`. Some of these
-simplifications include:
-
-  * no `TypeVar`s;
-  * no types;
-  * no default values, unless `definition` gives them;
+Print a method signature to `buffer` with the argument types from `typesig`, followed by
+the inferred return type when `print_return_types` is set. Default values are left out
+unless `definition` gives them.
 
 `definition` is as for the untyped `printmethod`.
 

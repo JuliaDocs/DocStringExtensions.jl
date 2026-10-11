@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The manual splits into Examples and Reference sections with one page per topic. Each example page prints its source above the rendered docstrings, and new pages cover `PUBLIC`, `INSTANCES`, and `@template` with `DOCSTRING`. The package docstring is rewritten. A Setup page covers adding the package, templates, and Documenter. The docstrings of the package, `@template` and every abbreviation except `README` and `LICENSE` carry examples as doctests, which the docs build checks against the real output. They replace hand-written samples that had drifted from it ([#122](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/122), [#215](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/215))
 - `@template` applies a template when its docstring is defined, not when it is displayed, so a templated docstring no longer stores the documented expression in the package image. A docstring for a binding that does not exist yet keeps its template until display. Bindings documented together, such as `@doc "..." (f, T)`, each get the template for their own category, where they all used the last binding's ([#210](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/210))
 
 ### Fixed
