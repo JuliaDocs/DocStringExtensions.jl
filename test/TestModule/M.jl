@@ -76,4 +76,7 @@ end
 overlapping(x::Int8) = x
 overlapping(x::Integer) = "x"
 
+@generated overlapping_generated(x::Int8) = :x
+overlapping_generated(x::Integer) = "x"
+
 end

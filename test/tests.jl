@@ -852,6 +852,14 @@ typed_signatures_h_reference() =
                 typed = DSE.printmethod(IOBuffer(), b, f, m, Tuple{Any})
                 @test String(take!(typed)) == "g_1(x)"
             end
+            let b = Docs.Binding(M, :overlapping_generated),
+                f = M.overlapping_generated,
+                m = which(f, Tuple{Integer})
+
+                # Inference also runs the generator of an overlapping `@generated` method.
+                typed = DSE.printmethod(IOBuffer(), b, f, m, Tuple{Integer})
+                @test String(take!(typed)) == "overlapping_generated(x::Integer)"
+            end
             let b = Docs.Binding(Main, :f),
                 f = () -> (),
                 m = first(methods(f))

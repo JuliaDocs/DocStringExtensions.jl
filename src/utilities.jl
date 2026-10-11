@@ -580,10 +580,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     end
     args, kws = append_defaults(args, kws, method, definition)
 
-    # Inference cannot run a generator on abstract argument types: Julia 1.0 throws and 1.10
-    # hits a `BoundsError` in Base, while other versions can only infer `Any`.
-    rt = hasgenerator(method) && !isconcretetype(typesig) ? [] :
-        method_return_type(func, method, typesig)
+    rt = method_return_type(func, method, typesig)
     return_type_string = if (
         print_return_types &&
         length(rt) >= 1 &&
@@ -618,6 +615,9 @@ function method_return_type(func, method::Method, typesig)
     local matching = collect(Base.invokelatest(methods, func, typesig))
     local idx = findfirst(m -> m === method, matching)
     idx === nothing && return []
+    # Inference cannot run a generator on abstract argument types: Julia 1.0 throws and 1.10
+    # hits a `BoundsError` in Base. Other versions infer `Any` for a generated method itself.
+    any(hasgenerator, matching) && !isconcretetype(typesig) && return []
     return [Base.invokelatest(Base.return_types, func, typesig)[idx]]
 end
 
