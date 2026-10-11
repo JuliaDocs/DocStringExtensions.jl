@@ -913,6 +913,7 @@ function template_key(binding::Docs.Binding, @nospecialize(typesig))
     _key(@nospecialize(::DataType), ::typeof(Union{}), binding)  = :TYPES
     _key(@nospecialize(::UnionAll), ::typeof(Union{}), binding)  = :TYPES
     _key(@nospecialize(::DataType), @nospecialize(sig), binding) = :METHODS
+    _key(@nospecialize(::UnionAll), @nospecialize(sig), binding) = :METHODS
     _key(@nospecialize(other), @nospecialize(sig), binding)      = :DEFAULT
 
     obj = Base.invokelatest(Docs.resolve, binding)

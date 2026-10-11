@@ -65,6 +65,11 @@ struct Inner
     @doc "inner constructor `Inner`" Inner(x::Int) = new(x)
 end
 
+struct InnerParametric{T}
+    x::T
+    @doc "inner constructor `InnerParametric`" InnerParametric(x::T) where {T} = new{T}(x)
+end
+
 const DOC_VALUE = @doc "method `valued`" valued(x) = x
 
 paired(x) = x

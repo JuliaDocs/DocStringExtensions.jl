@@ -654,6 +654,7 @@ typed_signatures_h_reference() =
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.r)))
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.early)))
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.Inner)))
+            @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.InnerParametric)))
             # `@doc` returns the binding before Julia 1.13 and the documented value from 1.13.
             doc_value(v) = v isa Docs.Binding ? (:binding, v.var) : (:value, nameof(v))
             @test doc_value(TemplateTests.DOC_VALUE) == doc_value(Untemplated.DOC_VALUE)
