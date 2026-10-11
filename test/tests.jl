@@ -160,6 +160,17 @@ typed_signatures_h_reference() =
         @test Base.tuple_type_tail(first(methods(M.k_0)).sig) == (Tuple{T} where T)
         @test Base.tuple_type_tail(which(M.k_13, Tuple{Int}).sig) == Tuple{Any,Vararg{Any}}
 
+        # Recognising a vararg argument type and its element type.
+        #
+        # Used in src/utilities.jl for the typed printmethod() method.
+        let varargs = Tuple{Int,Vararg{Real}}.types
+            @test Base.isvarargtype(varargs[2])
+            @test !Base.isvarargtype(varargs[1])
+            @test !Base.isvarargtype(Union{})
+            @test Base.unwrapva(varargs[2]) === Real
+        end
+        @test Base.unwrapva(last((Tuple{Vararg{T}} where T).body.types)) isa TypeVar
+
         # Rendering default values as source text.
         #
         # Used in src/utilities.jl for the definition_arguments() function.
@@ -468,24 +479,29 @@ typed_signatures_h_reference() =
             str = formatted(DSE.TYPEDSIGNATURES, doc)
             @test_reference ro_path("typed_method_signatures_k9.txt") str
 
-            @static if VERSION > v"1.5-" # see JuliaLang/#40405
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_11),
+                :typesig => Union{Tuple{Int,Vararg{Any}}},
+                :module => M,
+            )
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
+            @test_reference ro_path("typed_method_signatures_k11.txt") str
 
-                doc.data = Dict(
-                    :binding => Docs.Binding(M, :k_11),
-                    :typesig => Union{Tuple{Int,Vararg{Any}}},
-                    :module => M,
-                )
-                str = formatted(DSE.TYPEDSIGNATURES, doc)
-                @test_reference ro_path("typed_method_signatures_k11.txt") str
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_12),
+                :typesig => Union{Tuple{Int,Vararg{Real}}},
+                :module => M,
+            )
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
+            @test_reference ro_path("typed_method_signatures_k12.txt") str
 
-                doc.data = Dict(
-                    :binding => Docs.Binding(M, :k_12),
-                    :typesig => Union{Tuple{Int,Vararg{Real}}},
-                    :module => M,
-                )
-                str = formatted(DSE.TYPEDSIGNATURES, doc)
-                @test_reference ro_path("typed_method_signatures_k12.txt") str
-            end
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_15),
+                :typesig => Tuple{T,Vararg{T}} where {T <: Number},
+                :module => M,
+            )
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
+            @test_reference ro_path("typed_method_signatures_k15.txt") str
 
             # The return type belongs to the documented method, not to a more specific one
             # whose signature overlaps it.
@@ -499,15 +515,13 @@ typed_signatures_h_reference() =
 
             # Julia 1.12 and later normalise this typesig to `Tuple`, which matches neither
             # method's arity.
-            @static if VERSION > v"1.5-" # see JuliaLang/#40405
-                doc.data = Dict(
-                    :binding => Docs.Binding(M, :k_13),
-                    :typesig => Union{Tuple{},Tuple{Any,Vararg{Any}}},
-                    :module => M,
-                )
-                str = formatted(DSE.TYPEDSIGNATURES, doc)
-                @test_reference ro_path("typed_method_signatures_normalised.txt") str
-            end
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_13),
+                :typesig => Union{Tuple{},Tuple{Any,Vararg{Any}}},
+                :module => M,
+            )
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
+            @test_reference ro_path("typed_method_signatures_normalised.txt") str
         end
 
         @testset "method signatures with types (no return type)" begin

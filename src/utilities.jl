@@ -564,8 +564,8 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     args = map(args, argtypes) do arg,t
         type = ""
         suffix = ""
-        if isvarargtype(t)
-            t = vararg_eltype(t)
+        if Base.isvarargtype(t)
+            t = Base.unwrapva(t)
             suffix = "..."
         end
         if t!==Any
@@ -623,36 +623,6 @@ end
 
 get_method_source(m::Method) = Base.uncompressed_ast(m)
 nargs(m::Method) = m.nargs
-
-function isvarargtype(t)
-    @static if VERSION > v"1.7-"
-        t isa Core.TypeofVararg
-    elseif VERSION > v"1.5-"
-        t isa Type && t <: Vararg
-    else
-        # don't special print Vararg
-        # below 1.5
-        false
-    end
-end
-
-function vararg_eltype(t)
-    @static if VERSION > v"1.7-"
-        return t.T
-    elseif VERSION > v"1.5-"
-        if t isa DataType
-            return t.parameters[1]
-        elseif t isa UnionAll
-            return t.body.parameters[1]
-        else
-            # don't know how to handle
-            # just return Any
-            return Any
-        end
-    else
-        error("cannot handle Vararg below 1.5")
-    end
-end
 
 """
 $(:SIGNATURES)

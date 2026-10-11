@@ -93,4 +93,6 @@ end
 abstract type Container{T} end
 struct Box{T} <: Container{T} end
 
+k_15(x::T, xs::T...) where {T <: Number} = x
+
 end

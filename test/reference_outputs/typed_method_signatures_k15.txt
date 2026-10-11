@@ -1,0 +1,5 @@
+
+```julia
+k_15(x::Number, xs::T<:Number...) -> Number
+```
+
