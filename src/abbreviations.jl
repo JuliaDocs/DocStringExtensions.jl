@@ -582,14 +582,10 @@ function format(tms::TypedMethodSignatures, buf, doc)
             else
                 idx = findfirst(f, tuples)
             end
-            if idx === nothing
-                # Fall back to untyped signature if no matching tuple is found.
-                printmethod(buf, binding, func, method; definition = tms.definition)
-            else
-                t = tuples[idx]
-                printmethod(buf, binding, func, method, t;
-                    print_return_types=tms.return_types, definition = tms.definition)
-            end
+            # Julia 1.12 and later can normalise `typesig` to `Tuple`, leaving no tuple of length `N`.
+            t = idx === nothing ? argsig(method) : tuples[idx]
+            printmethod(buf, binding, func, method, t;
+                print_return_types=tms.return_types, definition = tms.definition)
             println(buf)
         end
         println(buf, "```\n")

@@ -154,6 +154,12 @@ typed_signatures_h_reference() =
             [which(M.overlapping, Tuple{Int8}), which(M.overlapping, Tuple{Integer})]
         @test Base.return_types(M.overlapping, Tuple{Integer}) == [Int8, String]
 
+        # A method's argument types, without the function type.
+        #
+        # Used in src/utilities.jl by argsig().
+        @test Base.tuple_type_tail(first(methods(M.k_0)).sig) == (Tuple{T} where T)
+        @test Base.tuple_type_tail(which(M.k_13, Tuple{Int}).sig) == Tuple{Any,Vararg{Any}}
+
         # Rendering default values as source text.
         #
         # Used in src/utilities.jl for the definition_arguments() function.
@@ -491,6 +497,17 @@ typed_signatures_h_reference() =
             str = formatted(DSE.TYPEDSIGNATURES, doc)
             @test_reference ro_path("typed_method_signatures_overlapping.txt") str
 
+            # Julia 1.12 and later normalise this typesig to `Tuple`, which matches neither
+            # method's arity.
+            @static if VERSION > v"1.5-" # see JuliaLang/#40405
+                doc.data = Dict(
+                    :binding => Docs.Binding(M, :k_13),
+                    :typesig => Union{Tuple{},Tuple{Any,Vararg{Any}}},
+                    :module => M,
+                )
+                str = formatted(DSE.TYPEDSIGNATURES, doc)
+                @test_reference ro_path("typed_method_signatures_normalised.txt") str
+            end
         end
 
         @testset "method signatures with types (no return type)" begin
