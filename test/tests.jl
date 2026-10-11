@@ -171,6 +171,14 @@ typed_signatures_h_reference() =
         end
         @test Base.unwrapva(last((Tuple{Vararg{T}} where T).body.types)) isa TypeVar
 
+        # A fixed-count vararg expands in `method.sig`, and its `n` is a field of `Vararg`.
+        #
+        # Used in src/utilities.jl by expanded_vararg() and vararg_length().
+        @test first(methods(M.k_16)).isva
+        @test Base.tuple_type_tail(first(methods(M.k_16)).sig) == Tuple{Real,Int,Int}
+        @test DSE.vararg_length(Vararg{Int,2}) == 2
+        @test DSE.vararg_length(last(Tuple{Int,Vararg{Int}}.types)) === nothing
+
         # Rendering default values as source text.
         #
         # Used in src/utilities.jl for the definition_arguments() function.
@@ -502,6 +510,31 @@ typed_signatures_h_reference() =
             )
             str = formatted(DSE.TYPEDSIGNATURES, doc)
             @test_reference ro_path("typed_method_signatures_k15.txt") str
+
+            # Julia expands `xs::Vararg{T,n}` in a signature into `n` arguments of type `T`.
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_16),
+                :typesig => Tuple{Real,Vararg{Int,2}},
+                :module => M,
+            )
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
+            @test_reference ro_path("typed_method_signatures_k16.txt") str
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_17),
+                :typesig => Union{Tuple{Vararg{T,2}},Tuple{T}} where {T <: Integer},
+                :module => M,
+            )
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
+            @test_reference ro_path("typed_method_signatures_k17.txt") str
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_18),
+                :typesig => Tuple{Int},
+                :module => M,
+            )
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
+            @test_reference ro_path("typed_method_signatures_k18.txt") str
 
             # The return type belongs to the documented method, not to a more specific one
             # whose signature overlaps it.

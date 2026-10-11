@@ -583,7 +583,8 @@ function format(tms::TypedMethodSignatures, buf, doc)
                 idx = findfirst(f, tuples)
             end
             # Julia 1.12 and later can normalise `typesig` to `Tuple`, leaving no tuple of length `N`.
-            t = idx === nothing ? argsig(method) : tuples[idx]
+            # An expanded vararg has no tuple of length `N` either, and can match a wrong one.
+            t = idx === nothing || expanded_vararg(method) ? argsig(method) : tuples[idx]
             printmethod(buf, binding, func, method, t;
                 print_return_types=tms.return_types, definition = tms.definition)
             println(buf)

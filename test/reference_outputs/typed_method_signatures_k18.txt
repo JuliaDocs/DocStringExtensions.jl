@@ -1,0 +1,5 @@
+
+```julia
+k_18(x::Int64, xs::Vararg{Any, 0}) -> Int64
+```
+

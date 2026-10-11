@@ -560,15 +560,25 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     argtypes = typesig isa UnionAll ?
             [get_typesig(t, t) for t in find_inner_tuple_type(typesig).types] :
             collect(typesig.types)
+    if expanded_vararg(method)
+        local n = length(argtypes) - length(args) + 1
+        # `Vararg{T,0}` leaves no `T` in the signature.
+        argtypes = Any[argtypes[1:end-n]..., Vararg{n > 0 ? argtypes[end] : Any, n}]
+    end
 
     args = map(args, argtypes) do arg,t
         type = ""
         suffix = ""
         if Base.isvarargtype(t)
+            local n = vararg_length(t)
             t = Base.unwrapva(t)
-            suffix = "..."
+            if n === nothing
+                suffix = "..."
+            else
+                type = "::Vararg{$(get_typesig(t, t)), $n}"
+            end
         end
-        if t!==Any
+        if t!==Any && isempty(type)
             type = "::$t"
         end
         # An unnamed argument with a type prints as `::T`.
@@ -623,6 +633,29 @@ end
 
 get_method_source(m::Method) = Base.uncompressed_ast(m)
 nargs(m::Method) = m.nargs
+
+"""
+$(:SIGNATURES)
+
+Whether `method` takes `xs::Vararg{T,n}`, which Julia writes into `method.sig` as `n`
+arguments of type `T`.
+"""
+expanded_vararg(method::Method) =
+    method.isva && !Base.isvarargtype(last(Base.unwrap_unionall(method.sig).parameters))
+
+"""
+$(:SIGNATURES)
+
+The `n` of a `Vararg{T,n}` type, or `nothing` when `n` is not fixed.
+"""
+function vararg_length(t)
+    local n = @static if VERSION > v"1.7-"
+        isdefined(t, :N) ? t.N : nothing
+    else
+        Base.unwrap_unionall(t).parameters[2]
+    end
+    return n isa Int ? n : nothing
+end
 
 """
 $(:SIGNATURES)

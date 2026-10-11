@@ -1,0 +1,5 @@
+
+```julia
+k_16(x::Real, xs::Vararg{Int64, 2}) -> Real
+```
+
