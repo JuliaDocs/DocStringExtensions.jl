@@ -514,7 +514,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         elseif t isa UnionAll
             find_inner_tuple_type(t.body)
         else
-            error("Expected `typeof($t)` to be `Tuple` or `UnionAll` but found `$typeof(t)`")
+            error("Expected `typeof($t)` to be `Tuple` or `UnionAll` but found `$(typeof(t))`")
         end
     end
 

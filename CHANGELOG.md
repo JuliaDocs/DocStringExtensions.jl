@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fix `EXPORTS` listing names declared `public` but not exported on Julia 1.11 and later ([#190](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/190))
+- Fix two error messages printing the text `typeof(...)` where they should name a type: the one for an object with no `format` method, and the one for an unexpected `TYPEDSIGNATURES` signature type ([#216](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/216))
 
 - Fix abbreviations failing to find methods and bindings on Julia 1.12, where `format` runs in a stale world age. Method and binding lookups now go through `Base.invokelatest` ([#185](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/185))
 - `TYPEDSIGNATURES` falls back to the untyped signature when no type signature matches the method, where it used to throw an `ArgumentError` ([#185](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/185))

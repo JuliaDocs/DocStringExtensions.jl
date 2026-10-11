@@ -159,7 +159,9 @@ typed_signatures_h_reference() =
         buf = IOBuffer()
 
         # Errors.
-        @test_throws ErrorException DSE.format(nothing, buf, doc)
+        let result = @test_throws ErrorException DSE.format(nothing, buf, doc)
+            @test result.value.msg == "`format` not implemented for `Nothing`."
+        end
 
         @testset "imports & exports" begin
             # Module imports.
@@ -808,6 +810,9 @@ typed_signatures_h_reference() =
                 m = first(methods(f))
 
                 @test DSE.printmethod(b, f, m) == "f(x)"
+                let result = @test_throws ErrorException DSE.printmethod(IOBuffer(), b, f, m, Ref)
+                    @test result.value.msg == "Expected `typeof(Ref{T})` to be `Tuple` or `UnionAll` but found `DataType`"
+                end
             end
             let b = Docs.Binding(M, :g_1),
                 f = M.g_1,
