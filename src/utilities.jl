@@ -152,9 +152,10 @@ function methodgroups(func, typesig, modname; exact = true)
         if exact
             # Julia 1.12 and later can normalise the union of a definition's signatures
             # into a single type, such as `Union{Tuple{}, Tuple{Any, Vararg{Any}}} == Tuple`.
-            # When no method matches a component, compare the whole group instead.
+            # When no method matches a component, keep the group if `typesig` covers it.
+            # Subtyping cannot always prove the converse, as for `where T` outside a union.
             local matching = filter(m -> argsig(m) in typesigs, group)
-            if !isempty(matching) || Union{map(argsig, group)...} != typesig
+            if !isempty(matching) || !all(m -> argsig(m) <: typesig, group)
                 group = matching
             end
         end

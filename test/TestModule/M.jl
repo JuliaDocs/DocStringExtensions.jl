@@ -99,5 +99,6 @@ k_17(xs::Vararg{T,2}) where {T <: Integer} = 1
 k_18(x::Int, xs::Vararg{Int,0}) = x
 k_19(x::S) where {T, S <: Ref{T}} = x
 k_20(xs::Vararg{T,N}) where {T, N} = 1
+k_21(x::T = 1, xs::T...) where {T} = x
 
 end

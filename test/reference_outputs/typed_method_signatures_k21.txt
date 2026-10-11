@@ -1,0 +1,6 @@
+
+```julia
+k_21(x::T, xs::T...) where T -> Any
+k_21() -> Int64
+```
+

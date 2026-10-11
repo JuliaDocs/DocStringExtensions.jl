@@ -568,6 +568,15 @@ typed_signatures_h_reference() =
             )
             str = formatted(DSE.TYPEDSIGNATURES, doc)
             @test_reference ro_path("typed_method_signatures_normalised.txt") str
+
+            # Julia 1.12 and later build this typesig for `k_21(x::T = 1, xs::T...) where {T}`.
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_21),
+                :typesig => Union{Tuple{T},Tuple{Vararg{T}}} where T,
+                :module => M,
+            )
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
+            @test_reference ro_path("typed_method_signatures_k21.txt") str
         end
 
         @testset "method signatures with types (no return type)" begin
@@ -1065,6 +1074,12 @@ typed_signatures_h_reference() =
             let typesig = Union{Tuple{},Tuple{Any,Vararg{Any}}}
                 @test length(DSE.methodgroups(M.k_13, typesig, M)) == 1
                 @test length(DSE.methodgroups(M.k_13, typesig, M)[1]) == 2
+            end
+            # The docsystem's typesig for `k_21(x::T = 1, xs::T...) where {T}` on Julia 1.12
+            # and later, which subtyping cannot prove equal to the union of the methods.
+            let typesig = Union{Tuple{T},Tuple{Vararg{T}}} where T
+                @test length(DSE.methodgroups(M.k_21, typesig, M)) == 1
+                @test length(DSE.methodgroups(M.k_21, typesig, M)[1]) == 2
             end
             # Both `k_14` methods share a line, and `Union{Tuple{Any},Tuple{Int}} == Tuple{Any}`.
             @test length(DSE.methodgroups(M.k_14, Tuple{Any}, M)[1]) == 1
