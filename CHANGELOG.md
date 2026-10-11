@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `METHODLIST` and `TYPEDMETHODLIST` show each file relative to its package root, such as `src/shapes.jl`. A package loaded from a development checkout, as in every Documenter build, showed the checkout's absolute path ([#217](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/217))
 - Fix `TYPEDSIGNATURES` and `TYPEDMETHODLIST` printing the return type of another method when a more specific method's signature overlaps the documented one ([#218](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/218))
 - Fix `TYPEDSIGNATURES` failing on Julia 1.0 and 1.10 when a `@generated` method overlaps the documented one. The signature now prints without a return type, as it does for a documented `@generated` method ([#222](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/222))
+- `@template` rejects a category no docstring belongs to, such as a misspelled name, with an `ArgumentError`. It used to store a template that never applied ([#223](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/223))
 
 - Fix abbreviations failing to find methods and bindings on Julia 1.12, where `format` runs in a stale world age. Method and binding lookups now go through `Base.invokelatest` ([#185](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/185))
 - `TYPEDSIGNATURES` falls back to the untyped signature when no type signature matches the method, where it used to throw an `ArgumentError` ([#185](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/185))

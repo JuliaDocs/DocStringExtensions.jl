@@ -703,6 +703,13 @@ typed_signatures_h_reference() =
             Core.eval(mod, :(using DocStringExtensions))
             @test_throws ArgumentError Core.eval(mod, :(@template DEFAULT = $template))
         end
+        # Issue 147: a category no docstring belongs to is rejected where it is defined.
+        let mod = Module()
+            Core.eval(mod, :(using DocStringExtensions))
+            result = @test_throws ArgumentError Core.eval(mod, :(@template (TYPES, ABSTRACTTYPES) = "$DOCSTRING"))
+            @test result.value.msg ==
+                "`@template` category `ABSTRACTTYPES` is not one of DEFAULT, FUNCTIONS, METHODS, MACROS, TYPES, MODULES, CONSTANTS."
+        end
         # Issue 117: copying a template the source module does not define names the module and category.
         let mod = Module(:Parent)
             Core.eval(mod, :(using DocStringExtensions))
