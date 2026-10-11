@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add a `defaults = true` option to `MethodSignatures` and `TypedMethodSignatures` that prints default argument values, with the methods generated for positional defaults collapsed into one signature ([#19](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/19), [#107](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/107), [#194](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/194))
 - Add `PUBLIC` to list a module's public names, both exported and declared `public` ([#190](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/190))
 - Add `INSTANCES` to list the instances of an enum with their values. It supports `@enum` and EnumX.jl's `@enumx` ([#171](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/171))
+- Add `SUBTYPES` to list the direct subtypes of a type as links. It lists only subtypes defined in the type's own module or a module inside it ([#47](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/47), [#154](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/154), [#227](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/227))
 
 ### Changed
 

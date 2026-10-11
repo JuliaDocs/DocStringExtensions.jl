@@ -4,8 +4,8 @@
 DocStringExtensions generates parts of a docstring from the code it documents, so the
 docstring stays in step with the code. You interpolate an abbreviation into a docstring,
 and it expands to Markdown whenever the docstring is shown, in the REPL's `?` mode or in
-Documenter.jl. Abbreviations cover method signatures and method lists, struct fields, enum
-instances, and module exports. [`@template`](@ref) adds abbreviations to every docstring of
+Documenter.jl. Abbreviations cover method signatures and method lists, struct fields and
+subtypes, enum instances, and module exports. [`@template`](@ref) adds abbreviations to every docstring of
 a given kind in a module.
 
 # Examples
@@ -40,7 +40,7 @@ module DocStringExtensions
 # Exports.
 
 export @template, FIELDS, TYPEDFIELDS, EXPORTS, PUBLIC, METHODLIST, TYPEDMETHODLIST, IMPORTS
-export SIGNATURES, TYPEDSIGNATURES, TYPEDEF, INSTANCES, DOCSTRING, FUNCTIONNAME
+export SIGNATURES, TYPEDSIGNATURES, TYPEDEF, INSTANCES, SUBTYPES, DOCSTRING, FUNCTIONNAME
 export README, LICENSE
 # export interpolation
 

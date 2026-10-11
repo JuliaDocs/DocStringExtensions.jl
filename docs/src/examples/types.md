@@ -14,6 +14,9 @@ The docstring renders as:
 
 ```@docs
 Foobar
+Shape
+Circle
+Square
 ```
 
 [`FIELDS`](@ref) and [`TYPEDFIELDS`](@ref) work only on the fields of a type. For function

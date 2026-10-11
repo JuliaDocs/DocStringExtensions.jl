@@ -1,0 +1,6 @@
+
+  - [`Circle`](@ref)
+  - [`Polygon`](@ref)
+  - [`Solids.Sphere`](@ref)
+  - [`Square`](@ref)
+

@@ -79,4 +79,18 @@ overlapping(x::Integer) = "x"
 @generated overlapping_generated(x::Int8) = :x
 overlapping_generated(x::Integer) = "x"
 
+abstract type Shape end
+struct Circle <: Shape end
+struct Square{T} <: Shape end
+abstract type Polygon <: Shape end
+struct Triangle <: Polygon end
+const Round = Circle
+module Solids
+    import ..Shape
+    struct Sphere <: Shape end
+end
+
+abstract type Container{T} end
+struct Box{T} <: Container{T} end
+
 end
