@@ -577,6 +577,15 @@ typed_signatures_h_reference() =
             )
             str = formatted(DSE.TYPEDSIGNATURES, doc)
             @test_reference ro_path("typed_method_signatures_k21.txt") str
+
+            # A lower bound puts a second tuple of the same arity into the typesig.
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_22),
+                :typesig => Union{Tuple{Int8},Tuple{T}} where Int8<:T<:Integer,
+                :module => M,
+            )
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
+            @test_reference ro_path("typed_method_signatures_k22.txt") str
         end
 
         @testset "method signatures with types (no return type)" begin

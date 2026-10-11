@@ -564,9 +564,7 @@ function format(tms::TypedMethodSignatures, buf, doc)
             N = length(arguments(method))
             # return a list of tuples that represent type signatures
             tuples = find_tuples(typesig)
-            # The following will find the tuple that matches the number of arguments in the function
-            # ideally we would check that the method signature matches the Tuple{...} signature
-            # but that is not straightforward because of how expressive Julia can be
+            # Without a tuple equal to the method's signature, take one with as many arguments.
             function f(t)
                 if t isa DataType
                     return t <: Tuple && length(t.types) == N
@@ -577,10 +575,13 @@ function format(tms::TypedMethodSignatures, buf, doc)
                 end
             end
 
-            @static if Sys.iswindows() && VERSION < v"1.8"
-                idx = findlast(f, tuples)
-            else
-                idx = findfirst(f, tuples)
+            idx = findfirst(t -> t == argsig(method), tuples)
+            if idx === nothing
+                @static if Sys.iswindows() && VERSION < v"1.8"
+                    idx = findlast(f, tuples)
+                else
+                    idx = findfirst(f, tuples)
+                end
             end
             # Julia 1.12 and later can normalise `typesig` to `Tuple`, leaving no tuple of length `N`.
             # An expanded vararg has no tuple of length `N` either, and can match a wrong one.

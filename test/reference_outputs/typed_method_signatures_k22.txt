@@ -1,0 +1,5 @@
+
+```julia
+k_22(x::T) where Int8<:T<:Integer -> Integer
+```
+
