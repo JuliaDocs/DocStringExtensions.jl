@@ -583,7 +583,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     # Inference cannot run a generator on abstract argument types: Julia 1.0 throws and 1.10
     # hits a `BoundsError` in Base, while other versions can only infer `Any`.
     rt = hasgenerator(method) && !isconcretetype(typesig) ? [] :
-        Base.invokelatest(Base.return_types, func, typesig)
+        method_return_type(func, method, typesig)
     return_type_string = if (
         print_return_types &&
         length(rt) >= 1 &&
@@ -605,6 +605,21 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
 end
 
 printmethod(b, f, m) = String(take!(printmethod(IOBuffer(), b, f, m)))
+
+"""
+$(:SIGNATURES)
+
+The inferred return type of `method` for argument types `typesig`, as a vector holding one
+type, or an empty vector when `method` does not match `typesig`. `Base.return_types` infers
+every method that matches, so a more specific method whose signature overlaps `method` is
+skipped by its position in `methods(func, typesig)`.
+"""
+function method_return_type(func, method::Method, typesig)
+    local matching = collect(Base.invokelatest(methods, func, typesig))
+    local idx = findfirst(m -> m === method, matching)
+    idx === nothing && return []
+    return [Base.invokelatest(Base.return_types, func, typesig)[idx]]
+end
 
 get_method_source(m::Method) = Base.uncompressed_ast(m)
 nargs(m::Method) = m.nargs

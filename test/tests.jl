@@ -147,6 +147,13 @@ typed_signatures_h_reference() =
         @test DSE.hasgenerator(first(methods(M.g_1)))
         @test !DSE.hasgenerator(first(methods(M.f)))
 
+        # `Base.return_types` lists one type per method, in the order `methods` lists them.
+        #
+        # Used in src/utilities.jl for the method_return_type() function.
+        @test collect(methods(M.overlapping, Tuple{Integer})) ==
+            [which(M.overlapping, Tuple{Int8}), which(M.overlapping, Tuple{Integer})]
+        @test Base.return_types(M.overlapping, Tuple{Integer}) == [Int8, String]
+
         # Rendering default values as source text.
         #
         # Used in src/utilities.jl for the definition_arguments() function.
@@ -243,6 +250,15 @@ typed_signatures_h_reference() =
 
             str = with_test_repo(() -> formatted(DSE.TypedMethodList(false), doc))
             @test_reference typed_method_lists_reference("typed_method_lists_no_return") redact_local_info(str)
+
+            # Each method shows its own return type when the signatures overlap.
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :overlapping),
+                :typesig => Union{},
+                :module => M,
+            )
+            str = with_test_repo(() -> formatted(TYPEDMETHODLIST, doc))
+            @test_reference method_lists_reference("typed_method_lists_overlapping") redact_local_info(str)
         end
 
         @testset "method signatures" begin
@@ -465,6 +481,15 @@ typed_signatures_h_reference() =
                 @test_reference ro_path("typed_method_signatures_k12.txt") str
             end
 
+            # The return type belongs to the documented method, not to a more specific one
+            # whose signature overlaps it.
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :overlapping),
+                :typesig => Tuple{Integer},
+                :module => M,
+            )
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
+            @test_reference ro_path("typed_method_signatures_overlapping.txt") str
 
         end
 

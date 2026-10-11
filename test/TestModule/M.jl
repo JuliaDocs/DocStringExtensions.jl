@@ -72,4 +72,8 @@ module Fruit
     @enum T Apple=1 Banana=5
 end
 
+# The first method's signature lies inside the second's.
+overlapping(x::Int8) = x
+overlapping(x::Integer) = "x"
+
 end

@@ -1,0 +1,14 @@
+
+```julia
+overlapping(x::Int8) -> Int8
+```
+
+defined at [`[...]test\TestModule\M.jl:76`](https://github.com/JuliaDocs/NonExistent.jl/tree/[...]/M.jl#L76).
+
+```julia
+overlapping(x::Integer) -> String
+```
+
+defined at [`[...]test\TestModule\M.jl:77`](https://github.com/JuliaDocs/NonExistent.jl/tree/[...]/M.jl#L77).
+
+
