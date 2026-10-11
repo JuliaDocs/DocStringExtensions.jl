@@ -27,6 +27,12 @@ function with_test_repo(f)
     end
 end
 
+# The docstring on `Param{T}() where {T}`, which records where it was written.
+function param_constructor_doc()
+    local multidoc = Docs.meta(M)[Docs.Binding(M, :Param)]
+    return multidoc.docs[first(filter(sig -> sig != Union{}, multidoc.order))]
+end
+
 # `with_test_repo` commits afresh each run and the checkout location differs per machine,
 # so the commit hash and the local path in METHODLIST output are redacted.
 # Two `replace` calls because `replace(s, pairs...)` is missing on older Julia.
@@ -180,6 +186,22 @@ typed_signatures_h_reference() =
         @test DSE.vararg_length(last(Tuple{Int,Vararg{Int}}.types)) === nothing
         let N = TypeVar(:N)
             @test DSE.vararg_length(Vararg{Int,N}) === N
+        end
+
+        # A constructor written as `T{P}(...)` is a method of `Type{T{P}}`, which only the
+        # unwrapped type lists, and its docstring records where it was written.
+        #
+        # Used in src/utilities.jl by methodgroups(), constructor_parameters() and
+        # documented_groups().
+        let ctor = first(methods(M.Param{Int}, Tuple{})),
+            multidoc = Docs.meta(M)[Docs.Binding(M, :Param)],
+            data = multidoc.docs[first(multidoc.order)].data
+
+            @test isempty(methods(M.Param, Tuple{}))
+            @test first(methods(Base.unwrap_unionall(M.Param), Tuple{})) === ctor
+            @test Base.unwrap_unionall(ctor.sig).parameters[1].name === Type.body.name
+            @test data[:path] == String(ctor.file)
+            @test data[:linenumber] < ctor.line
         end
 
         # Printing a type parameter by name inside a method's `where` clause.
@@ -351,6 +373,12 @@ typed_signatures_h_reference() =
             )
             str = formatted(SIGNATURES, doc)
             @test_reference ro_path("signatures_union_tuple_int_any.txt") str
+
+            # `Param{T}() where {T}` is a method of `Type{Param{T}}`, and its typesig also
+            # holds a `Tuple{T}` that matches the default constructor `Param(a::T)`. The
+            # docstring's location picks out the documented definition.
+            str = formatted(SIGNATURES, param_constructor_doc())
+            @test_reference ro_path("signatures_parametric_constructor.txt") str
         end
 
         @testset "method signatures with types" begin
@@ -586,6 +614,9 @@ typed_signatures_h_reference() =
             )
             str = formatted(DSE.TYPEDSIGNATURES, doc)
             @test_reference ro_path("typed_method_signatures_k22.txt") str
+
+            str = formatted(DSE.TYPEDSIGNATURES, param_constructor_doc())
+            @test_reference ro_path("typed_method_signatures_parametric_constructor.txt") str
         end
 
         @testset "method signatures with types (no return type)" begin
@@ -955,6 +986,15 @@ typed_signatures_h_reference() =
                 # `T` appears only in the bound of `S`.
                 typed = DSE.printmethod(IOBuffer(), b, f, m, DSE.argsig(m); print_return_types = false)
                 @test String(take!(typed)) == "k_19(x::S) where {T, S<:Ref{T}}"
+            end
+            let b = Docs.Binding(M, :Param2),
+                f = M.Param2,
+                m = first(methods(Base.unwrap_unionall(M.Param2), Tuple{Any}))
+
+                # `Param2{T}` leaves the second parameter free.
+                @test DSE.printmethod(b, f, m) == "Param2{T}(b)"
+                typed = DSE.printmethod(IOBuffer(), b, f, m, DSE.argsig(m); print_return_types = false)
+                @test String(take!(typed)) == "Param2{T}(b) where T<:Number"
             end
             let b = Docs.Binding(M, :k_20),
                 f = M.k_20,

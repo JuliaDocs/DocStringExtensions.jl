@@ -140,6 +140,10 @@ groups = methodgroups(f, Union{Tuple{Any}, Tuple{Any, Integer}}, Main; exact = f
 function methodgroups(func, typesig, modname; exact = true)
     # Group methods by file and line number.
     local methods = getmethods(func, typesig)
+    # A docstring on a constructor written as `T{P}(...)` documents a method of `Type{T{P}}`.
+    if func isa UnionAll && typesig != Union{}
+        methods = unique([methods; getmethods(Base.unwrap_unionall(func), typesig)])
+    end
     local groups = groupby(Tuple{Symbol, Int}, Vector{Method}, methods) do m
         (m.file, m.line), m
     end
@@ -166,6 +170,23 @@ function methodgroups(func, typesig, modname; exact = true)
     sort!(results, lt = comparemethods, by = first)
 
     return results
+end
+
+"""
+$(:SIGNATURES)
+
+The group in `groups` that the docstring `doc` documents: the first defined at or after the
+docstring in its file. The docsystem adds a `Tuple{T}` to the type signature for each `where T`,
+which can match a method of another definition. All of `groups` when `doc` records no location or
+no group follows it.
+"""
+function documented_groups(groups, doc)
+    local path = get(doc.data, :path, nothing)
+    local line = get(doc.data, :linenumber, nothing)
+    (path === nothing || line === nothing) && return groups
+    local after = filter(g -> String(first(g).file) == path && first(g).line >= line, groups)
+    isempty(after) && return groups
+    return [after[argmin(map(g -> first(g).line, after))]]
 end
 
 # The argument types of `m`, without the function's own type.
@@ -387,7 +408,9 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     local args = argument_names(method, definition)
     method.isva && (args[end] *= "...")
     args, kws = append_defaults(args, string.(keywords(func, method)), method, definition)
-    return printmethod_format(buffer, string(binding.var), args, kws)
+    local env = unionall_env(typevars(method.sig))
+    local name = callable_name(binding, constructor_parameters(method), t -> sprint(show, t; context = env))
+    return printmethod_format(buffer, name, args, kws)
 end
 
 """
@@ -526,22 +549,19 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     local args = argument_names(method, definition)
     local kws = string.(keywords(func, method))
 
-    local typevars = Any[]
-    local body = typesig
-    while body isa UnionAll
-        pushfirst!(typevars, body.var)
-        body = body.body
-    end
+    local body = Base.unwrap_unionall(typesig)
     body isa DataType && body <: Tuple ||
         error("Expected `typeof($body)` to be `Tuple` or `UnionAll` but found `$(typeof(body))`")
+    local params = constructor_parameters(method)
     # Innermost first: a type parameter used only in a later parameter's bound is still used.
     local used = Any[]
-    for v in typevars
-        if Base.has_typevar(body, v) || any(u -> Base.has_typevar(u.lb, v) || Base.has_typevar(u.ub, v), used)
+    for v in reverse(typevars(params === nothing ? typesig : method.sig))
+        if Base.has_typevar(body, v) || params !== nothing && any(p -> Base.has_typevar(p, v), params) ||
+                any(u -> Base.has_typevar(u.lb, v) || Base.has_typevar(u.ub, v), used)
             pushfirst!(used, v)
         end
     end
-    local env = foldl((io, v) -> IOContext(io, :unionall_env => v), used; init = IOContext(devnull))
+    local env = unionall_env(used)
     typestring(t) = sprint(show, t; context = env)
 
     argtypes = collect(body.types)
@@ -589,7 +609,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
 
     return printmethod_format(
         buffer,
-        string(binding.var),
+        callable_name(binding, params, typestring),
         args,
         kws;
         where_clause=where_clause(used),
@@ -603,6 +623,45 @@ where_clause(typevars) =
     isempty(typevars) ? "" :
     length(typevars) == 1 ? " where $(typevars[1])" :
     " where {$(join(typevars, ", "))}"
+
+# The type parameters `t` declares, outermost first.
+function typevars(t)
+    local vars = TypeVar[]
+    while t isa UnionAll
+        push!(vars, t.var)
+        t = t.body
+    end
+    return vars
+end
+
+# An `IOContext` in which `show` prints each of `typevars` by name.
+unionall_env(typevars) = foldl((io, v) -> IOContext(io, :unionall_env => v), typevars; init = IOContext(devnull))
+
+"""
+$(:SIGNATURES)
+
+The type parameters written in a constructor call, such as `[T]` for `Point{T}(x) where {T}`,
+or `nothing` when `method` is not a constructor written with parameters. Julia stores such a
+method under `Type{Point{T}}`, so `methods(Point)` leaves it out.
+"""
+function constructor_parameters(method::Method)
+    local f = Base.unwrap_unionall(method.sig).parameters[1]
+    f isa DataType && f.name === Type.body.name || return nothing
+    local t = f.parameters[1]
+    local body = Base.unwrap_unionall(t)
+    body isa DataType || return nothing
+    # `Point{T}` for a type with more parameters leaves the trailing ones free.
+    local params = collect(body.parameters)
+    local free = typevars(t)
+    while !isempty(params) && last(params) in free
+        pop!(params)
+    end
+    return isempty(params) ? nothing : params
+end
+
+# The name `method` is called by, with the parameters of a constructor written as `T{P}(...)`.
+callable_name(binding, params, typestring) =
+    params === nothing ? string(binding.var) : string(binding.var, "{", join(map(typestring, params), ", "), "}")
 
 """
 $(:SIGNATURES)

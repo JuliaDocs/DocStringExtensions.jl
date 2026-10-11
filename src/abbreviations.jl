@@ -476,7 +476,7 @@ function format(abbr::MethodSignatures, buf, doc)
     local typesig = doc.data[:typesig]
     local modname = doc.data[:module]
     local func = Base.invokelatest(Docs.resolve, binding)
-    local groups = methodgroups(func, typesig, modname)
+    local groups = documented_groups(methodgroups(func, typesig, modname), doc)
     local defaults = abbr.show_defaults ? abbr.definition : nothing
 
     if !isempty(groups)
@@ -554,7 +554,7 @@ function format(tms::TypedMethodSignatures, buf, doc)
     # TODO: why is methodgroups returning invalid methods?
     # the methodgroups always appears to return a Vector and the size depends on whether parametric types are used
     # and whether default arguments are used
-    local groups = methodgroups(func, typesig, modname)
+    local groups = documented_groups(methodgroups(func, typesig, modname), doc)
     local defaults = tms.show_defaults ? tms.definition : nothing
     if !isempty(groups)
         group = groups[end]
@@ -585,7 +585,9 @@ function format(tms::TypedMethodSignatures, buf, doc)
             end
             # Julia 1.12 and later can normalise `typesig` to `Tuple`, leaving no tuple of length `N`.
             # An expanded vararg has no tuple of length `N` either, and can match a wrong one.
-            t = idx === nothing || expanded_vararg(method) ? argsig(method) : tuples[idx]
+            # A parametric constructor's name needs the type parameters of its own signature.
+            t = idx === nothing || expanded_vararg(method) || constructor_parameters(method) !== nothing ?
+                argsig(method) : tuples[idx]
             printmethod(buf, binding, func, method, t;
                 print_return_types=tms.return_types, definition = tms.definition)
             println(buf)

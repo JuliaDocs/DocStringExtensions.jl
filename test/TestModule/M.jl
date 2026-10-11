@@ -102,4 +102,16 @@ k_20(xs::Vararg{T,N}) where {T, N} = 1
 k_21(x::T = 1, xs::T...) where {T} = x
 k_22(x::T) where {Int8 <: T <: Integer} = x
 
+struct Param{T <: Number}
+    a::T
+end
+"Construct a `Param` holding one."
+Param{T}() where {T <: Number} = Param{T}(one(T))
+
+struct Param2{T <: Number, S}
+    a::T
+    b::S
+end
+Param2{T}(b) where {T <: Number} = Param2{T, typeof(b)}(one(T), b)
+
 end
