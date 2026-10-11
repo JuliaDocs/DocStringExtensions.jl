@@ -7,6 +7,11 @@ include("destructuring.jl")
 include("TestModule/M.jl")
 # `public` is a syntax error before Julia 1.11.
 VERSION >= v"1.11" && include("public.jl")
+# A package with a submodule in a subdirectory of `src`.
+let packages = joinpath(@__DIR__, "packages")
+    packages in LOAD_PATH || push!(LOAD_PATH, packages)
+end
+import Nested
 
 # initialize a test repo in test/TestModule which is needed for some tests
 function with_test_repo(f)
@@ -142,6 +147,13 @@ typed_signatures_h_reference() =
         @test DSE.hasgenerator(first(methods(M.g_1)))
         @test !DSE.hasgenerator(first(methods(M.f)))
 
+        # `Base.return_types` lists one type per method, in the order `methods` lists them.
+        #
+        # Used in src/utilities.jl for the method_return_type() function.
+        @test collect(methods(M.overlapping, Tuple{Integer})) ==
+            [which(M.overlapping, Tuple{Int8}), which(M.overlapping, Tuple{Integer})]
+        @test Base.return_types(M.overlapping, Tuple{Integer}) == [Int8, String]
+
         # Rendering default values as source text.
         #
         # Used in src/utilities.jl for the definition_arguments() function.
@@ -159,7 +171,9 @@ typed_signatures_h_reference() =
         buf = IOBuffer()
 
         # Errors.
-        @test_throws ErrorException DSE.format(nothing, buf, doc)
+        let result = @test_throws ErrorException DSE.format(nothing, buf, doc)
+            @test result.value.msg == "`format` not implemented for `Nothing`."
+        end
 
         @testset "imports & exports" begin
             # Module imports.
@@ -236,6 +250,15 @@ typed_signatures_h_reference() =
 
             str = with_test_repo(() -> formatted(DSE.TypedMethodList(false), doc))
             @test_reference typed_method_lists_reference("typed_method_lists_no_return") redact_local_info(str)
+
+            # Each method shows its own return type when the signatures overlap.
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :overlapping),
+                :typesig => Union{},
+                :module => M,
+            )
+            str = with_test_repo(() -> formatted(TYPEDMETHODLIST, doc))
+            @test_reference method_lists_reference("typed_method_lists_overlapping") redact_local_info(str)
         end
 
         @testset "method signatures" begin
@@ -458,6 +481,15 @@ typed_signatures_h_reference() =
                 @test_reference ro_path("typed_method_signatures_k12.txt") str
             end
 
+            # The return type belongs to the documented method, not to a more specific one
+            # whose signature overlaps it.
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :overlapping),
+                :typesig => Tuple{Integer},
+                :module => M,
+            )
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
+            @test_reference ro_path("typed_method_signatures_overlapping.txt") str
 
         end
 
@@ -808,6 +840,9 @@ typed_signatures_h_reference() =
                 m = first(methods(f))
 
                 @test DSE.printmethod(b, f, m) == "f(x)"
+                let result = @test_throws ErrorException DSE.printmethod(IOBuffer(), b, f, m, Ref)
+                    @test result.value.msg == "Expected `typeof(Ref{T})` to be `Tuple` or `UnionAll` but found `DataType`"
+                end
             end
             let b = Docs.Binding(M, :g_1),
                 f = M.g_1,
@@ -816,6 +851,14 @@ typed_signatures_h_reference() =
                 # Issue 157: inference cannot run a generator on abstract argument types.
                 typed = DSE.printmethod(IOBuffer(), b, f, m, Tuple{Any})
                 @test String(take!(typed)) == "g_1(x)"
+            end
+            let b = Docs.Binding(M, :overlapping_generated),
+                f = M.overlapping_generated,
+                m = which(f, Tuple{Integer})
+
+                # Inference also runs the generator of an overlapping `@generated` method.
+                typed = DSE.printmethod(IOBuffer(), b, f, m, Tuple{Integer})
+                @test String(take!(typed)) == "overlapping_generated(x::Integer)"
             end
             let b = Docs.Binding(Main, :f),
                 f = () -> (),
@@ -940,6 +983,16 @@ typed_signatures_h_reference() =
             ) do
                 @test occursin("github.com/JuliaDocs/NonExistent/tree/<commit>/test/TestModule/M.jl", DSE.url(first(methods(M.f))))
             end
+        end
+        @testset "sourcepath" begin
+            # A package module's files are shown relative to the package root, wherever it lives.
+            file = string(first(methods(DSE.cleanpath)).file)
+            @test DSE.sourcepath(file, DSE) == "src/utilities.jl"
+            file = string(first(methods(Nested.Inner.f)).file)
+            @test DSE.sourcepath(file, Nested.Inner) == "src/inner/Inner.jl"
+            # `M` is not part of a package.
+            file = string(first(methods(M.f)).file)
+            @test DSE.sourcepath(file, M) == DSE.cleanpath(file)
         end
         @testset "comparemethods" begin
             let f = first(methods(M.f)),

@@ -292,6 +292,22 @@ end
 """
 $(:SIGNATURES)
 
+The path of `file` relative to the root of the package that defines module `mod`, with `/`
+separators. Falls back to [`cleanpath`](@ref) when `mod` is not part of a package or `file`
+is outside it.
+"""
+function sourcepath(file::AbstractString, mod::Module)
+    local entry = pathof(Base.moduleroot(mod))
+    if entry !== nothing
+        local root = joinpath(dirname(dirname(entry)), "")
+        startswith(file, root) && return replace(relpath(file, root), '\\' => '/')
+    end
+    return cleanpath(file)
+end
+
+"""
+$(:SIGNATURES)
+
 Parse all docstrings defined within a module `mod`.
 """
 function parsedocs(mod::Module)
@@ -514,7 +530,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         elseif t isa UnionAll
             find_inner_tuple_type(t.body)
         else
-            error("Expected `typeof($t)` to be `Tuple` or `UnionAll` but found `$typeof(t)`")
+            error("Expected `typeof($t)` to be `Tuple` or `UnionAll` but found `$(typeof(t))`")
         end
     end
 
@@ -564,10 +580,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     end
     args, kws = append_defaults(args, kws, method, definition)
 
-    # Inference cannot run a generator on abstract argument types: Julia 1.0 throws and 1.10
-    # hits a `BoundsError` in Base, while other versions can only infer `Any`.
-    rt = hasgenerator(method) && !isconcretetype(typesig) ? [] :
-        Base.invokelatest(Base.return_types, func, typesig)
+    rt = method_return_type(func, method, typesig)
     return_type_string = if (
         print_return_types &&
         length(rt) >= 1 &&
@@ -589,6 +602,24 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
 end
 
 printmethod(b, f, m) = String(take!(printmethod(IOBuffer(), b, f, m)))
+
+"""
+$(:SIGNATURES)
+
+The inferred return type of `method` for argument types `typesig`, as a vector holding one
+type, or an empty vector when `method` does not match `typesig`. `Base.return_types` infers
+every method that matches, so a more specific method whose signature overlaps `method` is
+skipped by its position in `methods(func, typesig)`.
+"""
+function method_return_type(func, method::Method, typesig)
+    local matching = collect(Base.invokelatest(methods, func, typesig))
+    local idx = findfirst(m -> m === method, matching)
+    idx === nothing && return []
+    # Inference cannot run a generator on abstract argument types: Julia 1.0 throws and 1.10
+    # hits a `BoundsError` in Base. Other versions infer `Any` for a generated method itself.
+    any(hasgenerator, matching) && !isconcretetype(typesig) && return []
+    return [Base.invokelatest(Base.return_types, func, typesig)[idx]]
+end
 
 get_method_source(m::Method) = Base.uncompressed_ast(m)
 nargs(m::Method) = m.nargs

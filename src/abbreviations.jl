@@ -18,7 +18,7 @@ $(:SIGNATURES)
 Expand the [`Abbreviation`](@ref) `abbr` in the context of the `DocStr` `doc` and write
 the resulting markdown-formatted text to the `IOBuffer` `buf`.
 """
-format(abbr, buf, doc) = error("`format` not implemented for `$typeof(abbr)`.")
+format(abbr, buf, doc) = error("`format` not implemented for `$(typeof(abbr))`.")
 
 # Only extend `formatdoc` once with our abstract type. Within the package use a different
 # `format` function instead to keep things decoupled from `Base` as much as possible.
@@ -412,7 +412,7 @@ function format(abbr::Union{MethodList,TypedMethodList}, buf, doc)
                 local method = group[1]
                 local file = string(method.file)
                 local line = method.line
-                local path = cleanpath(file)
+                local path = sourcepath(file, modname)
                 local URL = url(method)
                 isempty(URL) || println(buf, "defined at [`$path:$line`]($URL).")
             end
