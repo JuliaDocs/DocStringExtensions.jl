@@ -7,6 +7,9 @@ on:
 jobs:
   doc-preview-cleanup:
     runs-on: ubuntu-latest
+    concurrency:
+      group: docs-deploy
+      queue: max
     permissions:
       contents: write
     steps:
