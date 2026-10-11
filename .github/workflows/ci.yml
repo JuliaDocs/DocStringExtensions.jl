@@ -35,6 +35,9 @@ jobs:
           version: ${{ matrix.version }}
           show-versioninfo: true
       - uses: julia-actions/cache@v3
+        with:
+          # The cleanup script calls `isnothing`, which Julia 1.0 lacks.
+          delete-old-caches: ${{ matrix.version != '1.0' }}
       - uses: julia-actions/julia-runtest@v1
         continue-on-error: ${{ matrix.version == 'nightly' }}
       - uses: julia-actions/julia-processcoverage@v1
