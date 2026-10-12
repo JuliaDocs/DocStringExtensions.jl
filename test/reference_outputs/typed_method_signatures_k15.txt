@@ -1,0 +1,5 @@
+
+```julia
+k_15(x::T, xs::T...) where T<:Number -> Number
+```
+

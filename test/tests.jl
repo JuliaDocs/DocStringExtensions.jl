@@ -27,6 +27,12 @@ function with_test_repo(f)
     end
 end
 
+# The docstring on `Param{T}() where {T}`, which records where it was written.
+function param_constructor_doc()
+    local multidoc = Docs.meta(M)[Docs.Binding(M, :Param)]
+    return multidoc.docs[first(filter(sig -> sig != Union{}, multidoc.order))]
+end
+
 # `with_test_repo` commits afresh each run and the checkout location differs per machine,
 # so the commit hash and the local path in METHODLIST output are redacted.
 # Two `replace` calls because `replace(s, pairs...)` is missing on older Julia.
@@ -153,6 +159,60 @@ typed_signatures_h_reference() =
         @test collect(methods(M.overlapping, Tuple{Integer})) ==
             [which(M.overlapping, Tuple{Int8}), which(M.overlapping, Tuple{Integer})]
         @test Base.return_types(M.overlapping, Tuple{Integer}) == [Int8, String]
+
+        # A method's argument types, without the function type.
+        #
+        # Used in src/utilities.jl by argsig().
+        @test Base.tuple_type_tail(first(methods(M.k_0)).sig) == (Tuple{T} where T)
+        @test Base.tuple_type_tail(which(M.k_13, Tuple{Int}).sig) == Tuple{Any,Vararg{Any}}
+
+        # Recognising a vararg argument type and its element type.
+        #
+        # Used in src/utilities.jl for the typed printmethod() method.
+        let varargs = Tuple{Int,Vararg{Real}}.types
+            @test Base.isvarargtype(varargs[2])
+            @test !Base.isvarargtype(varargs[1])
+            @test !Base.isvarargtype(Union{})
+            @test Base.unwrapva(varargs[2]) === Real
+        end
+        @test Base.unwrapva(last((Tuple{Vararg{T}} where T).body.types)) isa TypeVar
+
+        # A fixed-count vararg expands in `method.sig`, and its `n` is a field of `Vararg`.
+        #
+        # Used in src/utilities.jl by expanded_vararg() and vararg_length().
+        @test first(methods(M.k_16)).isva
+        @test Base.tuple_type_tail(first(methods(M.k_16)).sig) == Tuple{Real,Int,Int}
+        @test DSE.vararg_length(Vararg{Int,2}) == 2
+        @test DSE.vararg_length(last(Tuple{Int,Vararg{Int}}.types)) === nothing
+        let N = TypeVar(:N)
+            @test DSE.vararg_length(Vararg{Int,N}) === N
+        end
+
+        # A constructor written as `T{P}(...)` is a method of `Type{T{P}}`, which only the
+        # unwrapped type lists, and its docstring records where it was written.
+        #
+        # Used in src/utilities.jl by methodgroups(), constructor_parameters() and
+        # documented_groups().
+        let ctor = first(methods(M.Param{Int}, Tuple{})),
+            multidoc = Docs.meta(M)[Docs.Binding(M, :Param)],
+            data = multidoc.docs[first(multidoc.order)].data
+
+            @test isempty(methods(M.Param, Tuple{}))
+            @test first(methods(Base.unwrap_unionall(M.Param), Tuple{})) === ctor
+            @test Base.unwrap_unionall(ctor.sig).parameters[1].name === Type.body.name
+            @test data[:path] == String(ctor.file)
+            @test data[:linenumber] < ctor.line
+        end
+
+        # Printing a type parameter by name inside a method's `where` clause.
+        #
+        # Used in src/utilities.jl for the typed printmethod() method.
+        let T = TypeVar(:T, Number)
+            @test Base.has_typevar(Tuple{Vector{T}}, T)
+            @test !Base.has_typevar(Tuple{String}, T)
+            @test sprint(show, Union{Nothing,T}; context = :unionall_env => T) == "Union{Nothing, T}"
+            @test sprint(show, T) == "T<:Number"
+        end
 
         # Rendering default values as source text.
         #
@@ -313,6 +373,12 @@ typed_signatures_h_reference() =
             )
             str = formatted(SIGNATURES, doc)
             @test_reference ro_path("signatures_union_tuple_int_any.txt") str
+
+            # `Param{T}() where {T}` is a method of `Type{Param{T}}`, and its typesig also
+            # holds a `Tuple{T}` that matches the default constructor `Param(a::T)`. The
+            # docstring's location picks out the documented definition.
+            str = formatted(SIGNATURES, param_constructor_doc())
+            @test_reference ro_path("signatures_parametric_constructor.txt") str
         end
 
         @testset "method signatures with types" begin
@@ -462,24 +528,54 @@ typed_signatures_h_reference() =
             str = formatted(DSE.TYPEDSIGNATURES, doc)
             @test_reference ro_path("typed_method_signatures_k9.txt") str
 
-            @static if VERSION > v"1.5-" # see JuliaLang/#40405
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_11),
+                :typesig => Union{Tuple{Int,Vararg{Any}}},
+                :module => M,
+            )
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
+            @test_reference ro_path("typed_method_signatures_k11.txt") str
 
-                doc.data = Dict(
-                    :binding => Docs.Binding(M, :k_11),
-                    :typesig => Union{Tuple{Int,Vararg{Any}}},
-                    :module => M,
-                )
-                str = formatted(DSE.TYPEDSIGNATURES, doc)
-                @test_reference ro_path("typed_method_signatures_k11.txt") str
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_12),
+                :typesig => Union{Tuple{Int,Vararg{Real}}},
+                :module => M,
+            )
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
+            @test_reference ro_path("typed_method_signatures_k12.txt") str
 
-                doc.data = Dict(
-                    :binding => Docs.Binding(M, :k_12),
-                    :typesig => Union{Tuple{Int,Vararg{Real}}},
-                    :module => M,
-                )
-                str = formatted(DSE.TYPEDSIGNATURES, doc)
-                @test_reference ro_path("typed_method_signatures_k12.txt") str
-            end
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_15),
+                :typesig => Tuple{T,Vararg{T}} where {T <: Number},
+                :module => M,
+            )
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
+            @test_reference ro_path("typed_method_signatures_k15.txt") str
+
+            # Julia expands `xs::Vararg{T,n}` in a signature into `n` arguments of type `T`.
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_16),
+                :typesig => Tuple{Real,Vararg{Int,2}},
+                :module => M,
+            )
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
+            @test_reference ro_path("typed_method_signatures_k16.txt") str
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_17),
+                :typesig => Union{Tuple{Vararg{T,2}},Tuple{T}} where {T <: Integer},
+                :module => M,
+            )
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
+            @test_reference ro_path("typed_method_signatures_k17.txt") str
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_18),
+                :typesig => Tuple{Int},
+                :module => M,
+            )
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
+            @test_reference ro_path("typed_method_signatures_k18.txt") str
 
             # The return type belongs to the documented method, not to a more specific one
             # whose signature overlaps it.
@@ -491,6 +587,36 @@ typed_signatures_h_reference() =
             str = formatted(DSE.TYPEDSIGNATURES, doc)
             @test_reference ro_path("typed_method_signatures_overlapping.txt") str
 
+            # Julia 1.12 and later normalise this typesig to `Tuple`, which matches neither
+            # method's arity.
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_13),
+                :typesig => Union{Tuple{},Tuple{Any,Vararg{Any}}},
+                :module => M,
+            )
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
+            @test_reference ro_path("typed_method_signatures_normalised.txt") str
+
+            # Julia 1.12 and later build this typesig for `k_21(x::T = 1, xs::T...) where {T}`.
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_21),
+                :typesig => Union{Tuple{T},Tuple{Vararg{T}}} where T,
+                :module => M,
+            )
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
+            @test_reference ro_path("typed_method_signatures_k21.txt") str
+
+            # A lower bound puts a second tuple of the same arity into the typesig.
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :k_22),
+                :typesig => Union{Tuple{Int8},Tuple{T}} where Int8<:T<:Integer,
+                :module => M,
+            )
+            str = formatted(DSE.TYPEDSIGNATURES, doc)
+            @test_reference ro_path("typed_method_signatures_k22.txt") str
+
+            str = formatted(DSE.TYPEDSIGNATURES, param_constructor_doc())
+            @test_reference ro_path("typed_method_signatures_parametric_constructor.txt") str
         end
 
         @testset "method signatures with types (no return type)" begin
@@ -616,6 +742,22 @@ typed_signatures_h_reference() =
             @test formatted(INSTANCES, doc) == ""
         end
 
+        @testset "subtypes" begin
+            # Direct subtypes only, each once by its own name, inner modules qualified.
+            doc.data = Dict(:binding => Docs.Binding(M, :Shape), :typesig => Union{})
+            @test_reference ro_path("subtypes.txt") formatted(SUBTYPES, doc)
+
+            # A parametric supertype matches whatever parameters its subtypes pass it.
+            doc.data = Dict(:binding => Docs.Binding(M, :Container), :typesig => Union{})
+            @test formatted(SUBTYPES, doc) == "\n  - [`Box`](@ref)\n\n"
+
+            doc.data = Dict(:binding => Docs.Binding(M, :Circle), :typesig => Union{})
+            @test formatted(SUBTYPES, doc) == ""
+
+            doc.data = Dict(:binding => Docs.Binding(M, :f), :typesig => Union{})
+            @test formatted(SUBTYPES, doc) == ""
+        end
+
         @testset "README/LICENSE" begin
             doc.data = Dict(:module => DocStringExtensions)
             str = formatted(DSE.README, doc)
@@ -637,6 +779,7 @@ typed_signatures_h_reference() =
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.r)))
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.early)))
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.Inner)))
+            @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.InnerParametric)))
             # `@doc` returns the binding before Julia 1.13 and the documented value from 1.13.
             doc_value(v) = v isa Docs.Binding ? (:binding, v.var) : (:value, nameof(v))
             @test doc_value(TemplateTests.DOC_VALUE) == doc_value(Untemplated.DOC_VALUE)
@@ -836,6 +979,30 @@ typed_signatures_h_reference() =
                 typed = DSE.printmethod(IOBuffer(), b, f, m, Tuple{Any,String}; print_return_types = false)
                 @test String(take!(typed)) == "f(x, ::String)"
             end
+            let b = Docs.Binding(M, :k_19),
+                f = M.k_19,
+                m = first(methods(f))
+
+                # `T` appears only in the bound of `S`.
+                typed = DSE.printmethod(IOBuffer(), b, f, m, DSE.argsig(m); print_return_types = false)
+                @test String(take!(typed)) == "k_19(x::S) where {T, S<:Ref{T}}"
+            end
+            let b = Docs.Binding(M, :Param2),
+                f = M.Param2,
+                m = first(methods(Base.unwrap_unionall(M.Param2), Tuple{Any}))
+
+                # `Param2{T}` leaves the second parameter free.
+                @test DSE.printmethod(b, f, m) == "Param2{T}(b)"
+                typed = DSE.printmethod(IOBuffer(), b, f, m, DSE.argsig(m); print_return_types = false)
+                @test String(take!(typed)) == "Param2{T}(b) where T<:Number"
+            end
+            let b = Docs.Binding(M, :k_20),
+                f = M.k_20,
+                m = first(methods(f))
+
+                typed = DSE.printmethod(IOBuffer(), b, f, m, DSE.argsig(m); print_return_types = false)
+                @test String(take!(typed)) == "k_20(xs::Vararg{T, N}) where {T, N}"
+            end
             let b = Docs.Binding(M, :k_11),
                 f = M.k_11,
                 m = first(methods(f))
@@ -957,6 +1124,12 @@ typed_signatures_h_reference() =
                 @test length(DSE.methodgroups(M.k_13, typesig, M)) == 1
                 @test length(DSE.methodgroups(M.k_13, typesig, M)[1]) == 2
             end
+            # The docsystem's typesig for `k_21(x::T = 1, xs::T...) where {T}` on Julia 1.12
+            # and later, which subtyping cannot prove equal to the union of the methods.
+            let typesig = Union{Tuple{T},Tuple{Vararg{T}}} where T
+                @test length(DSE.methodgroups(M.k_21, typesig, M)) == 1
+                @test length(DSE.methodgroups(M.k_21, typesig, M)[1]) == 2
+            end
             # Both `k_14` methods share a line, and `Union{Tuple{Any},Tuple{Int}} == Tuple{Any}`.
             @test length(DSE.methodgroups(M.k_14, Tuple{Any}, M)[1]) == 1
         end
@@ -1069,6 +1242,8 @@ typed_signatures_h_reference() =
         @test_reference ro_path("enum_instances.txt") latest(DSE.INSTANCES, doc)
         doc.data = Dict(:binding => Docs.Binding(M, :Fruit), :typesig => Union{})
         @test_reference ro_path("enumx_instances.txt") latest(DSE.INSTANCES, doc)
+        doc.data = Dict(:binding => Docs.Binding(M, :Shape), :typesig => Union{})
+        @test_reference ro_path("subtypes.txt") latest(DSE.SUBTYPES, doc)
     end
 end
 

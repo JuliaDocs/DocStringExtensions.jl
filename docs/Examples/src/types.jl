@@ -22,3 +22,16 @@ struct Foobar{T <: AbstractString}
     "Docstring for the `z` field."
     z :: Vector{T}
 end
+
+"""
+An interface for shapes. [`SUBTYPES`](@ref) lists the types that implement it:
+
+$(SUBTYPES)
+"""
+abstract type Shape end
+
+"A circle."
+struct Circle <: Shape end
+
+"A square."
+struct Square <: Shape end

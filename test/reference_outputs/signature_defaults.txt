@@ -11,7 +11,7 @@ typed(x::Float64, y::Float64=2.0; z=nothing)
 ```
 
 ```julia
-parametric(x::Real, y::Real=zero(T))
+parametric(x::T, y::T=zero(T)) where T<:Real
 ```
 
 ```julia

@@ -476,7 +476,7 @@ function format(abbr::MethodSignatures, buf, doc)
     local typesig = doc.data[:typesig]
     local modname = doc.data[:module]
     local func = Base.invokelatest(Docs.resolve, binding)
-    local groups = methodgroups(func, typesig, modname)
+    local groups = documented_groups(methodgroups(func, typesig, modname), doc)
     local defaults = abbr.show_defaults ? abbr.definition : nothing
 
     if !isempty(groups)
@@ -554,7 +554,7 @@ function format(tms::TypedMethodSignatures, buf, doc)
     # TODO: why is methodgroups returning invalid methods?
     # the methodgroups always appears to return a Vector and the size depends on whether parametric types are used
     # and whether default arguments are used
-    local groups = methodgroups(func, typesig, modname)
+    local groups = documented_groups(methodgroups(func, typesig, modname), doc)
     local defaults = tms.show_defaults ? tms.definition : nothing
     if !isempty(groups)
         group = groups[end]
@@ -564,9 +564,7 @@ function format(tms::TypedMethodSignatures, buf, doc)
             N = length(arguments(method))
             # return a list of tuples that represent type signatures
             tuples = find_tuples(typesig)
-            # The following will find the tuple that matches the number of arguments in the function
-            # ideally we would check that the method signature matches the Tuple{...} signature
-            # but that is not straightforward because of how expressive Julia can be
+            # Without a tuple equal to the method's signature, take one with as many arguments.
             function f(t)
                 if t isa DataType
                     return t <: Tuple && length(t.types) == N
@@ -577,19 +575,21 @@ function format(tms::TypedMethodSignatures, buf, doc)
                 end
             end
 
-            @static if Sys.iswindows() && VERSION < v"1.8"
-                idx = findlast(f, tuples)
-            else
-                idx = findfirst(f, tuples)
-            end
+            idx = findfirst(t -> t == argsig(method), tuples)
             if idx === nothing
-                # Fall back to untyped signature if no matching tuple is found.
-                printmethod(buf, binding, func, method; definition = tms.definition)
-            else
-                t = tuples[idx]
-                printmethod(buf, binding, func, method, t;
-                    print_return_types=tms.return_types, definition = tms.definition)
+                @static if Sys.iswindows() && VERSION < v"1.8"
+                    idx = findlast(f, tuples)
+                else
+                    idx = findfirst(f, tuples)
+                end
             end
+            # Julia 1.12 and later can normalise `typesig` to `Tuple`, leaving no tuple of length `N`.
+            # An expanded vararg has no tuple of length `N` either, and can match a wrong one.
+            # A parametric constructor's name needs the type parameters of its own signature.
+            t = idx === nothing || expanded_vararg(method) || constructor_parameters(method) !== nothing ?
+                argsig(method) : tuples[idx]
+            printmethod(buf, binding, func, method, t;
+                print_return_types=tms.return_types, definition = tms.definition)
             println(buf)
         end
         println(buf, "```\n")
@@ -771,6 +771,85 @@ enum_entries(enum::Type{<:Base.Enum}, prefix = "") =
 enum_entries(mod::Module) = isdefined(mod, :T) ? enum_entries(mod.T, string(nameof(mod), ".")) : []
 enum_entries(other, prefix = "") = []
 
+
+#
+# `TypeSubtypes`
+#
+
+"""
+The singleton type for [`SUBTYPES`](@ref) abbreviations.
+"""
+struct TypeSubtypes <: Abbreviation end
+
+"""
+An [`Abbreviation`](@ref) that lists the direct subtypes of a type as Documenter.jl `@ref`
+links. It prints nothing for other objects.
+
+# Examples
+
+```jldoctest
+julia> \"""
+       A shape.
+       \$(SUBTYPES)
+       \"""
+       abstract type Shape end
+
+julia> struct Circle <: Shape end
+
+julia> struct Square <: Shape end
+
+julia> @doc Shape
+  A shape.
+
+    •  Circle
+    •  Square
+```
+
+!!! note
+
+    Only subtypes defined in the type's own module, or in a module inside it, are listed,
+    so a subtype another package defines is left out. A subtype in an inner module is
+    qualified with that module's name.
+"""
+const SUBTYPES = TypeSubtypes()
+
+function format(::TypeSubtypes, buf, doc)
+    local names = Base.invokelatest(subtype_names ∘ Docs.resolve, doc.data[:binding])
+    if !isempty(names)
+        println(buf)
+        for name in names
+            println(buf, "  - [`", name, "`](@ref)")
+        end
+        println(buf)
+    end
+    return nothing
+end
+
+function subtype_names(T::Type)
+    local body = Base.unwrap_unionall(T)
+    body isa DataType || return String[]
+    return sort!(subtype_names!(String[], body.name, parentmodule(body), ""))
+end
+subtype_names(other) = String[]
+
+function subtype_names!(found, typename, mod::Module, prefix)
+    for sym in names(mod; all = true)
+        isdefined(mod, sym) || continue
+        local obj = getfield(mod, sym)
+        if obj isa Module
+            obj !== mod && parentmodule(obj) === mod &&
+                subtype_names!(found, typename, obj, string(prefix, sym, "."))
+        elseif obj isa Type
+            local body = Base.unwrap_unionall(obj)
+            # Skipping aliases and types defined elsewhere lists each subtype once, by its own name.
+            body isa DataType && nameof(body) === sym && parentmodule(body) === mod &&
+                Base.unwrap_unionall(supertype(body)).name === typename &&
+                push!(found, string(prefix, sym))
+        end
+    end
+    return found
+end
+
 """
 The singleton type for [`README`](@ref) abbreviations.
 """
@@ -917,6 +996,7 @@ function template_key(binding::Docs.Binding, @nospecialize(typesig))
     _key(@nospecialize(::DataType), ::typeof(Union{}), binding)  = :TYPES
     _key(@nospecialize(::UnionAll), ::typeof(Union{}), binding)  = :TYPES
     _key(@nospecialize(::DataType), @nospecialize(sig), binding) = :METHODS
+    _key(@nospecialize(::UnionAll), @nospecialize(sig), binding) = :METHODS
     _key(@nospecialize(other), @nospecialize(sig), binding)      = :DEFAULT
 
     obj = Base.invokelatest(Docs.resolve, binding)

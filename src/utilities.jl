@@ -140,6 +140,10 @@ groups = methodgroups(f, Union{Tuple{Any}, Tuple{Any, Integer}}, Main; exact = f
 function methodgroups(func, typesig, modname; exact = true)
     # Group methods by file and line number.
     local methods = getmethods(func, typesig)
+    # A docstring on a constructor written as `T{P}(...)` documents a method of `Type{T{P}}`.
+    if func isa UnionAll && typesig != Union{}
+        methods = unique([methods; getmethods(Base.unwrap_unionall(func), typesig)])
+    end
     local groups = groupby(Tuple{Symbol, Int}, Vector{Method}, methods) do m
         (m.file, m.line), m
     end
@@ -152,9 +156,10 @@ function methodgroups(func, typesig, modname; exact = true)
         if exact
             # Julia 1.12 and later can normalise the union of a definition's signatures
             # into a single type, such as `Union{Tuple{}, Tuple{Any, Vararg{Any}}} == Tuple`.
-            # When no method matches a component, compare the whole group instead.
+            # When no method matches a component, keep the group if `typesig` covers it.
+            # Subtyping cannot always prove the converse, as for `where T` outside a union.
             local matching = filter(m -> argsig(m) in typesigs, group)
-            if !isempty(matching) || Union{map(argsig, group)...} != typesig
+            if !isempty(matching) || !all(m -> argsig(m) <: typesig, group)
                 group = matching
             end
         end
@@ -165,6 +170,23 @@ function methodgroups(func, typesig, modname; exact = true)
     sort!(results, lt = comparemethods, by = first)
 
     return results
+end
+
+"""
+$(:SIGNATURES)
+
+The group in `groups` that the docstring `doc` documents: the first defined at or after the
+docstring in its file. The docsystem adds a `Tuple{T}` to the type signature for each `where T`,
+which can match a method of another definition. All of `groups` when `doc` records no location or
+no group follows it.
+"""
+function documented_groups(groups, doc)
+    local path = get(doc.data, :path, nothing)
+    local line = get(doc.data, :linenumber, nothing)
+    (path === nothing || line === nothing) && return groups
+    local after = filter(g -> String(first(g).file) == path && first(g).line >= line, groups)
+    isempty(after) && return groups
+    return [after[argmin(map(g -> first(g).line, after))]]
 end
 
 # The argument types of `m`, without the function's own type.
@@ -325,7 +347,7 @@ Decides whether a length of method is too big to be visually appealing.
 """
 method_length_over_limit(len::Int) = len > 60
 
-function printmethod_format(buffer::IOBuffer, binding::String, args::Vector{String}, kws::Vector{String}; return_type = "")
+function printmethod_format(buffer::IOBuffer, binding::String, args::Vector{String}, kws::Vector{String}; where_clause = "", return_type = "")
 
     sep_delim = " "
     paren_delim = ""
@@ -339,6 +361,7 @@ function printmethod_format(buffer::IOBuffer, binding::String, args::Vector{Stri
             2*max(0, length(args)-1) +
             2*length(kws) +
             1 +
+            length(where_clause) +
             length(return_type))
 
         sep_delim = "\n"
@@ -354,6 +377,7 @@ function printmethod_format(buffer::IOBuffer, binding::String, args::Vector{Stri
         join(buffer, Ref(indent).*kws, ",$sep_delim")
     end
     print(buffer, "$paren_delim)")
+    print(buffer, where_clause)
     print(buffer, return_type)
     return buffer
 end
@@ -384,7 +408,9 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     local args = argument_names(method, definition)
     method.isva && (args[end] *= "...")
     args, kws = append_defaults(args, string.(keywords(func, method)), method, definition)
-    return printmethod_format(buffer, string(binding.var), args, kws)
+    local env = unionall_env(typevars(method.sig))
+    local name = callable_name(binding, constructor_parameters(method), t -> sprint(show, t; context = env))
+    return printmethod_format(buffer, name, args, kws)
 end
 
 """
@@ -505,7 +531,8 @@ end
 $(:TYPEDSIGNATURES)
 
 Print a method signature to `buffer` with the argument types from `typesig`, followed by
-the inferred return type when `print_return_types` is set. Default values are left out
+the inferred return type when `print_return_types` is set. Type parameters keep their names
+and are declared in a `where` clause after the arguments. Default values are left out
 unless `definition` gives them.
 
 `definition` is as for the untyped `printmethod`.
@@ -522,54 +549,42 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     local args = argument_names(method, definition)
     local kws = string.(keywords(func, method))
 
-    # find inner tuple type
-    function find_inner_tuple_type(t)
-        # t is always either a UnionAll which represents a generic type or a Tuple where each parameter is the argument
-        if t isa DataType && t <: Tuple
-            t
-        elseif t isa UnionAll
-            find_inner_tuple_type(t.body)
-        else
-            error("Expected `typeof($t)` to be `Tuple` or `UnionAll` but found `$(typeof(t))`")
+    local body = Base.unwrap_unionall(typesig)
+    body isa DataType && body <: Tuple ||
+        error("Expected `typeof($body)` to be `Tuple` or `UnionAll` but found `$(typeof(body))`")
+    local params = constructor_parameters(method)
+    # Innermost first: a type parameter used only in a later parameter's bound is still used.
+    local used = Any[]
+    for v in reverse(typevars(params === nothing ? typesig : method.sig))
+        if Base.has_typevar(body, v) || params !== nothing && any(p -> Base.has_typevar(p, v), params) ||
+                any(u -> Base.has_typevar(u.lb, v) || Base.has_typevar(u.ub, v), used)
+            pushfirst!(used, v)
         end
     end
+    local env = unionall_env(used)
+    typestring(t) = sprint(show, t; context = env)
 
-    function get_typesig(t::Union, org::Union)
-        if t.a isa TypeVar
-            UnionAll(t.a, get_typesig(t.b, org))
-        elseif t.b isa TypeVar
-            UnionAll(t.b, t)
-        else
-            t
-        end
+    argtypes = collect(body.types)
+    if expanded_vararg(method)
+        local n = length(argtypes) - length(args) + 1
+        # `Vararg{T,0}` leaves no `T` in the signature.
+        argtypes = Any[argtypes[1:end-n]..., Vararg{n > 0 ? argtypes[end] : Any, n}]
     end
-
-    function get_typesig(typ::TypeVar, org)
-        UnionAll(typ, org)
-    end
-
-    function get_typesig(typ, org)
-        typ
-    end
-
-    # if `typesig` is an UnionAll, it may be
-    # e.g. Tuple{Vector{T}} where T<:Number
-    # or   Tuple{String, T, T} where T<:Number
-    # or   Tuple{Type{T}, String, Union{Nothing, Function}} where T<:Number
-    # in the other case, it's usually something like Tuple{Vector{Int}}.
-    argtypes = typesig isa UnionAll ?
-            [get_typesig(t, t) for t in find_inner_tuple_type(typesig).types] :
-            collect(typesig.types)
 
     args = map(args, argtypes) do arg,t
         type = ""
         suffix = ""
-        if isvarargtype(t)
-            t = vararg_eltype(t)
-            suffix = "..."
+        if Base.isvarargtype(t)
+            local n = vararg_length(t)
+            t = Base.unwrapva(t)
+            if n === nothing
+                suffix = "..."
+            else
+                type = "::Vararg{$(typestring(t)), $n}"
+            end
         end
-        if t!==Any
-            type = "::$t"
+        if t!==Any && isempty(type)
+            type = "::$(typestring(t))"
         end
         # An unnamed argument with a type prints as `::T`.
         if arg == "_" && !isempty(type)
@@ -594,14 +609,59 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
 
     return printmethod_format(
         buffer,
-        string(binding.var),
+        callable_name(binding, params, typestring),
         args,
         kws;
+        where_clause=where_clause(used),
         return_type=return_type_string
     )
 end
 
 printmethod(b, f, m) = String(take!(printmethod(IOBuffer(), b, f, m)))
+
+where_clause(typevars) =
+    isempty(typevars) ? "" :
+    length(typevars) == 1 ? " where $(typevars[1])" :
+    " where {$(join(typevars, ", "))}"
+
+# The type parameters `t` declares, outermost first.
+function typevars(t)
+    local vars = TypeVar[]
+    while t isa UnionAll
+        push!(vars, t.var)
+        t = t.body
+    end
+    return vars
+end
+
+# An `IOContext` in which `show` prints each of `typevars` by name.
+unionall_env(typevars) = foldl((io, v) -> IOContext(io, :unionall_env => v), typevars; init = IOContext(devnull))
+
+"""
+$(:SIGNATURES)
+
+The type parameters written in a constructor call, such as `[T]` for `Point{T}(x) where {T}`,
+or `nothing` when `method` is not a constructor written with parameters. Julia stores such a
+method under `Type{Point{T}}`, so `methods(Point)` leaves it out.
+"""
+function constructor_parameters(method::Method)
+    local f = Base.unwrap_unionall(method.sig).parameters[1]
+    f isa DataType && f.name === Type.body.name || return nothing
+    local t = f.parameters[1]
+    local body = Base.unwrap_unionall(t)
+    body isa DataType || return nothing
+    # `Point{T}` for a type with more parameters leaves the trailing ones free.
+    local params = collect(body.parameters)
+    local free = typevars(t)
+    while !isempty(params) && last(params) in free
+        pop!(params)
+    end
+    return isempty(params) ? nothing : params
+end
+
+# The name `method` is called by, with the parameters of a constructor written as `T{P}(...)`.
+callable_name(binding, params, typestring) =
+    params === nothing ? string(binding.var) : string(binding.var, "{", join(map(typestring, params), ", "), "}")
 
 """
 $(:SIGNATURES)
@@ -624,34 +684,29 @@ end
 get_method_source(m::Method) = Base.uncompressed_ast(m)
 nargs(m::Method) = m.nargs
 
-function isvarargtype(t)
-    @static if VERSION > v"1.7-"
-        t isa Core.TypeofVararg
-    elseif VERSION > v"1.5-"
-        t isa Type && t <: Vararg
-    else
-        # don't special print Vararg
-        # below 1.5
-        false
-    end
-end
+"""
+$(:SIGNATURES)
 
-function vararg_eltype(t)
-    @static if VERSION > v"1.7-"
-        return t.T
-    elseif VERSION > v"1.5-"
-        if t isa DataType
-            return t.parameters[1]
-        elseif t isa UnionAll
-            return t.body.parameters[1]
-        else
-            # don't know how to handle
-            # just return Any
-            return Any
-        end
+Whether `method` takes `xs::Vararg{T,n}`, which Julia writes into `method.sig` as `n`
+arguments of type `T`.
+"""
+expanded_vararg(method::Method) =
+    method.isva && !Base.isvarargtype(last(Base.unwrap_unionall(method.sig).parameters))
+
+"""
+$(:SIGNATURES)
+
+The `n` of a `Vararg{T,n}` type, an `Int` or a method's type parameter, or `nothing` when
+the vararg has no count.
+"""
+function vararg_length(t)
+    local n = @static if VERSION > v"1.7-"
+        isdefined(t, :N) ? t.N : nothing
     else
-        error("cannot handle Vararg below 1.5")
+        # Before Julia 1.7, `xs::T...` is `Vararg{T,N} where N`, binding its own `N`.
+        t isa UnionAll ? nothing : t.parameters[2]
     end
+    return n isa Union{Int,TypeVar} ? n : nothing
 end
 
 """

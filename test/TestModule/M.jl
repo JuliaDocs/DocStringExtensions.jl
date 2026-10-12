@@ -79,4 +79,39 @@ overlapping(x::Integer) = "x"
 @generated overlapping_generated(x::Int8) = :x
 overlapping_generated(x::Integer) = "x"
 
+abstract type Shape end
+struct Circle <: Shape end
+struct Square{T} <: Shape end
+abstract type Polygon <: Shape end
+struct Triangle <: Polygon end
+const Round = Circle
+module Solids
+    import ..Shape
+    struct Sphere <: Shape end
+end
+
+abstract type Container{T} end
+struct Box{T} <: Container{T} end
+
+k_15(x::T, xs::T...) where {T <: Number} = x
+k_16(x::Real, xs::Vararg{Int,2}) = x
+k_17(xs::Vararg{T,2}) where {T <: Integer} = 1
+k_18(x::Int, xs::Vararg{Int,0}) = x
+k_19(x::S) where {T, S <: Ref{T}} = x
+k_20(xs::Vararg{T,N}) where {T, N} = 1
+k_21(x::T = 1, xs::T...) where {T} = x
+k_22(x::T) where {Int8 <: T <: Integer} = x
+
+struct Param{T <: Number}
+    a::T
+end
+"Construct a `Param` holding one."
+Param{T}() where {T <: Number} = Param{T}(one(T))
+
+struct Param2{T <: Number, S}
+    a::T
+    b::S
+end
+Param2{T}(b) where {T <: Number} = Param2{T, typeof(b)}(one(T), b)
+
 end

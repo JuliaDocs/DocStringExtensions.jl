@@ -1,10 +1,10 @@
 
 ```julia
-k_5(::Type{T<:Number}, x::String) -> String
+k_5(::Type{T}, x::String) where T<:Number -> String
 k_5(
-    ::Type{T<:Number},
+    ::Type{T},
     x::String,
     func::Union{Nothing, Function}
-) -> String
+) where T<:Number -> String
 ```
 

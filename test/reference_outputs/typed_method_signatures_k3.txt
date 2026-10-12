@@ -1,5 +1,5 @@
 
 ```julia
-k_3(x, y, z) -> Any
+k_3(x, y::T, z::U) where {T, U} -> Any
 ```
 
