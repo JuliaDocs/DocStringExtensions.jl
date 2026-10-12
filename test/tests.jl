@@ -142,6 +142,17 @@ typed_signatures_h_reference() =
             @test Base.kwarg_decl(m) == []
         end
 
+        # A method with keyword arguments ends by calling a body method, whose arguments are
+        # the keywords, then the function, then the positional arguments.
+        #
+        # Used in src/utilities.jl by keyword_body() and keyword_types().
+        slots(body) = Base.uncompressed_ast(body).slotnames[2:body.nargs]
+        let body = DSE.keyword_body(first(methods(M.i_5)))
+            @test slots(body)[[1:4; end]] == [:a, :b, :c, :d, :x]
+            @test Base.unwrap_unionall(body.sig).parameters[2] === Int
+        end
+        @test slots(DSE.keyword_body(first(methods(M.i_6))))[[1, end]] == [:a, :xs]
+
         # Whether a method's last positional argument is a vararg.
         #
         # Used in src/utilities.jl for the untyped printmethod() method.
@@ -1139,6 +1150,15 @@ typed_signatures_h_reference() =
                 # Keywords are not ordered, so check for both combinations.
                 @test DSE.printmethod(b, f, m) in ("f(; a, b, c...)", "f(; b, a, c...)")
             end
+            # Issue 97: typed signatures print the declared types of keyword arguments.
+            typed(name) = let f = getfield(M, name), m = first(methods(f))
+                String(take!(DSE.printmethod(IOBuffer(), Docs.Binding(M, name), f, m, DSE.argsig(m); print_return_types = false)))
+            end
+            @test typed(:i_3) == "i_3(x::T; y) where T"
+            @test typed(:i_4) == "i_4(x; y::T, z::U) where {T, U}"
+            @test typed(:i_5) == "i_5(x::T; a::$Int, b::T, c, d...) where T<:Real"
+            @test typed(:i_6) == "i_6(xs::$Int...; a::$Int)"
+            @test DSE.printmethod(Docs.Binding(M, :i_5), M.i_5, first(methods(M.i_5))) == "i_5(x; a, b, c, d...)"
         end
         @testset "definition_arguments" begin
             let d = definition_arguments_with_defaults(:(f(x, y = 1, z::String = "z"; a = :a, b::Int = 2, c, d...) = x))
@@ -1174,7 +1194,7 @@ typed_signatures_h_reference() =
             let d = definition_arguments_with_defaults(:(g(x = 1, y = 2, z = 3; kwargs...) = x)),
                 m = which(M.g, Tuple{Any})
 
-                @test DSE.append_defaults(["x"], ["kwargs..."], m, d) == (["x=1"], ["kwargs..."])
+                @test DSE.append_defaults(["x"], ["kwargs..."], ["kwargs..."], m, d) == (["x=1"], ["kwargs..."])
             end
         end
         @testset "getmethods" begin
