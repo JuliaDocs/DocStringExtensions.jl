@@ -11,7 +11,8 @@ Each matching docstring that follows the `@template` is replaced by the template
 original docstring placed where the template's [`DOCSTRING`](@ref) abbreviation is. Every
 template must contain `DOCSTRING`. Docstrings defined before the `@template` are left as
 they are, so define templates before the definitions they should apply to. A template applies
-only in the module that defines it. Submodules need their own, or a copy as shown below.
+only in the module that defines it. Submodules need their own, or a copy as shown below. A
+docstring that contains [`NOTEMPLATE`](@ref) renders as written.
 
 # Examples
 
@@ -199,8 +200,9 @@ end
 # A new `DocStr`, since bindings documented together share one and each needs its own template.
 function resolve_templates(str::Docs.DocStr, key::Symbol)
     local text = Any[]
+    local selector = template_selector(str.text, key)
     for part in str.text
-        part isa Template ? append!(text, template_parts(part, key)) : push!(text, part)
+        part isa Template ? append!(text, template_parts(part, selector)) : push!(text, part)
     end
     return Docs.DocStr(Core.svec(text...), str.object, copy(str.data))
 end

@@ -990,6 +990,66 @@ const DOCSTRING = DocStringTemplate()
 is_docstr_template(::DocStringTemplate) = true
 is_docstr_template(other) = false
 
+#
+# `TemplateOverride`
+#
+
+"""
+The type for [`NOTEMPLATE`](@ref) abbreviations.
+
+`TemplateOverride(category)` applies the module's [`@template`](@ref) for `category` to the
+docstring it appears in, in place of the template for the documented object's own category.
+`category` is one of the categories `@template` accepts, and the module must define a
+template for it before the docstring.
+
+$(:FIELDS)
+"""
+struct TemplateOverride <: Abbreviation
+    category::Union{Symbol,Nothing}
+    TemplateOverride(category::Symbol) = new(checked_category(category))
+    TemplateOverride(::Nothing) = new(nothing)
+end
+
+"""
+An [`Abbreviation`](@ref) that stops the module's [`@template`](@ref) applying to the
+docstring it appears in. It prints nothing.
+
+# Examples
+
+```jldoctest
+julia> module Shapes
+       using DocStringExtensions
+       @template (FUNCTIONS, METHODS) = \"""
+           \$(TYPEDSIGNATURES)
+           \$(DOCSTRING)
+           \"""
+       \"""
+       Compute the area of a square.
+       \$(NOTEMPLATE)
+       \"""
+       area(side::Int) = side^2
+       end;
+
+julia> @doc Shapes.area
+  Compute the area of a square.
+```
+
+!!! tip "Using Another Category's Template"
+    To apply the module's template for another category in place of skipping the template,
+    use `\$(DocStringExtensions.TemplateOverride(:DEFAULT))` with that category.
+"""
+const NOTEMPLATE = TemplateOverride(nothing)
+
+format(::TemplateOverride, buf, doc) = nothing
+
+# The docstring's `TemplateOverride` if it has one, otherwise the `inferred` category.
+function template_selector(text, inferred::Symbol)
+    for part in text
+        part isa TemplateOverride && return part
+    end
+    return inferred
+end
+
 """
 Internal abbreviation type used to wrap templated docstrings.
 
@@ -1003,7 +1063,7 @@ struct Template{Location} <: Abbreviation
 end
 
 function format(abbr::Template, buf, doc)
-    for part in template_parts(abbr, template_key(doc))
+    for part in template_parts(abbr, template_selector(doc.text, template_key(doc)))
         # We don't call `DocStringExtensions.format` here since we need to be
         # able to format any content in docstrings, rather than just
         # abbreviations.
@@ -1015,6 +1075,15 @@ end
 function template_parts(abbr::Template, key::Symbol)
     local parts = get_template(abbr.dict, key)
     return Any[interpolation(parts[index], abbr.expr) for index in included_range(abbr, parts)]
+end
+function template_parts(abbr::Template, override::TemplateOverride)
+    local category = override.category
+    category === nothing && return Any[]
+    haskey(abbr.dict, category) || throw(ArgumentError(
+        "`TemplateOverride` category `$category` has no template. " *
+        "Define one with `@template $category = \"...\"` before the docstring."
+    ))
+    return template_parts(abbr, category)
 end
 
 function included_range(abbr::Template, parts::Vector)
