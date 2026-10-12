@@ -211,6 +211,77 @@ function without_tags(@nospecialize(value))
 end
 
 #
+# Struct constructors.
+#
+
+"""
+Where a documented struct definition ends, which bounds the constructors that its signatures
+list.
+
+$(:FIELDS)
+"""
+struct StructDefinition
+    "The file the definition is written in."
+    file::String
+    "The last line of the definition's body."
+    last_line::Int
+    "Whether a macro wraps the definition, and so may define constructors outside its body."
+    wrapped::Bool
+end
+
+"""
+$(:SIGNATURES)
+
+The [`StructDefinition`](@ref) of the struct that `expr` defines, or `nothing` when `expr`
+does not define a struct or carries no line numbers.
+"""
+function struct_extent(expr::Expr)
+    local definition = struct_definition(expr)
+    definition === nothing && return nothing
+    # The docstring's own path is empty for `Base.@kwdef` on Julia 1.0.
+    local lines = line_numbers!(LineNumberNode[], definition)
+    isempty(lines) && return nothing
+    return StructDefinition(string(first(lines).file), maximum(l -> l.line, lines), definition !== expr)
+end
+
+function line_numbers!(lines, @nospecialize(ex))
+    ex isa LineNumberNode && push!(lines, ex)
+    ex isa Expr && foreach(arg -> line_numbers!(lines, arg), ex.args)
+    return lines
+end
+
+"""
+$(:SIGNATURES)
+
+The constructors of the type `func` that its struct definition creates, from the module
+`modname`. In the definition's file, these are the methods defined no later than its last
+line; a constructor cannot exist before its type. When a macro wraps the definition, they
+include any constructor the macro may generate in another file.
+"""
+function struct_constructors(func, definition::StructDefinition, modname)
+    local candidates = getmethods(func, Union{})
+    if func isa UnionAll
+        candidates = unique([candidates; constructor_methods(func, Tuple{Vararg{Any}})])
+    end
+    local found = filter(candidates) do m
+        m.module == modname || return false
+        String(m.file) == definition.file && return m.line <= definition.last_line
+        return definition.wrapped && generated_constructor(func, m)
+    end
+    return sort!(found; by = m -> (length(arguments(m)), string(m.sig)))
+end
+
+# The keyword constructor `Base.@kwdef` and similar macros generate, and the positional one
+# taking every field untyped. Julia 1.0 gives the `@kwdef` keyword constructor no location.
+function generated_constructor(func, m::Method)
+    local fields = fieldnames(Base.unwrap_unionall(func))
+    if isempty(arguments(m))
+        return !isempty(fields) && Set(keywords(func, m)) == Set(fields)
+    end
+    return argsig(m) == Tuple{fill(Any, length(fields))...}
+end
+
+#
 # Method grouping.
 #
 
@@ -688,7 +759,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     body isa DataType && body <: Tuple ||
         error("Expected `typeof($body)` to be `Tuple` or `UnionAll` but found `$(typeof(body))`")
     local params = constructor_parameters(method)
-    local vars = typevars(params === nothing ? typesig : method.sig)
+    local vars = params === nothing ? typevars(typesig) : [typevars(method.sig); typevars(self_type(method))]
     local kwtypes, kwvars = keyword_types(method, kwnames, vars)
     # Innermost first: a type parameter used only in a later parameter's bound is still used.
     local used = Any[]
@@ -787,7 +858,7 @@ or `nothing` when `method` is not a constructor written with parameters. Julia s
 method under `Type{Point{T}}`, so `methods(Point)` leaves it out.
 """
 function constructor_parameters(method::Method)
-    local f = Base.unwrap_unionall(method.sig).parameters[1]
+    local f = Base.unwrap_unionall(self_type(method))
     istypeoftype(f) || return nothing
     local t = type_parameter(f)
     local body = Base.unwrap_unionall(t)
@@ -800,6 +871,10 @@ function constructor_parameters(method::Method)
     end
     return isempty(params) ? nothing : params
 end
+
+# The type of the callable a method belongs to. Julia 1.10 stores the default constructor of
+# `Point{T}` under `Type{Point{T}} where T`, which declares its own type parameters.
+self_type(method::Method) = Base.unwrap_unionall(method.sig).parameters[1]
 
 # The name `method` is called by, with the parameters of a constructor written as `T{P}(...)`.
 callable_name(binding, params, typestring) =

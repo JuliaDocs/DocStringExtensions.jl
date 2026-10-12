@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `BODY` to print the body of the documented method definition as a Julia code block ([#54](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/54), [#237](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/237))
 - Add `NOTEMPLATE`, which stops a module's `@template` applying to the docstring it appears in. `TemplateOverride(category)` applies the template for another category instead ([#158](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/158), [#240](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/240))
 - Add the `ABSTRACTTYPES` template category for abstract types. A module without one documents abstract types with its `TYPES` template, as before ([#147](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/147), [#241](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/241))
+- `SIGNATURES` and `TYPEDSIGNATURES` in the docstring of a struct list the constructors its definition creates, including the keyword constructor of `Base.@kwdef`. They printed nothing before ([#71](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/71), [#245](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/245))
 
 ### Changed
 

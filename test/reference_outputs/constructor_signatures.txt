@@ -1,0 +1,46 @@
+```julia
+Plain(a, b)
+```
+
+```julia
+Typed(a, b)
+Typed(a::Float64, b)
+```
+
+```julia
+Parametric{T}(x) where T
+Parametric(x::T) where T
+```
+
+```julia
+Inner()
+Inner(x)
+```
+
+```julia
+Options(; retries, name)
+Options(retries, name)
+```
+
+```julia
+TypedOptions(; retries, name)
+TypedOptions(retries, name)
+TypedOptions(retries::Float64, name)
+```
+
+```julia
+EmptyOptions()
+```
+
+```julia
+Wrapped(a, b)
+```
+
+```julia
+Generated(; a, b)
+Generated(a, b)
+```
+
+```julia
+Empty()
+```

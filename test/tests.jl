@@ -4,6 +4,7 @@ include("templates.jl")
 include("interpolation.jl")
 include("defaults.jl")
 include("field_defaults.jl")
+include("constructors.jl")
 include("destructuring.jl")
 include("body.jl")
 include("TestModule/M.jl")
@@ -246,6 +247,34 @@ typed_signatures_h_reference() =
         # A destructured argument prints as it is written.
         @test sprint(Base.show_unquoted, :((a, (b, c)))) == "(a, (b, c))"
         @test Base.remove_linenums!(Expr(:block, LineNumberNode(1), :x)) == Expr(:block, :x)
+
+        # Where Julia places the constructors that a struct definition creates.
+        #
+        # Used in src/utilities.jl by struct_constructors(), which takes the constructors
+        # defined no later than the definition's last line, and by self_type() for the default
+        # constructor of a parametric type.
+        let mod = Module()
+            Base.include_string(mod, """
+                struct Defaults
+                    x::Float64
+                end
+                struct Inner
+                    x::Float64
+                    Inner() = new(0.0)
+                end
+                struct Parametric{T}
+                    x::T
+                end
+                """, "constructors.jl")
+            local constructors(name) = Base.invokelatest(methods, Base.invokelatest(getfield, mod, name))
+            # No later than the last field, the definition's last line before `end`.
+            @test all(m -> String(m.file) == "constructors.jl" && m.line <= 2, constructors(:Defaults))
+            @test [m.line for m in constructors(:Inner)] == [6]
+            local parametric = Base.invokelatest(getfield, mod, :Parametric)
+            local defaults = Base.invokelatest(methods, parametric{Int})
+            # Julia 1.10 stores it under `Type{Parametric{T}} where T`, Julia 1.6 under `Type{Parametric{T}}`.
+            @test all(m -> DSE.istypeoftype(Base.unwrap_unionall(DSE.self_type(m))), defaults)
+        end
     end
     @testset "format" begin
         # Setup.
@@ -948,6 +977,16 @@ typed_signatures_h_reference() =
                 "  * `a::Float64 = 1.0`\n\ntype `Config`\n"
         end
     end
+    @testset "constructor signatures" begin
+        let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))
+            names = [:Plain, :Typed, :Parametric, :Inner, :Options, :TypedOptions, :EmptyOptions, :Wrapped, :Generated, :Empty]
+            str = join([fmt(:(ConstructorsTestModule.$name)) for name in names], "\n")
+            @test_reference ro_path("constructor_signatures.txt") str
+            @test isempty(fmt(:(ConstructorsTestModule.Abstract)))
+            @test fmt(:(ConstructorsTestModule.Templated.Point)) ==
+                "```julia\nPoint(x)\n```\n\ntype `Point`\n"
+        end
+    end
     @testset "signature destructuring" begin
         let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))
             names = [:pair, :typed, :nested, :unshowable]
@@ -1229,7 +1268,6 @@ typed_signatures_h_reference() =
             let body = Expr(:block, Expr(:const, :(a::Int = 1)))
                 @test DSE.field_defaults(Expr(:struct, true, :S, body)) == Dict(:a => "1")
             end
-            @test DSE.field_defaults(:(struct S a::Int end)) === nothing
             # Fields in a nested block, and an `@atomic` field.
             let atomic = Expr(:(=), Expr(:macrocall, Symbol("@atomic"), nothing, :(a::Int)), 1),
                 body = Expr(:block, atomic, Expr(:block, :(b = 2)))
@@ -1243,6 +1281,7 @@ typed_signatures_h_reference() =
                     x + 1
                 end
             end)) === nothing
+            @test DSE.field_defaults(:(struct S a::Int end)) === nothing
             @test DSE.field_defaults(:(f(x = 1) = x)) === nothing
         end
         @testset "append_defaults" begin

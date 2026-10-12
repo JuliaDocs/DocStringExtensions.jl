@@ -24,6 +24,12 @@ struct Foobar{T <: AbstractString}
 end
 
 """
+[`SIGNATURES`](@ref) lists the constructors that the struct definition creates:
+
+$(SIGNATURES)
+
+---
+
 A field given a default with `Base.@kwdef` shows its default in [`FIELDS`](@ref) and
 [`TYPEDFIELDS`](@ref):
 
