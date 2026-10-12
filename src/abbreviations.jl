@@ -1108,10 +1108,9 @@ function template_key(binding::Docs.Binding, @nospecialize(typesig))
     _key(@nospecialize(::Module), @nospecialize(sig), binding)   = :MODULES
     _key(@nospecialize(::Function), ::typeof(Union{}), binding)  = ismacro(binding) ? :MACROS : :FUNCTIONS
     _key(@nospecialize(::Function), @nospecialize(sig), binding) = ismacro(binding) ? :MACROS : :METHODS
-    _key(@nospecialize(::DataType), ::typeof(Union{}), binding)  = :TYPES
-    _key(@nospecialize(::UnionAll), ::typeof(Union{}), binding)  = :TYPES
-    _key(@nospecialize(::DataType), @nospecialize(sig), binding) = :METHODS
-    _key(@nospecialize(::UnionAll), @nospecialize(sig), binding) = :METHODS
+    _key(@nospecialize(T::Union{DataType,UnionAll}), ::typeof(Union{}), binding) =
+        Base.isabstracttype(Base.unwrap_unionall(T)) ? :ABSTRACTTYPES : :TYPES
+    _key(@nospecialize(T::Union{DataType,UnionAll}), @nospecialize(sig), binding) = :METHODS
     _key(@nospecialize(other), @nospecialize(sig), binding)      = :DEFAULT
 
     obj = Base.invokelatest(Docs.resolve, binding)

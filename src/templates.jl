@@ -46,6 +46,18 @@ The remaining examples show the other forms of `@template`.
 `DEFAULT` applies to a docstring when no template for its own category exists.
 
 ```julia
+@template ABSTRACTTYPES =
+    \"""
+    \$(TYPEDEF)
+    \$(DOCSTRING)
+    \$(SUBTYPES)
+    \"""
+```
+
+`ABSTRACTTYPES` applies to abstract types, and `TYPES` to every other type. A module without an
+`ABSTRACTTYPES` template documents abstract types with its `TYPES` template.
+
+```julia
 @template (FUNCTIONS, METHODS, MACROS) =
     \"""
     \$(SIGNATURES)
@@ -83,7 +95,7 @@ end
 !!! note
 
     Supported categories are `DEFAULT`, `FUNCTIONS`, `METHODS`, `MACROS`, `TYPES`,
-    `MODULES`, and `CONSTANTS`.
+    `ABSTRACTTYPES`, `MODULES`, and `CONSTANTS`.
 """
 macro template(ex)
     template(__source__, __module__, ex)
@@ -116,7 +128,7 @@ function template(src::LineNumberNode, mod::Module, sym::Symbol, docstr::Union{S
     template(src, mod, Expr(:tuple, sym), docstr)
 end
 
-const TEMPLATE_CATEGORIES = (:DEFAULT, :FUNCTIONS, :METHODS, :MACROS, :TYPES, :MODULES, :CONSTANTS)
+const TEMPLATE_CATEGORIES = (:DEFAULT, :FUNCTIONS, :METHODS, :MACROS, :TYPES, :ABSTRACTTYPES, :MODULES, :CONSTANTS)
 
 function checked_category(category)
     category in TEMPLATE_CATEGORIES || throw(ArgumentError(
@@ -212,7 +224,10 @@ end
 hooked(docstr) = Meta.isexpr(docstr, :string) && any(is_hook_part, docstr.args)
 is_hook_part(part) = isa(part, Template) || Meta.isexpr(part, :call) && part.args[1] === interpolation
 
-get_template(t::Dict, k::Symbol) = haskey(t, k) ? t[k] : get(t, :DEFAULT, Any[DOCSTRING])
+get_template(t::Dict, k::Symbol) =
+    haskey(t, k) ? t[k] :
+    k === :ABSTRACTTYPES ? get_template(t, :TYPES) :
+    get(t, :DEFAULT, Any[DOCSTRING])
 
 # Every templated package calls these, so compiling them here saves each one doing it.
 const PRECOMPILED = (
