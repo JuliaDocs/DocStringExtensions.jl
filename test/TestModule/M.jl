@@ -101,6 +101,7 @@ k_19(x::S) where {T, S <: Ref{T}} = x
 k_20(xs::Vararg{T,N}) where {T, N} = 1
 k_21(x::T = 1, xs::T...) where {T} = x
 k_22(x::T) where {Int8 <: T <: Integer} = x
+k_23(_, ::Val{N}, ::String...) where {N} = N
 
 struct Param{T <: Number}
     a::T
