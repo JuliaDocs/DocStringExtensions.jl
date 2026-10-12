@@ -798,6 +798,11 @@ typed_signatures_h_reference() =
             @test occursin("(TYPES)", fmt(:(TemplateTests.Paired)))
             @test occursin("(DEFAULT)", fmt(:(TemplateTests.Documented)))
             @test occursin("(DEFAULT)", fmt(:(TemplateTests.Redocumented)))
+            # Issue 158: a docstring can skip its template or use another category's.
+            @test fmt(:(TemplateTests.opted_out)) == "method `opted_out`\n"
+            @test fmt(:(TemplateTests.early_opted_out)) == "method `early_opted_out` documented before it is defined\n"
+            @test fmt(:(TemplateTests.OptedOut)) == "`@kwdef` struct `OptedOut`\n"
+            @test fmt(:(TemplateTests.redirected)) == "(DEFAULT)\n\nmethod `redirected`\n"
 
             @test occursin("(DEFAULT)", fmt(:(TemplateTests.InnerModule.K)))
             @test occursin("(DEFAULT)", fmt(:(TemplateTests.InnerModule.T)))
@@ -860,6 +865,16 @@ typed_signatures_h_reference() =
             result = @test_throws ArgumentError Core.eval(mod, :(@template (TYPES, ABSTRACTTYPES) = "$DOCSTRING"))
             @test result.value.msg ==
                 "`@template` category `ABSTRACTTYPES` is not one of DEFAULT, FUNCTIONS, METHODS, MACROS, TYPES, MODULES, CONSTANTS."
+        end
+        # Issue 158: an override names a category the module defines a template for.
+        @test_throws ArgumentError DSE.TemplateOverride(:ABSTRACTTYPES)
+        let mod = Module()
+            Core.eval(mod, :(using DocStringExtensions))
+            Core.eval(mod, :(@template DEFAULT = "$DOCSTRING"))
+            docstr = Expr(:string, "docs", :(DocStringExtensions.TemplateOverride(:TYPES)))
+            result = @test_throws ArgumentError Core.eval(mod, :(@doc $docstr f(x) = x))
+            @test result.value.msg ==
+                "`TemplateOverride` category `TYPES` has no template. Define one with `@template TYPES = \"...\"` before the docstring."
         end
         # Issue 117: copying a template the source module does not define names the module and category.
         let mod = Module(:Parent)

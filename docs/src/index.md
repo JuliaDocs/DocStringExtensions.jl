@@ -15,4 +15,4 @@ To start using the package, see [Setup](@ref setup).
 | `TYPEDEF`, `FIELDS`, `TYPEDFIELDS`, `SUBTYPES`      | [Types](@ref examples-types)                  | [Types](@ref reference-types)                  |
 | `INSTANCES`                                         | [Enums](@ref examples-enums)                  | [Enums](@ref reference-enums)                  |
 | `EXPORTS`, `PUBLIC`, `IMPORTS`, `README`, `LICENSE` | [Modules](@ref examples-modules)              | [Modules](@ref reference-modules)              |
-| `@template`, `DOCSTRING`                            | [Templates](@ref examples-templates)          | [Templates](@ref reference-templates)          |
+| `@template`, `DOCSTRING`, `NOTEMPLATE`              | [Templates](@ref examples-templates)          | [Templates](@ref reference-templates)          |

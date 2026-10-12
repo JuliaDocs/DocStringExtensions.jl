@@ -10,4 +10,5 @@ they render from.
 ```@docs
 @template
 DOCSTRING
+NOTEMPLATE
 ```

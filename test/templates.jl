@@ -82,6 +82,35 @@ module Documented end
 module Redocumented end
 Core.@doc "module `Redocumented` documented with `define = false`" module Redocumented end false
 
+"""
+method `opted_out`
+
+$(NOTEMPLATE)
+"""
+opted_out(x) = x
+
+"""
+method `early_opted_out` documented before it is defined
+
+$(NOTEMPLATE)
+"""
+early_opted_out(x)
+early_opted_out(x) = x
+
+"""
+`@kwdef` struct `OptedOut`
+
+$(NOTEMPLATE)
+"""
+Base.@kwdef struct OptedOut end
+
+"""
+method `redirected`
+
+$(DocStringExtensions.TemplateOverride(:DEFAULT))
+"""
+redirected(x) = x
+
 module InnerModule
 
     import ..TemplateTests
