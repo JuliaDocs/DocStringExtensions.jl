@@ -15,6 +15,7 @@ DocStringExtensions adds abbreviations and templates to Julia's docsystem. An ab
 
 - CI runs Julia 1.0, the LTS, the latest release, and nightly. Code in `src/` and `test/` must parse and run on 1.0, so check any syntax or Base function newer than that against the floor.
 - The package leans on undocumented Base internals (`Base.kwarg_decl`, method table fields, binding partitions on 1.12+). The `Base assumptions` testset in `test/tests.jl` records each one. Add a case there when the code starts relying on another.
+- A user-facing change updates every page that shows the feature, in the same commit as the code. Check the docstring, the `Examples` module in `docs/Examples/src/` and its page in `docs/src/examples/`, `docs/src/setup.md`, and `CHANGELOG.md`. Search `docs/` for the names the change touches, then build the docs as CI does. The build runs the doctests and fails on a broken `@ref`.
 - `format` methods can run in a stale world during macro expansion. Wrap binding lookups such as `Docs.resolve` and `methods` in `Base.invokelatest`, as the existing `format` methods do.
 
 ## Running tests
@@ -27,3 +28,15 @@ EOF
 ```
 
 `Pkg.test()` runs the same suite in a fresh sandbox. Use it as the final check before a commit.
+
+## Building docs
+
+```bash
+julia --project=docs <<'EOF'
+using Pkg; Pkg.develop(PackageSpec(path = pwd())); Pkg.instantiate()
+include("docs/make.jl")
+EOF
+git checkout docs/Project.toml
+```
+
+`Pkg.develop` adds the package to `docs/Project.toml`. The `git checkout` keeps that edit out of the commit.
