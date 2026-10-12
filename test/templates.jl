@@ -39,6 +39,9 @@ using DocStringExtensions
 "constant `K`"
 const K = 1
 
+"constant `U{S}`"
+const U{S} = Union{S,Nothing}
+
 "mutable struct `T`"
 mutable struct T end
 
