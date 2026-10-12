@@ -134,11 +134,11 @@ function signature_call(@nospecialize(sig))
 end
 
 function argument_default(@nospecialize(arg))
-    if Meta.isexpr(arg, :kw, 2)
-        return (argument_name(arg.args[1]), sprint(Base.show_unquoted, without_linenums(arg.args[2])))
-    end
+    Meta.isexpr(arg, :kw, 2) && return (argument_name(arg.args[1]), source_text(arg.args[2]))
     return (argument_name(arg), nothing)
 end
+
+source_text(@nospecialize(ex)) = sprint(Base.show_unquoted, without_linenums(ex))
 
 argument_name(name::Symbol) = string(name)
 function argument_name(@nospecialize(arg))
@@ -147,6 +147,67 @@ function argument_name(@nospecialize(arg))
     Meta.isexpr(arg, :..., 1) && return argument_name(arg.args[1])
     Meta.isexpr(arg, :tuple) && return sprint(Base.show_unquoted, arg)
     return "_"
+end
+
+#
+# Field defaults.
+#
+
+"""
+$(:SIGNATURES)
+
+Find the default value of each field of the struct definition `expr`, rendered as source
+text and keyed by field name. Defaults are written as `field = value` inside a macro such as
+`Base.@kwdef`. Returns `nothing` when `expr` does not define a struct or no field has a
+default.
+"""
+function field_defaults(expr::Expr)
+    local definition = struct_definition(expr)
+    definition === nothing && return nothing
+    local defaults = add_field_defaults!(Dict{Symbol,String}(), definition.args[3])
+    return isempty(defaults) ? nothing : defaults
+end
+
+function add_field_defaults!(defaults, body::Expr)
+    for field in body.args
+        if Meta.isexpr(field, :block)
+            add_field_defaults!(defaults, field)
+        else
+            name, default = field_default(field)
+            default === nothing || (defaults[name] = default)
+        end
+    end
+    return defaults
+end
+
+function struct_definition(expr::Expr)
+    Meta.isexpr(expr, :macrocall) && return struct_definition(last(expr.args))
+    return Meta.isexpr(expr, :struct) ? expr : nothing
+end
+struct_definition(@nospecialize(other)) = nothing
+
+function field_default(@nospecialize(field))
+    Meta.isexpr(field, :const, 1) && return field_default(field.args[1])
+    Meta.isexpr(field, :(=), 2) || return (nothing, nothing)
+    local name = field_name(field.args[1])
+    name === nothing && return (nothing, nothing)
+    local text = source_text(without_tags(field.args[2]))
+    # `FIELDS` prints the default in a Markdown code span, which these characters would end.
+    return occursin('`', text) || occursin('\n', text) ? (nothing, nothing) : (name, text)
+end
+
+# An inner constructor's left-hand side is a call or a `where`, which has no field name.
+field_name(name::Symbol) = name
+function field_name(@nospecialize(ex))
+    Meta.isexpr(ex, :(::), 2) && return field_name(ex.args[1])
+    Meta.isexpr(ex, :macrocall) && ex.args[1] === Symbol("@atomic") && return field_name(last(ex.args))
+    return nothing
+end
+
+# StructUtils.jl writes field tags after the default, as in `x::Int = 1 &(json = (name = "y",),)`.
+function without_tags(@nospecialize(value))
+    is_tagged = Meta.isexpr(value, :call, 3) && value.args[1] === :& && Meta.isexpr(value.args[3], :tuple)
+    return is_tagged ? value.args[2] : value
 end
 
 #

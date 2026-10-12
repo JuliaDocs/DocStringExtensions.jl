@@ -1,0 +1,10 @@
+  * `retries = 3`: Number of retries.
+  * `name`
+  * `scale = retries + 1`
+
+  * `level::Float64 = 1.0`
+  * `label::String = "default"`: Shown in the title bar.
+
+  * `a`
+
+  * `a`

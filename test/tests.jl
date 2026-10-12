@@ -3,6 +3,7 @@ const DSE = DocStringExtensions
 include("templates.jl")
 include("interpolation.jl")
 include("defaults.jl")
+include("field_defaults.jl")
 include("destructuring.jl")
 include("body.jl")
 include("TestModule/M.jl")
@@ -938,6 +939,15 @@ typed_signatures_h_reference() =
                 "```julia\ntemplated(x, y=1)\n```\n\nmethod `templated`\n"
         end
     end
+    @testset "field defaults" begin
+        let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))
+            names = [:Options, :Settings, :Hidden, :Plain]
+            str = join([fmt(:(FieldDefaultsTestModule.$name)) for name in names], "\n")
+            @test_reference ro_path("field_defaults.txt") str
+            @test fmt(:(FieldDefaultsTestModule.Templated.Config)) ==
+                "  * `a::Float64 = 1.0`\n\ntype `Config`\n"
+        end
+    end
     @testset "signature destructuring" begin
         let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))
             names = [:pair, :typed, :nested, :unshowable]
@@ -1189,6 +1199,51 @@ typed_signatures_h_reference() =
                 @test !occursin("#=", d.positional[1][2])
                 @test !occursin("#=", d.keywords["k"])
             end
+        end
+        @testset "field_defaults" begin
+            @test DSE.field_defaults(:(Base.@kwdef struct S
+                "Documented."
+                a::Int = 1
+                b = [1, 2]
+                c::Float64
+                d = @m(a)
+                S(a, b, c, d) = new(a, b, c, d)
+                S(a::T) where {T} = new(a, [], 0.0, nothing)
+            end)) == Dict(:a => "1", :b => "[1, 2]", :d => "@m(a)")
+            # StructUtils.jl writes field tags after the default.
+            @test DSE.field_defaults(:(@defaults struct S
+                a::String = "x" & (json = (name = "y",),)
+                b::Int & (name = "z",)
+                c = x & y
+            end)) == Dict(:a => "\"x\"", :c => "x & y")
+            # Parameters.jl allows assertions in the body.
+            @test DSE.field_defaults(:(@with_kw struct S
+                a = 1
+                @assert a > 0
+            end)) == Dict(:a => "1")
+            # Configurations.jl takes an alias before the struct.
+            @test DSE.field_defaults(:(@option "alias" struct S
+                a::Int = 1
+            end)) == Dict(:a => "1")
+            # `const` fields parse only from Julia 1.8.
+            let body = Expr(:block, Expr(:const, :(a::Int = 1)))
+                @test DSE.field_defaults(Expr(:struct, true, :S, body)) == Dict(:a => "1")
+            end
+            @test DSE.field_defaults(:(struct S a::Int end)) === nothing
+            # Fields in a nested block, and an `@atomic` field.
+            let atomic = Expr(:(=), Expr(:macrocall, Symbol("@atomic"), nothing, :(a::Int)), 1),
+                body = Expr(:block, atomic, Expr(:block, :(b = 2)))
+
+                @test DSE.field_defaults(Expr(:struct, true, :S, body)) == Dict(:a => "1", :b => "2")
+            end
+            # A backtick or a line break would end the Markdown code span the default prints in.
+            @test DSE.field_defaults(:(Base.@kwdef struct S
+                a = "use `f` here"
+                b = function (x)
+                    x + 1
+                end
+            end)) === nothing
+            @test DSE.field_defaults(:(f(x = 1) = x)) === nothing
         end
         @testset "append_defaults" begin
             let d = definition_arguments_with_defaults(:(g(x = 1, y = 2, z = 3; kwargs...) = x)),

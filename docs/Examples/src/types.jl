@@ -24,6 +24,19 @@ struct Foobar{T <: AbstractString}
 end
 
 """
+A field given a default with `Base.@kwdef` shows its default in [`FIELDS`](@ref) and
+[`TYPEDFIELDS`](@ref):
+
+$(TYPEDFIELDS)
+"""
+Base.@kwdef struct Settings
+    "Seconds to wait before giving up."
+    timeout::Float64 = 30.0
+    retries::Int = 3
+    name::String
+end
+
+"""
 An interface for shapes. [`SUBTYPES`](@ref) lists the types that implement it:
 
 $(SUBTYPES)

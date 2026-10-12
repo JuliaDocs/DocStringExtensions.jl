@@ -41,11 +41,20 @@ $(:FIELDS)
 """
 struct TypeFields <: Abbreviation
     types::Bool
+    show_defaults::Bool
+    defaults::Union{Dict{Symbol,String},Nothing}
 end
+
+TypeFields(types::Bool; defaults::Bool = true) = TypeFields(types, defaults, nothing)
+
+interpolation(abbr::TypeFields, expr::Expr) =
+    TypeFields(abbr.types, abbr.show_defaults, abbr.show_defaults ? field_defaults(expr) : nothing)
 
 """
 An [`Abbreviation`](@ref) that lists the fields of a type, with the docstring of each field
-that has one.
+that has one. A field given a default value in a struct definition written with a macro such
+as `Base.@kwdef` shows that default, unless the default spans several lines or contains a
+backtick.
 
 # Examples
 
@@ -54,12 +63,12 @@ julia> \"""
        A point in the plane.
        \$(FIELDS)
        \"""
-       struct Point
+       Base.@kwdef struct Point
            "Horizontal coordinate."
            x::Float64
            "Vertical coordinate."
            y::Float64
-           label::String
+           label::String = "origin"
        end
 
 julia> @doc Point
@@ -69,8 +78,11 @@ julia> @doc Point
 
     •  y: Vertical coordinate.
 
-    •  label
+    •  label = "origin"
 ```
+
+!!! tip "Hiding Default Values"
+    To leave out default values, use `\$(DocStringExtensions.TypeFields(false; defaults = false))`.
 """
 const FIELDS = TypeFields(false)
 
@@ -102,6 +114,9 @@ julia> @doc Point
 
     •  label::String
 ```
+
+!!! tip "Hiding Default Values"
+    To leave out default values, use `\$(DocStringExtensions.TypeFields(true; defaults = false))`.
 """
 const TYPEDFIELDS = TypeFields(true)
 
@@ -115,6 +130,7 @@ function format(abbrv::TypeFields, buf, doc)
         for field in fields
             print(buf, "  - `", field)
             abbrv.types && print(buf, "::", fieldtype(object, field))
+            abbrv.defaults !== nothing && haskey(abbrv.defaults, field) && print(buf, " = ", abbrv.defaults[field])
             print(buf, "`")
             # Print the field docs if they exist and aren't a `doc"..."` docstring.
             if haskey(docs, field) && isa(docs[field], AbstractString)
