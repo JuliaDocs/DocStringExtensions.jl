@@ -467,7 +467,8 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         arg == "_" && t !== Any ? "::$(typestring(t))" : arg
     end
     method.isva && (args[end] *= "...")
-    args, kws = append_defaults(args, string.(keywords(func, method)), method, definition)
+    local kws = string.(keywords(func, method))
+    args, kws = append_defaults(args, kws, kws, method, definition)
     local name = callable_name(binding, constructor_parameters(method), typestring)
     return printmethod_format(buffer, name, args, kws)
 end
@@ -537,17 +538,17 @@ end
 $(:SIGNATURES)
 
 Append `=default` to each formatted argument in `args` and keyword in `kws` that has a
-default value in `definition`. Leaves both unchanged when `method` does not match
-`definition`.
+default value in `definition`. `kwnames` names the keyword formatted in each entry of
+`kws`. Leaves both unchanged when `method` does not match `definition`.
 """
-function append_defaults(args, kws, method::Method, definition)
+function append_defaults(args, kws, kwnames, method::Method, definition)
     matches_definition(method, definition) || return args, kws
     args = map(enumerate(args)) do (i, arg)
         _, default = definition.positional[i]
         default === nothing ? arg : "$arg=$default"
     end
-    kws = map(kws) do kw
-        default = get(definition.keywords, kw, nothing)
+    kws = map(kws, kwnames) do kw, name
+        default = get(definition.keywords, name, nothing)
         default === nothing ? kw : "$kw=$default"
     end
     return args, kws
@@ -603,10 +604,10 @@ end
 """
 $(:TYPEDSIGNATURES)
 
-Print a method signature to `buffer` with the argument types from `typesig`, followed by
-the inferred return type when `print_return_types` is set. Type parameters keep their names
-and are declared in a `where` clause after the arguments. Default values are left out
-unless `definition` gives them.
+Print a method signature to `buffer` with the argument types from `typesig` and the declared
+types of the keyword arguments, followed by the inferred return type when
+`print_return_types` is set. Type parameters keep their names and are declared in a `where`
+clause after the arguments. Default values are left out unless `definition` gives them.
 
 `definition` is as for the untyped `printmethod`.
 
@@ -620,16 +621,19 @@ sig = printmethod(Docs.Binding(Main, :f), f, first(methods(f)))
 function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method, typesig; print_return_types=true, definition=nothing)
     # TODO: print qualified?
     local args = argument_names(method, definition)
-    local kws = string.(keywords(func, method))
+    local kwnames = string.(keywords(func, method))
 
     local body = Base.unwrap_unionall(typesig)
     body isa DataType && body <: Tuple ||
         error("Expected `typeof($body)` to be `Tuple` or `UnionAll` but found `$(typeof(body))`")
     local params = constructor_parameters(method)
+    local vars = typevars(params === nothing ? typesig : method.sig)
+    local kwtypes, kwvars = keyword_types(method, kwnames, vars)
     # Innermost first: a type parameter used only in a later parameter's bound is still used.
     local used = Any[]
-    for v in reverse(typevars(params === nothing ? typesig : method.sig))
+    for v in reverse([vars; kwvars])
         if Base.has_typevar(body, v) || params !== nothing && any(p -> Base.has_typevar(p, v), params) ||
+                any(t -> Base.has_typevar(t, v), values(kwtypes)) ||
                 any(u -> Base.has_typevar(u.lb, v) || Base.has_typevar(u.ub, v), used)
             pushfirst!(used, v)
         end
@@ -666,7 +670,11 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
 
         "$arg$type$suffix"
     end
-    args, kws = append_defaults(args, kws, method, definition)
+    local kws = map(kwnames) do kw
+        local t = get(kwtypes, kw, Any)
+        t === Any ? kw : "$kw::$(typestring(t))"
+    end
+    args, kws = append_defaults(args, kws, kwnames, method, definition)
 
     rt = method_return_type(func, method, typesig)
     return_type_string = if (
@@ -826,6 +834,53 @@ function keywords(func, m::Method)
         kwargs[index], kwargs[end] = kwargs[end], kwargs[index]
     end
     return kwargs
+end
+
+"""
+$(:SIGNATURES)
+
+The method holding the body of `method`, a method with keyword arguments, or `nothing` when
+it cannot be found. Julia lowers `f(x; a::Int = 1)` to a method of `f` that fills in the
+keyword defaults and ends by calling a hidden body method, `#f#1(a::Int, ::typeof(f), x)`.
+"""
+function keyword_body(method::Method)
+    local code = get_method_source(method).code
+    length(code) >= 2 && Meta.isexpr(code[end-1], :call) || return nothing
+    local call = code[end-1]
+    local callee = ssa_value(code, call.args[1])
+    # A positional vararg is splatted through `Core._apply`, or `Core._apply_iterate` from Julia 1.4.
+    if callee == GlobalRef(Core, :_apply)
+        callee = ssa_value(code, call.args[2])
+    elseif callee == GlobalRef(Core, :_apply_iterate)
+        callee = ssa_value(code, call.args[3])
+    end
+    callee isa GlobalRef || return nothing
+    local found = Base.invokelatest(methods, Base.invokelatest(getfield, callee.mod, callee.name))
+    return length(found) == 1 ? first(found) : nothing
+end
+
+# Julia 1.12 and later load the callee into an SSA value before calling it.
+ssa_value(code, @nospecialize(x)) = x isa Core.SSAValue ? code[x.id] : x
+
+"""
+$(:SIGNATURES)
+
+The declared type of each keyword in `kws`, the keyword names of `method`, and the type
+parameters that only keyword types use. A keyword type refers to the parameter in `vars` of
+the same name, so it shares the signature's `where` clause.
+"""
+function keyword_types(method::Method, kws, vars)
+    local types = Dict{String,Any}()
+    local body = isempty(kws) ? nothing : keyword_body(method)
+    body === nothing && return types, TypeVar[]
+    local own = typevars(body.sig)
+    local shared = Dict(v.name => v for v in vars)
+    local sig = isempty(own) ? body.sig : body.sig{[get(shared, v.name, v) for v in own]...}
+    local names = get_method_source(body).slotnames[2:nargs(body)]
+    for (name, type) in zip(names, sig.parameters[2:end])
+        types[string(name)] = type
+    end
+    return types, filter(v -> !haskey(shared, v.name), own)
 end
 
 

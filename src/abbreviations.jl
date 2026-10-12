@@ -516,8 +516,8 @@ interpolation(abbr::TypedMethodSignatures, expr::Expr) =
 
 """
 An [`Abbreviation`](@ref) that prints the signatures of the documented method like
-[`SIGNATURES`](@ref), with argument types and the inferred return type. See
-[`printmethod`](@ref) for the simplifications it applies.
+[`SIGNATURES`](@ref), with the types of positional and keyword arguments and the inferred
+return type. See [`printmethod`](@ref) for the simplifications it applies.
 
 # Examples
 

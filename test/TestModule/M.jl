@@ -115,4 +115,7 @@ struct Param2{T <: Number, S}
 end
 Param2{T}(b) where {T <: Number} = Param2{T, typeof(b)}(one(T), b)
 
+i_5(x::T; a::Int = 1, b::T = x, c, d...) where {T <: Real} = x
+i_6(xs::Int...; a::Int = 1) = xs
+
 end

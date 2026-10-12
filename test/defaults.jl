@@ -16,7 +16,7 @@ keywords(x; a = :a, b::Float64 = 2.0, c, d...) = x
 """
 $(TypedMethodSignatures(false; defaults = true))
 """
-typed(x::Float64, y::Float64 = 2.0; z = nothing) = x
+typed(x::Float64, y::Float64 = 2.0; z = nothing, w::Float64 = 1.0) = x
 
 """
 $(TypedMethodSignatures(false; defaults = true))

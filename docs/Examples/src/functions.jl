@@ -46,7 +46,7 @@ A second method of [`$(FUNCTIONNAME)`](@ref). [`SIGNATURES`](@ref):
 
 $(SIGNATURES)
 
-[`TYPEDSIGNATURES`](@ref):
+[`TYPEDSIGNATURES`](@ref) also prints the type of the keyword argument `pad`:
 
 $(TYPEDSIGNATURES)
 
@@ -54,4 +54,4 @@ $(TYPEDSIGNATURES)
 
 $(BODY)
 """
-foo(x::String) = length(x)
+foo(x::String; pad::Int = 0) = length(x) + pad
