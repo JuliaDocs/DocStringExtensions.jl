@@ -1,0 +1,32 @@
+```julia
+log(p / (1 - p))
+```
+
+```julia
+if x < lo
+    return lo
+end
+return min(x, hi)
+```
+
+```julia
+for (i, x) = enumerate(xs), j = 1:i
+    if x > 0
+        @info "positive" x
+    else
+        continue
+    end
+end
+try
+    open("data.txt") do io
+        read(io, String)
+    end
+catch err
+    err isa SystemError || rethrow()
+end
+return [x ^ 2 for x = xs if x > 0]
+```
+
+```julia
+2x
+```

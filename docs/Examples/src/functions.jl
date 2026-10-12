@@ -49,5 +49,9 @@ $(SIGNATURES)
 [`TYPEDSIGNATURES`](@ref):
 
 $(TYPEDSIGNATURES)
+
+[`BODY`](@ref) prints the method's body:
+
+$(BODY)
 """
 foo(x::String) = length(x)

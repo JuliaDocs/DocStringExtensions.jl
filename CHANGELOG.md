@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `PUBLIC` to list a module's public names, both exported and declared `public` ([#190](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/190))
 - Add `INSTANCES` to list the instances of an enum with their values. It supports `@enum` and EnumX.jl's `@enumx` ([#171](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/171))
 - Add `SUBTYPES` to list the direct subtypes of a type as links. It lists only subtypes defined in the type's own module or a module inside it ([#47](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/47), [#154](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/154), [#227](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/227))
+- Add `BODY` to print the body of the documented method definition as a Julia code block ([#54](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/54), [#237](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/237))
 
 ### Changed
 

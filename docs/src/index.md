@@ -10,7 +10,7 @@ To start using the package, see [Setup](@ref setup).
 
 | Abbreviation                                        | Examples                                      | Reference                                      |
 |:--------------------------------------------------- |:--------------------------------------------- |:---------------------------------------------- |
-| `SIGNATURES`, `TYPEDSIGNATURES`, `FUNCTIONNAME`     | [Functions and methods](@ref examples-functions) | [Functions and methods](@ref reference-functions) |
+| `SIGNATURES`, `TYPEDSIGNATURES`, `FUNCTIONNAME`, `BODY` | [Functions and methods](@ref examples-functions) | [Functions and methods](@ref reference-functions) |
 | `METHODLIST`, `TYPEDMETHODLIST`                     | [Functions and methods](@ref examples-functions) | [Functions and methods](@ref reference-functions) |
 | `TYPEDEF`, `FIELDS`, `TYPEDFIELDS`, `SUBTYPES`      | [Types](@ref examples-types)                  | [Types](@ref reference-types)                  |
 | `INSTANCES`                                         | [Enums](@ref examples-enums)                  | [Enums](@ref reference-enums)                  |

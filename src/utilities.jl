@@ -86,13 +86,41 @@ function definition_arguments(expr::Expr, show_defaults::Bool)
 end
 
 function definition_call(expr::Expr)
-    Meta.isexpr(expr, :macrocall) && return definition_call(last(expr.args))
-    if Meta.isexpr(expr, :function) || Meta.isexpr(expr, :(=))
-        return signature_call(expr.args[1])
-    end
+    local definition = method_definition(expr)
+    return definition === nothing ? nothing : signature_call(definition.args[1])
+end
+
+"""
+$(:SIGNATURES)
+
+Render the body of the method definition `expr` as source text, one statement per line.
+Returns `nothing` when `expr` does not define a method or the body is empty.
+"""
+function definition_body(expr::Expr)
+    definition_call(expr) === nothing && return nothing
+    # Line numbers would print the author's local file paths.
+    local body = remove_macro_linenums!(Base.remove_linenums!(copy(method_definition(expr).args[2])))
+    isempty(body.args) && return nothing
+    # Base prints the block as `begin`, the statements indented by four spaces, then `end`.
+    # Printing each statement alone mangles nested quotes.
+    local lines = split(sprint(print, body), '\n')[2:end-1]
+    return join([startswith(line, "    ") ? line[5:end] : line for line in lines], "\n")
+end
+
+# `remove_linenums!` keeps the line number that every macro call carries.
+function remove_macro_linenums!(ex::Expr)
+    Meta.isexpr(ex, :macrocall) && ex.args[2] isa LineNumberNode && (ex.args[2] = nothing)
+    foreach(remove_macro_linenums!, ex.args)
+    return ex
+end
+remove_macro_linenums!(@nospecialize(other)) = other
+
+function method_definition(expr::Expr)
+    Meta.isexpr(expr, :macrocall) && return method_definition(last(expr.args))
+    (Meta.isexpr(expr, :function) || Meta.isexpr(expr, :(=))) && return expr
     return nothing
 end
-definition_call(@nospecialize(other)) = nothing
+method_definition(@nospecialize(other)) = nothing
 
 # Strips `where` clauses and a return type annotation from a method signature.
 function signature_call(@nospecialize(sig))
