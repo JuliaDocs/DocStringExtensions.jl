@@ -1115,6 +1115,8 @@ typed_signatures_h_reference() =
             @test definition_arguments_with_defaults(:(struct S x end)) === nothing
             @test definition_arguments_with_defaults(:(function f end)) === nothing
             @test definition_arguments_with_defaults(:(const C = 1)) === nothing
+            @test definition_arguments_with_defaults(:(@enum Color red blue)) === nothing
+            @test DSE.definition_body(:(@enum Color red blue)) === nothing
             # Without defaults, only a destructured argument changes what a signature prints.
             @test DSE.definition_arguments(:(f(x, y = 1; k = 2) = x), false) === nothing
             let d = DSE.definition_arguments(:(f((a, b), y = 1; k = 2) = a), false)
