@@ -142,7 +142,7 @@ function methodgroups(func, typesig, modname; exact = true)
     local methods = getmethods(func, typesig)
     # A docstring on a constructor written as `T{P}(...)` documents a method of `Type{T{P}}`.
     if func isa UnionAll && typesig != Union{}
-        methods = unique([methods; getmethods(Base.unwrap_unionall(func), typesig)])
+        methods = unique([methods; constructor_methods(func, typesig)])
     end
     local groups = groupby(Tuple{Symbol, Int}, Vector{Method}, methods) do m
         (m.file, m.line), m
@@ -227,14 +227,12 @@ A helper method for [`getmethods`](@ref) that collects methods in `results`.
 function getmethods!(results, f, sig)
     if sig == Union{}
         append!(results, Base.invokelatest(methods, f))
-    elseif isa(sig, Union)
-        for each in uniontypes(sig)
-            getmethods!(results, f, each)
-        end
-    elseif isa(sig, UnionAll)
-        getmethods!(results, f, Base.unwrap_unionall(sig))
     else
-        append!(results, Base.invokelatest(methods, f, sig))
+        # Each signature keeps its `where` bounds: Julia 1.14 matches no method against a
+        # type variable left free with a bound.
+        for each in alltypesigs(sig)
+            append!(results, Base.invokelatest(methods, f, each))
+        end
     end
     return results
 end
@@ -248,6 +246,35 @@ This is similar to `methods(f, sig)`, but handles type signatures found in `DocS
 more consistently than `methods`.
 """
 getmethods(f, sig) = unique(getmethods!(Method[], f, sig))
+
+"""
+$(:SIGNATURES)
+
+The methods of `Type{T}`, for `T` any instance of the parametric type `func`, whose
+arguments match `typesig`. These are the constructors written as `T{P}(...)`.
+"""
+function constructor_methods(func::UnionAll, typesig)
+    local self = Type{Base.unwrap_unionall(func)}
+    local results = Method[]
+    for each in alltypesigs(typesig)
+        local args = Base.unwrap_unionall(each).parameters
+        local tt = Base.rewrap_unionall(Base.rewrap_unionall(Tuple{self, args...}, each), func)
+        append!(results, matched_methods(tt))
+    end
+    return results
+end
+
+"""
+$(:SIGNATURES)
+
+The methods matching the full call signature `tt`, a `Tuple` type of the callable's type and
+the argument types.
+"""
+function matched_methods(tt)
+    local world = ccall(:jl_get_world_counter, UInt, ())
+    # Julia 1.0 gives each match as an `svec` holding the method third.
+    return Method[m isa Core.SimpleVector ? m[3] : m.method for m in Base._methods_by_ftype(tt, -1, world)]
+end
 
 """
 $(:SIGNATURES)
@@ -664,8 +691,8 @@ method under `Type{Point{T}}`, so `methods(Point)` leaves it out.
 """
 function constructor_parameters(method::Method)
     local f = Base.unwrap_unionall(method.sig).parameters[1]
-    f isa DataType && f.name === Type.body.name || return nothing
-    local t = f.parameters[1]
+    istypeoftype(f) || return nothing
+    local t = type_parameter(f)
     local body = Base.unwrap_unionall(t)
     body isa DataType || return nothing
     # `Point{T}` for a type with more parameters leaves the trailing ones free.
@@ -697,6 +724,15 @@ function method_return_type(func, method::Method, typesig)
     # hits a `BoundsError` in Base. Other versions infer `Any` for a generated method itself.
     any(hasgenerator, matching) && !isconcretetype(typesig) && return []
     return [Base.invokelatest(Base.return_types, func, typesig)[idx]]
+end
+
+# Julia 1.14 gives `Type{T}` the kind `TypeEq` in place of `DataType`.
+@static if isdefined(Core, :TypeEq)
+    istypeoftype(t) = Base.isType(t)
+    type_parameter(t) = Base.type_parameter(t)
+else
+    istypeoftype(t) = t isa DataType && t.name === Type.body.name
+    type_parameter(t) = t.parameters[1]
 end
 
 get_method_source(m::Method) = Base.uncompressed_ast(m)

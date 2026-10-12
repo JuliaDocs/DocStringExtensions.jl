@@ -188,18 +188,20 @@ typed_signatures_h_reference() =
             @test DSE.vararg_length(Vararg{Int,N}) === N
         end
 
-        # A constructor written as `T{P}(...)` is a method of `Type{T{P}}`, which only the
-        # unwrapped type lists, and its docstring records where it was written.
+        # A constructor written as `T{P}(...)` is a method of `Type{T{P}}`, which
+        # `Base._methods_by_ftype` finds by its full signature, and its docstring records
+        # where it was written.
         #
-        # Used in src/utilities.jl by methodgroups(), constructor_parameters() and
-        # documented_groups().
+        # Used in src/utilities.jl by constructor_methods(), matched_methods(),
+        # constructor_parameters() and documented_groups().
         let ctor = first(methods(M.Param{Int}, Tuple{})),
             multidoc = Docs.meta(M)[Docs.Binding(M, :Param)],
-            data = multidoc.docs[first(multidoc.order)].data
+            data = multidoc.docs[first(multidoc.order)].data,
+            tt = Base.rewrap_unionall(Tuple{Type{Base.unwrap_unionall(M.Param)}}, M.Param)
 
             @test isempty(methods(M.Param, Tuple{}))
-            @test first(methods(Base.unwrap_unionall(M.Param), Tuple{})) === ctor
-            @test Base.unwrap_unionall(ctor.sig).parameters[1].name === Type.body.name
+            @test DSE.matched_methods(tt) == [ctor]
+            @test DSE.istypeoftype(Base.unwrap_unionall(ctor.sig).parameters[1])
             @test data[:path] == String(ctor.file)
             @test data[:linenumber] < ctor.line
         end
@@ -401,7 +403,12 @@ typed_signatures_h_reference() =
                 :module => M,
             )
             str = formatted(DSE.TYPEDSIGNATURES, doc)
-            @test_reference ro_path("typed_method_signatures_tuple_string.txt") str
+            # Julia 1.14 infers a type-valued result as `Core.TypeEgal{T}`.
+            if VERSION >= v"1.14.0-DEV"
+                @test_reference ro_path("typed_method_signatures_tuple_string_114_and_later.txt") str
+            else
+                @test_reference ro_path("typed_method_signatures_tuple_string_pre_114.txt") str
+            end
 
             doc.data = Dict(
                 :binding => Docs.Binding(M, :h),
@@ -995,7 +1002,7 @@ typed_signatures_h_reference() =
             end
             let b = Docs.Binding(M, :Param2),
                 f = M.Param2,
-                m = first(methods(Base.unwrap_unionall(M.Param2), Tuple{Any}))
+                m = first(methods(M.Param2{Int}, Tuple{Any}))
 
                 # `Param2{T}` leaves the second parameter free.
                 @test DSE.printmethod(b, f, m) == "Param2{T}(b)"

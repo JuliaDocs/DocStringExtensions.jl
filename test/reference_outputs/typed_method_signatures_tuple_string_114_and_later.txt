@@ -1,0 +1,5 @@
+
+```julia
+g_2(x::String) -> Core.TypeEgal{String}
+```
+
