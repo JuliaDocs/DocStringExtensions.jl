@@ -34,3 +34,19 @@ bar(x::AbstractArray{T}, y::T) where {T <: Integer}
 bar(x::AbstractArray{T}, ::String) where {T <: Integer}
 bar(x::AbstractArray{T}, y::U) where {T <: Integer, U <: AbstractFloat}
 ```
+
+## Function bodies
+
+[`BODY`](@ref) prints the code of the documented method. Julia prints it from the parsed
+expression, so comments are dropped and some syntax is normalised, such as `for x in xs`
+printing as `for x = xs`:
+
+```@eval
+Main.example_source("bodies.jl")
+```
+
+The docstring renders as:
+
+```@docs
+duplicates
+```

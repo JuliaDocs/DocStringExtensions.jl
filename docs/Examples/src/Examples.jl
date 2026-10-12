@@ -37,6 +37,7 @@ public bar, Fruit
 
 include("functions.jl")
 include("parameters.jl")
+include("bodies.jl")
 include("types.jl")
 include("enums.jl")
 include("templates.jl")

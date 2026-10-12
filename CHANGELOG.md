@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `PUBLIC` to list a module's public names, both exported and declared `public` ([#190](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/190))
 - Add `INSTANCES` to list the instances of an enum with their values. It supports `@enum` and EnumX.jl's `@enumx` ([#171](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/171))
 - Add `SUBTYPES` to list the direct subtypes of a type as links. It lists only subtypes defined in the type's own module or a module inside it ([#47](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/47), [#154](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/154), [#227](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/227))
+- Add `BODY` to print the body of the documented method definition as a Julia code block ([#54](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/54), [#237](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/237))
 
 ### Changed
 
@@ -24,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fix `defaults = true` signatures printing the source file and line before a default value that contains a macro call ([#238](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/238))
 - Fix `EXPORTS` listing names declared `public` but not exported on Julia 1.11 and later ([#190](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/190))
 - Fix two error messages printing the text `typeof(...)` where they should name a type: the one for an object with no `format` method, and the one for an unexpected `TYPEDSIGNATURES` signature type ([#216](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/216))
 - `METHODLIST` and `TYPEDMETHODLIST` show each file relative to its package root, such as `src/shapes.jl`. A package loaded from a development checkout, as in every Documenter build, showed the checkout's absolute path ([#217](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/217))

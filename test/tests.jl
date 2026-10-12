@@ -4,6 +4,7 @@ include("templates.jl")
 include("interpolation.jl")
 include("defaults.jl")
 include("destructuring.jl")
+include("body.jl")
 include("TestModule/M.jl")
 # `public` is a syntax error before Julia 1.11.
 VERSION >= v"1.11" && include("public.jl")
@@ -896,6 +897,22 @@ typed_signatures_h_reference() =
                 "```julia\ntemplated((x, y))\n```\n\nmethod `templated`\n"
         end
     end
+    @testset "function bodies" begin
+        let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))
+            names = [:logit, :clamped, :nested, :wrapped]
+            str = join([fmt(:(BodyTestModule.$name)) for name in names], "\n")
+            @test_reference ro_path("function_bodies.txt") str
+            # Base prints a nested quote as `$(Expr(:quote, ...))` before Julia 1.6.
+            if VERSION >= v"1.6"
+                @test fmt(:(BodyTestModule.quoted)) == "```julia\n:(x + \$x)\n```\n"
+            end
+            @test isempty(fmt(:(BodyTestModule.emptybody)))
+            @test isempty(fmt(:(BodyTestModule.nomethods)))
+            @test isempty(fmt(:(BodyTestModule.NotAMethod)))
+            @test fmt(:(BodyTestModule.Templated.templated)) ==
+                "```julia\nx + 1\n```\n\nmethod `templated`\n"
+        end
+    end
     @testset "utilities" begin
         @testset "keywords" begin
             @test DSE.keywords(M.T, first(methods(M.T))) == Symbol[]
@@ -1098,6 +1115,8 @@ typed_signatures_h_reference() =
             @test definition_arguments_with_defaults(:(struct S x end)) === nothing
             @test definition_arguments_with_defaults(:(function f end)) === nothing
             @test definition_arguments_with_defaults(:(const C = 1)) === nothing
+            @test definition_arguments_with_defaults(:(@enum Color red blue)) === nothing
+            @test DSE.definition_body(:(@enum Color red blue)) === nothing
             # Without defaults, only a destructured argument changes what a signature prints.
             @test DSE.definition_arguments(:(f(x, y = 1; k = 2) = x), false) === nothing
             let d = DSE.definition_arguments(:(f((a, b), y = 1; k = 2) = a), false)
@@ -1106,6 +1125,10 @@ typed_signatures_h_reference() =
             end
             let (_, default) = definition_arguments_with_defaults(:(f(w = x -> x + 1) = w)).positional[1]
                 @test !occursin("#=", default)
+            end
+            let d = definition_arguments_with_defaults(:(f(x = @m(1); k = g(@m(2))) = x))
+                @test !occursin("#=", d.positional[1][2])
+                @test !occursin("#=", d.keywords["k"])
             end
         end
         @testset "append_defaults" begin
