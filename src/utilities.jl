@@ -389,10 +389,10 @@ Print a simplified representation of a method signature to `buffer`. Some of the
 simplifications include:
 
   * no `TypeVar`s;
-  * no types;
+  * no types, except `::T` for an unnamed argument of type `T`;
   * no default values, unless `definition` gives them;
-  * `_` printed for unnamed arguments, and for destructured arguments unless `definition`
-    gives them.
+  * `_` printed for untyped unnamed arguments, and for destructured arguments unless
+    `definition` gives them.
 
 `definition` is the [`DefinitionArguments`](@ref) of the documented method definition, or
 `nothing`.
@@ -405,12 +405,30 @@ sig = printmethod(Docs.Binding(Main, :f), f, first(methods(f)))
 ```
 """
 function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method; definition = nothing)
-    local args = argument_names(method, definition)
+    local env = unionall_env(typevars(method.sig))
+    typestring(t) = sprint(show, t; context = env)
+    local names = argument_names(method, definition)
+    local args = map(names, argument_types(method, length(names))) do arg, t
+        arg == "_" && t !== Any ? "::$(typestring(t))" : arg
+    end
     method.isva && (args[end] *= "...")
     args, kws = append_defaults(args, string.(keywords(func, method)), method, definition)
-    local env = unionall_env(typevars(method.sig))
-    local name = callable_name(binding, constructor_parameters(method), t -> sprint(show, t; context = env))
+    local name = callable_name(binding, constructor_parameters(method), typestring)
     return printmethod_format(buffer, name, args, kws)
+end
+
+"""
+$(:SIGNATURES)
+
+The declared types of the first `n` positional arguments of `method`, with a vararg
+argument's element type in place of its `Vararg`. A vararg with a count, such as
+`xs::Vararg{Int,2}`, gets `Any`.
+"""
+function argument_types(method::Method, n::Integer)
+    local types = Any[Base.unwrap_unionall(method.sig).parameters[2:end]...]
+    method.isva || return types[1:n]
+    local vararg = expanded_vararg(method) ? Any : Base.unwrapva(types[end])
+    return Any[types[1:n-1]; vararg]
 end
 
 """

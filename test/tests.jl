@@ -372,7 +372,7 @@ typed_signatures_h_reference() =
                 :module => M,
             )
             str = formatted(SIGNATURES, doc)
-            @test_reference ro_path("signatures_union_tuple_int_any.txt") str
+            @test_reference ro_path(typeof(1) === Int64 ? "signatures_union_tuple_int_any_64bit.txt" : "signatures_union_tuple_int_any_32bit.txt") str
 
             # `Param{T}() where {T}` is a method of `Type{Param{T}}`, and its typesig also
             # holds a `Tuple{T}` that matches the default constructor `Param(a::T)`. The
@@ -975,9 +975,15 @@ typed_signatures_h_reference() =
                 f = (x, ::String) -> x,
                 m = first(methods(f))
 
-                @test DSE.printmethod(b, f, m) == "f(x, _)"
+                @test DSE.printmethod(b, f, m) == "f(x, ::String)"
                 typed = DSE.printmethod(IOBuffer(), b, f, m, Tuple{Any,String}; print_return_types = false)
                 @test String(take!(typed)) == "f(x, ::String)"
+            end
+            let b = Docs.Binding(M, :k_23),
+                f = M.k_23,
+                m = first(methods(f))
+
+                @test DSE.printmethod(b, f, m) == "k_23(_, ::Val{N}, ::String...)"
             end
             let b = Docs.Binding(M, :k_19),
                 f = M.k_19,
