@@ -99,6 +99,13 @@ typed_signatures_h_reference() =
             end
         end
 
+        # Telling an abstract type from a concrete one, parametric or not.
+        #
+        # Used in src/abbreviations.jl by template_key() to pick the `ABSTRACTTYPES` template.
+        @test Base.isabstracttype(AbstractVector)
+        @test !Base.isabstracttype(Vector)
+        @test !Base.isabstracttype(Int8)
+
         # Getting keyword arguments of a method.
         #
         # Used in src/utilities.jl for the keywords() function.
@@ -777,9 +784,14 @@ typed_signatures_h_reference() =
     @testset "templates" begin
         let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))
             @test occursin("(DEFAULT)", fmt(:(TemplateTests.K)))
+            @test fmt(:(TemplateTests.U)) == "(DEFAULT)\n\nconstant `U{S}`\n"
             @test occursin("(TYPES)", fmt(:(TemplateTests.T)))
             @test length(collect(eachmatch(r"\(TYPES\)", fmt(:(TemplateTests.S))))) == 1
             @test occursin("(TYPES)", fmt(:(TemplateTests.ISSUE_115)))
+            @test occursin("(TYPES)", fmt(:(TemplateTests.P)))
+            # Issue 147: abstract types have their own category.
+            @test fmt(:(TemplateTests.A)) == "(ABSTRACTTYPES)\n\nabstract type `A`\n"
+            @test fmt(:(TemplateTests.AP)) == "(ABSTRACTTYPES)\n\nabstract type `AP{S}`\n"
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.f)))
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.g)))
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.h)))
@@ -807,11 +819,14 @@ typed_signatures_h_reference() =
             @test occursin("(DEFAULT)", fmt(:(TemplateTests.InnerModule.K)))
             @test occursin("(DEFAULT)", fmt(:(TemplateTests.InnerModule.T)))
             @test occursin("field docs for x", fmt(:(TemplateTests.InnerModule.T)))
+            @test occursin("(DEFAULT)", fmt(:(TemplateTests.InnerModule.A)))
             @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.InnerModule.f)))
             @test occursin("(MACROS)", fmt(:(TemplateTests.InnerModule.@m)))
 
             @test occursin("(TYPES)", fmt(:(TemplateTests.OtherModule.T)))
             @test occursin("(TYPES)", fmt(:(TemplateTests.OtherModule.ISSUE_115)))
+            # A module without an `ABSTRACTTYPES` template documents abstract types with `TYPES`.
+            @test occursin("(TYPES)", fmt(:(TemplateTests.OtherModule.A)))
             @test occursin("(MACROS)", fmt(:(TemplateTests.OtherModule.@m)))
             @test fmt(:(TemplateTests.OtherModule.f)) == "method `f`\n"
         end
@@ -859,15 +874,15 @@ typed_signatures_h_reference() =
             Core.eval(mod, :(using DocStringExtensions))
             @test_throws ArgumentError Core.eval(mod, :(@template DEFAULT = $template))
         end
-        # Issue 147: a category no docstring belongs to is rejected where it is defined.
+        # A category no docstring belongs to is rejected where it is defined.
         let mod = Module()
             Core.eval(mod, :(using DocStringExtensions))
-            result = @test_throws ArgumentError Core.eval(mod, :(@template (TYPES, ABSTRACTTYPES) = "$DOCSTRING"))
+            result = @test_throws ArgumentError Core.eval(mod, :(@template (TYPES, STRUCTS) = "$DOCSTRING"))
             @test result.value.msg ==
-                "`@template` category `ABSTRACTTYPES` is not one of DEFAULT, FUNCTIONS, METHODS, MACROS, TYPES, MODULES, CONSTANTS."
+                "`@template` category `STRUCTS` is not one of DEFAULT, FUNCTIONS, METHODS, MACROS, TYPES, ABSTRACTTYPES, MODULES, CONSTANTS."
         end
         # Issue 158: an override names a category the module defines a template for.
-        @test_throws ArgumentError DSE.TemplateOverride(:ABSTRACTTYPES)
+        @test_throws ArgumentError DSE.TemplateOverride(:STRUCTS)
         let mod = Module()
             Core.eval(mod, :(using DocStringExtensions))
             Core.eval(mod, :(@template DEFAULT = "$DOCSTRING"))
@@ -875,6 +890,15 @@ typed_signatures_h_reference() =
             result = @test_throws ArgumentError Core.eval(mod, :(@doc $docstr f(x) = x))
             @test result.value.msg ==
                 "`TemplateOverride` category `TYPES` has no template. Define one with `@template TYPES = \"...\"` before the docstring."
+        end
+        # Issue 147: naming `ABSTRACTTYPES` explicitly does not fall back to `TYPES`.
+        let mod = Module(:Parent)
+            Core.eval(mod, :(using DocStringExtensions))
+            Core.eval(mod, :(@template TYPES = "$DOCSTRING"))
+            docstr = Expr(:string, "docs", :(DocStringExtensions.TemplateOverride(:ABSTRACTTYPES)))
+            @test_throws ArgumentError Core.eval(mod, :(@doc $docstr abstract type A end))
+            result = @test_throws ArgumentError Core.eval(mod, :(@template ABSTRACTTYPES = Parent))
+            @test occursin("`Parent` has no `ABSTRACTTYPES` template", result.value.msg)
         end
         # Issue 117: copying a template the source module does not define names the module and category.
         let mod = Module(:Parent)

@@ -1102,16 +1102,16 @@ end
 function template_key(binding::Docs.Binding, @nospecialize(typesig))
     # Local helper methods for extracting the template key from a docstring.
     ismacro(b::Docs.Binding) = startswith(string(b.var), '@')
-    objname(@nospecialize(obj::Union{Function,Module,DataType,UnionAll,Core.IntrinsicFunction}), b::Docs.Binding) = nameof(obj)
+    objname(@nospecialize(obj::Union{Function,Module,DataType,Core.IntrinsicFunction}), b::Docs.Binding) = nameof(obj)
+    objname(@nospecialize(obj::UnionAll), b::Docs.Binding) = objname(Base.unwrap_unionall(obj), b)
     objname(@nospecialize(obj), b::Docs.Binding) = Symbol("") # Empty to force resolving to `:CONSTANTS` below.
     # Select the key returned based on input argument types.
     _key(@nospecialize(::Module), @nospecialize(sig), binding)   = :MODULES
     _key(@nospecialize(::Function), ::typeof(Union{}), binding)  = ismacro(binding) ? :MACROS : :FUNCTIONS
     _key(@nospecialize(::Function), @nospecialize(sig), binding) = ismacro(binding) ? :MACROS : :METHODS
-    _key(@nospecialize(::DataType), ::typeof(Union{}), binding)  = :TYPES
-    _key(@nospecialize(::UnionAll), ::typeof(Union{}), binding)  = :TYPES
-    _key(@nospecialize(::DataType), @nospecialize(sig), binding) = :METHODS
-    _key(@nospecialize(::UnionAll), @nospecialize(sig), binding) = :METHODS
+    _key(@nospecialize(T::Union{DataType,UnionAll}), ::typeof(Union{}), binding) =
+        Base.isabstracttype(T) ? :ABSTRACTTYPES : :TYPES
+    _key(@nospecialize(_::Union{DataType,UnionAll}), @nospecialize(sig), binding) = :METHODS
     _key(@nospecialize(other), @nospecialize(sig), binding)      = :DEFAULT
 
     obj = Base.invokelatest(Docs.resolve, binding)

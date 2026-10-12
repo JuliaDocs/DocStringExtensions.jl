@@ -18,6 +18,13 @@ using DocStringExtensions
     $(DOCSTRING)
     """
 
+@template ABSTRACTTYPES =
+    """
+    (ABSTRACTTYPES)
+
+    $(DOCSTRING)
+    """
+
 @template (METHODS, MACROS) =
     """
     (METHODS, MACROS)
@@ -32,8 +39,20 @@ using DocStringExtensions
 "constant `K`"
 const K = 1
 
+"constant `U{S}`"
+const U{S} = Union{S,Nothing}
+
 "mutable struct `T`"
 mutable struct T end
+
+"abstract type `A`"
+abstract type A end
+
+"abstract type `AP{S}`"
+abstract type AP{S} end
+
+"primitive type `P`"
+primitive type P 8 end
 
 "mutable struct `ISSUE_115{S}`"
 mutable struct ISSUE_115{S} end
@@ -143,6 +162,9 @@ module InnerModule
         x
     end
 
+    "abstract type `A`"
+    abstract type A end
+
     "method `f`"
     f(x) = x
 
@@ -182,6 +204,9 @@ module OtherModule
 
     "mutable struct `ISSUE_115{S}`"
     mutable struct ISSUE_115{S} end
+
+    "abstract type `A`"
+    abstract type A end
 
     "macro `@m`"
     macro m(x) end

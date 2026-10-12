@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `SUBTYPES` to list the direct subtypes of a type as links. It lists only subtypes defined in the type's own module or a module inside it ([#47](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/47), [#154](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/154), [#227](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/227))
 - Add `BODY` to print the body of the documented method definition as a Julia code block ([#54](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/54), [#237](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/237))
 - Add `NOTEMPLATE`, which stops a module's `@template` applying to the docstring it appears in. `TemplateOverride(category)` applies the template for another category instead ([#158](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/158), [#240](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/240))
+- Add the `ABSTRACTTYPES` template category for abstract types. A module without one documents abstract types with its `TYPES` template, as before ([#147](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/147), [#241](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/241))
 
 ### Changed
 
@@ -26,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fix `@template` throwing a `MethodError` for a docstring on a parametric `Union` alias, such as `const Maybe{T} = Union{T,Nothing}`. The alias gets the `CONSTANTS` template ([#242](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/242))
 - Fix `defaults = true` signatures printing the source file and line before a default value that contains a macro call ([#238](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/238))
 - Fix `EXPORTS` listing names declared `public` but not exported on Julia 1.11 and later ([#190](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/190))
 - Fix two error messages printing the text `typeof(...)` where they should name a type: the one for an object with no `format` method, and the one for an unexpected `TYPEDSIGNATURES` signature type ([#216](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/216))

@@ -56,6 +56,12 @@ using DocStringExtensions
     $(TYPEDFIELDS)
     """
 
+@template ABSTRACTTYPES = """
+    $(TYPEDEF)
+    $(DOCSTRING)
+    $(SUBTYPES)
+    """
+
 include("shapes.jl")
 include("areas.jl")
 
@@ -72,7 +78,7 @@ using DocStringExtensions
 import ..MyPackage
 
 @template (FUNCTIONS, METHODS, MACROS) = MyPackage
-@template TYPES = MyPackage
+@template (TYPES, ABSTRACTTYPES) = MyPackage
 
 end
 ```
