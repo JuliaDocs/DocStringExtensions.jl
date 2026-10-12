@@ -43,7 +43,8 @@ The remaining examples show the other forms of `@template`.
     \"""
 ```
 
-`DEFAULT` applies to a docstring when no template for its own category exists.
+`DEFAULT` applies to a docstring when no template for its own category, or for the category
+it falls back to, exists.
 
 ```julia
 @template ABSTRACTTYPES =

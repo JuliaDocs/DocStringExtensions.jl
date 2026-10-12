@@ -102,9 +102,9 @@ typed_signatures_h_reference() =
         # Telling an abstract type from a concrete one, parametric or not.
         #
         # Used in src/abbreviations.jl by template_key() to pick the `ABSTRACTTYPES` template.
-        @test Base.isabstracttype(Base.unwrap_unionall(AbstractVector))
-        @test !Base.isabstracttype(Base.unwrap_unionall(Vector))
-        @test !Base.isabstracttype(Base.unwrap_unionall(Int8))
+        @test Base.isabstracttype(AbstractVector)
+        @test !Base.isabstracttype(Vector)
+        @test !Base.isabstracttype(Int8)
 
         # Getting keyword arguments of a method.
         #
@@ -889,6 +889,15 @@ typed_signatures_h_reference() =
             result = @test_throws ArgumentError Core.eval(mod, :(@doc $docstr f(x) = x))
             @test result.value.msg ==
                 "`TemplateOverride` category `TYPES` has no template. Define one with `@template TYPES = \"...\"` before the docstring."
+        end
+        # Issue 147: naming `ABSTRACTTYPES` explicitly does not fall back to `TYPES`.
+        let mod = Module(:Parent)
+            Core.eval(mod, :(using DocStringExtensions))
+            Core.eval(mod, :(@template TYPES = "$DOCSTRING"))
+            docstr = Expr(:string, "docs", :(DocStringExtensions.TemplateOverride(:ABSTRACTTYPES)))
+            @test_throws ArgumentError Core.eval(mod, :(@doc $docstr abstract type A end))
+            result = @test_throws ArgumentError Core.eval(mod, :(@template ABSTRACTTYPES = Parent))
+            @test occursin("`Parent` has no `ABSTRACTTYPES` template", result.value.msg)
         end
         # Issue 117: copying a template the source module does not define names the module and category.
         let mod = Module(:Parent)
