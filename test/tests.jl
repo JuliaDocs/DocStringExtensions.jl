@@ -1126,6 +1126,10 @@ typed_signatures_h_reference() =
             let (_, default) = definition_arguments_with_defaults(:(f(w = x -> x + 1) = w)).positional[1]
                 @test !occursin("#=", default)
             end
+            let d = definition_arguments_with_defaults(:(f(x = @m(1); k = g(@m(2))) = x))
+                @test !occursin("#=", d.positional[1][2])
+                @test !occursin("#=", d.keywords["k"])
+            end
         end
         @testset "append_defaults" begin
             let d = definition_arguments_with_defaults(:(g(x = 1, y = 2, z = 3; kwargs...) = x)),

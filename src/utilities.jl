@@ -98,14 +98,17 @@ Returns `nothing` when `expr` does not define a method or the body is empty.
 """
 function definition_body(expr::Expr)
     definition_call(expr) === nothing && return nothing
-    # Line numbers would print the author's local file paths.
-    local body = remove_macro_linenums!(Base.remove_linenums!(copy(method_definition(expr).args[2])))
+    local body = without_linenums(method_definition(expr).args[2])
     isempty(body.args) && return nothing
     # Base prints the block as `begin`, the statements indented by four spaces, then `end`.
     # Printing each statement alone mangles nested quotes.
     local lines = split(sprint(print, body), '\n')[2:end-1]
     return join([startswith(line, "    ") ? line[5:end] : line for line in lines], "\n")
 end
+
+# Line numbers would print the author's local file paths.
+without_linenums(ex::Expr) = remove_macro_linenums!(Base.remove_linenums!(copy(ex)))
+without_linenums(@nospecialize(other)) = other
 
 # `remove_linenums!` keeps the line number that every macro call carries.
 function remove_macro_linenums!(ex::Expr)
@@ -132,10 +135,7 @@ end
 
 function argument_default(@nospecialize(arg))
     if Meta.isexpr(arg, :kw, 2)
-        local default = arg.args[2]
-        # Line numbers would print the author's local file paths.
-        default isa Expr && (default = Base.remove_linenums!(copy(default)))
-        return (argument_name(arg.args[1]), sprint(Base.show_unquoted, default))
+        return (argument_name(arg.args[1]), sprint(Base.show_unquoted, without_linenums(arg.args[2])))
     end
     return (argument_name(arg), nothing)
 end
