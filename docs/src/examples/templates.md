@@ -13,6 +13,8 @@ abbreviations are written once. [`DOCSTRING`](@ref) marks where each original do
     the definitions that use them.
   * A template applies only in the module that defines it. A submodule needs its own, or a
     copy made with `@template CATEGORY = ParentModule`.
+  * Abstract types use the `ABSTRACTTYPES` template, or the `TYPES` template when the module
+    defines no `ABSTRACTTYPES` one.
 
 ```@eval
 Main.example_source("templates.jl")
@@ -22,6 +24,7 @@ The docstrings render as:
 
 ```@docs
 Geometry.unit_circle
+Geometry.Shape
 Geometry.Circle
 Geometry.area
 Geometry.Plain.perimeter

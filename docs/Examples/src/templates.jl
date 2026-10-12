@@ -17,11 +17,23 @@ unit_circle() = Circle(1.0)
     $(TYPEDFIELDS)
     """
 
+@template ABSTRACTTYPES = """
+    $(TYPEDEF)
+    $(DOCSTRING)
+    $(SUBTYPES)
+    """
+
+"""
+This docstring holds only this sentence. `Shape` is abstract, so the `ABSTRACTTYPES` template
+adds its subtypes below it in place of fields.
+"""
+abstract type Shape end
+
 """
 This docstring holds only this sentence. The template adds the definition above it and the
 fields below it.
 """
-struct Circle
+struct Circle <: Shape
     "The distance from the centre to the edge."
     radius::Float64
 end
