@@ -454,6 +454,17 @@ typed_signatures_h_reference() =
             @test_reference ro_path("signatures_returns_text.txt") str
             str = formatted(DSE.TypedMethodSignatures(returns = "success::Bool"), doc)
             @test_reference ro_path("typed_signatures_returns_text.txt") str
+
+            # The text follows each method that a positional default generates.
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :l_1),
+                :typesig => Union{Tuple{Symbol},Tuple{Symbol,Bool}},
+                :module => M,
+            )
+            str = formatted(DSE.MethodSignatures(returns = "success::Bool"), doc)
+            @test_reference ro_path("signatures_returns_text_defaults.txt") str
+            str = formatted(DSE.TypedMethodSignatures(returns = "success::Bool"), doc)
+            @test_reference ro_path("typed_signatures_returns_text_defaults.txt") str
         end
 
         @testset "method signatures with types" begin
