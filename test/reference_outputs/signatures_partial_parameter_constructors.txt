@@ -1,0 +1,56 @@
+```julia
+D{T}(g, n, m)
+```
+
+```julia
+D{T}(
+    g::Main.PartialParametersTestModule.G,
+    n::Integer,
+    m::MM
+) where {T, MM}
+```
+
+type `D`
+
+```julia
+D{T}(g)
+```
+
+```julia
+D{T}(g::Main.PartialParametersTestModule.G) where T
+```
+
+constructor `D{T}(g)`
+
+```julia
+D{T}(g, m)
+```
+
+```julia
+D{T}(
+    g::Main.PartialParametersTestModule.G,
+    m::MM
+) where {T, MM}
+```
+
+constructor `D{T}(g, m)`
+
+```julia
+F(subber; maxiters)
+```
+
+```julia
+F(subber::S; maxiters) where S
+```
+
+constructor `F(subber)`
+
+```julia
+F{Fold}(subber; maxiters)
+```
+
+```julia
+F{Fold}(subber::S; maxiters) where {Fold, S}
+```
+
+constructor `F{Fold}(subber)`

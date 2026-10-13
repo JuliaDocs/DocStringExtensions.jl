@@ -91,6 +91,9 @@
         @test string.(DSE.constructor_parameters(A.Arr, explicit)) == ["T", "2"]
         @test DSE.constructor_parameters(A.Mat, which(A.Mat, (Matrix{Int},))) === nothing
         @test DSE.constructor_parameters(A.LTM, which(A.LTM, (Ref{Int},))) === nothing
+        # Parameters written through an alias are the alias's own, not the type's.
+        @test DSE.constructor_parameters(A.Mat, which(A.Mat{Int}, (Matrix{Int},))) == [Int]
+        @test DSE.constructor_parameters(A.IMat, which(A.IMat, (Ref{Int},))) === nothing
         curve = which(A.Curve{A.Linear}, (Real,))
         @test DSE.constructor_parameters(A.Curve, curve) == [A.Linear]
         @test DSE.constructor_parameters(A.LinearCurve, curve) === nothing

@@ -17,6 +17,22 @@ alias `Mat`
 """
 Mat(a::AbstractArray) = Arr{eltype(a), 2, typeof(a)}(a)
 
+"""
+$(SIGNATURES)
+$(TypedMethodSignatures(returns = false))
+alias `Mat{Int}`
+"""
+Mat{Int}(a::AbstractArray) = Arr{Int, 2, typeof(a)}(a)
+
+const IMat{B} = Mat{Int, B}
+
+"""
+$(SIGNATURES)
+$(TypedMethodSignatures(returns = false))
+alias of an alias `IMat`
+"""
+IMat(r::Ref) = Arr{Int, 2, typeof(r)}(r)
+
 Arr{T, 2}(a::Tuple) where {T} = Arr{T, 2, typeof(a)}(a)
 
 struct LTA{T, N}

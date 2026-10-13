@@ -149,18 +149,29 @@ function constructor_parameters(func, method::Method)
     f = Base.unwrap_unionall(self_type(method))
     istypeoftype(f) || return nothing
     t = type_parameter(f)
-    # A call through an alias, such as `Mat(a)` for `const Mat{T,B} = Arr{T,2,B}`, writes none.
-    # Julia 1.13 finds `Point{T} == Point` for a free `T`, which `===` does not.
-    t === func && return nothing
     body = Base.unwrap_unionall(t)
     body isa DataType || return nothing
+    # A call through an alias writes the alias's parameters: `Mat{Int}(a)` for
+    # `const Mat{T,B} = Arr{T,2,B}` is `Arr{Int,2,B}`.
+    vars = typevars(func)
+    params = match_parameters!(Any[vars...], vars, Base.unwrap_unionall(func), body)
     # `Point{T}` for a type with more parameters leaves the trailing ones free.
-    params = collect(body.parameters)
     free = typevars(t)
     while !isempty(params) && last(params) in free
         pop!(params)
     end
     return isempty(params) ? nothing : params
+end
+
+# Sets `params[i]` to the part of `t` in the place of `vars[i]` within `pattern`.
+function match_parameters!(params, vars, pattern, t)
+    if pattern isa TypeVar
+        i = findfirst(v -> v === pattern, vars)
+        i === nothing || (params[i] = t)
+    elseif pattern isa DataType && t isa DataType && pattern.name === t.name
+        foreach((p, q) -> match_parameters!(params, vars, p, q), pattern.parameters, t.parameters)
+    end
+    return params
 end
 
 # The type of the callable a method belongs to. Julia 1.10 stores the default constructor of
@@ -285,12 +296,15 @@ getmethods(f, sig) = unique(getmethods!(Method[], f, sig))
 $(:SIGNATURES)
 
 The methods of `Type{T}`, for `T` any instance of the parametric type `func`, whose
-arguments match `typesig`. These are the constructors written as `T{P}(...)`.
+arguments match `typesig`. These are the constructors written as `T{P}(...)`. Julia stores
+`D{T}(g)` for `struct D{T,MM}` under `Type{D{T}}`, with `MM` free inside the invariant `Type`,
+so each leading run of `func`'s parameters is searched.
 """
 function constructor_methods(func::UnionAll, typesig)
-    self = Type{Base.unwrap_unionall(func)}
+    vars = typevars(func)
     results = Method[]
-    for each in alltypesigs(typesig)
+    for n in 1:length(vars), each in alltypesigs(typesig)
+        self = Type{func{vars[1:n]...}}
         args = tuple_parameters(each)
         tt = Base.rewrap_unionall(Base.rewrap_unionall(Tuple{self, args...}, each), func)::Type
         append!(results, matched_methods(tt))

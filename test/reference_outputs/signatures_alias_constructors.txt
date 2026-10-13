@@ -9,6 +9,26 @@ Mat(a::AbstractArray)
 alias `Mat`
 
 ```julia
+Mat{Int64}(a)
+```
+
+```julia
+Mat{Int64}(a::AbstractArray)
+```
+
+alias `Mat{Int}`
+
+```julia
+IMat(r)
+```
+
+```julia
+IMat(r::Ref)
+```
+
+alias of an alias `IMat`
+
+```julia
 LTM(r)
 ```
 

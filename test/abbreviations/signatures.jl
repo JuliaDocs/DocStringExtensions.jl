@@ -418,9 +418,16 @@
     # A constructor called through an alias prints as the alias, without the parameters the
     # alias fixes. One written with its parameters keeps them.
     @testset "alias constructors" begin
-        names = [:Mat, :LTM, :Curve]
+        names = [:Mat, :IMat, :LTM, :Curve]
         str = join([rendered(:(AliasesTestModule.$name)) for name in names], "\n")
         @test_reference ro_path("signatures_alias_constructors.txt") str
+    end
+
+    # `D{T}(g)` for a type with more parameters than the call writes leaves the rest free.
+    @testset "partial parameter constructors" begin
+        names = [:D, :F]
+        str = join([rendered(:(PartialParametersTestModule.$name)) for name in names], "\n")
+        @test_reference ro_path("signatures_partial_parameter_constructors.txt") str
     end
 
     @testset "signature destructuring" begin

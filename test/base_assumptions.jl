@@ -159,6 +159,19 @@
         @test data[:linenumber] < ctor.line
     end
 
+    # A constructor written with fewer parameters than its type, `D{T}(g)` for `D{T,MM}`, is
+    # a method of `Type{D{T}}` with `MM` free inside `Type`, which `Type{D{T,MM}}` misses.
+    #
+    # Used in src/methods.jl by constructor_methods().
+    let P = PartialParametersTestModule,
+            ctor = which(P.D{Int}, (P.G,)),
+            T = TypeVar(:T),
+            MM = TypeVar(:MM)
+
+        @test DSE.matched_methods(UnionAll(T, Tuple{Type{P.D{T}}, P.G})) == [ctor]
+        @test isempty(DSE.matched_methods(UnionAll(T, UnionAll(MM, Tuple{Type{P.D{T, MM}}, P.G}))))
+    end
+
     # A constructor called through an alias is a method of `Type{A}` for the alias's own
     # type `A`, egal to the binding's value.
     #
