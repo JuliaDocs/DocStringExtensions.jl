@@ -387,38 +387,32 @@
         end
 
     @testset "signature defaults" begin
-        let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))
             names = [:positional, :keywords, :typed, :parametric, :unnamed, :wrapped, :nospecialized, :destructured, :varargs]
-            str = join([fmt(:(DefaultsTestModule.$name)) for name in names], "\n")
+            str = join([rendered(:(DefaultsTestModule.$name)) for name in names], "\n")
             @test_reference ro_path("signature_defaults.txt") str
-            @test fmt(:(DefaultsTestModule.Templated.templated)) ==
+            @test rendered(:(DefaultsTestModule.Templated.templated)) ==
                 "```julia\ntemplated(x, y=1)\n```\n\nmethod `templated`\n"
             names = [:bracketed, :typed_bracketed, :unnamed_bracketed, :varargs_bracketed]
-            str = join([fmt(:(DefaultsTestModule.$name)) for name in names], "\n")
+            str = join([rendered(:(DefaultsTestModule.$name)) for name in names], "\n")
             @test_reference ro_path("signature_defaults_brackets.txt") str
-        end
         @test_throws ArgumentError DSE.MethodSignatures(defaults = :bracket)
         @test_throws ArgumentError DSE.TypedMethodSignatures(defaults = :Brackets)
     end
 
     @testset "constructor signatures" begin
-        let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))
             names = [:Plain, :Typed, :Parametric, :Inner, :Options, :TypedOptions, :EmptyOptions, :Wrapped, :Generated, :Empty]
-            str = join([fmt(:(ConstructorsTestModule.$name)) for name in names], "\n")
+            str = join([rendered(:(ConstructorsTestModule.$name)) for name in names], "\n")
             @test_reference ro_path("constructor_signatures.txt") str
-            @test isempty(fmt(:(ConstructorsTestModule.Abstract)))
-            @test fmt(:(ConstructorsTestModule.Templated.Point)) ==
+            @test isempty(rendered(:(ConstructorsTestModule.Abstract)))
+            @test rendered(:(ConstructorsTestModule.Templated.Point)) ==
                 "```julia\nPoint(x)\n```\n\ntype `Point`\n"
-        end
     end
 
     @testset "signature destructuring" begin
-        let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))
             names = [:pair, :typed, :nested, :unshowable]
-            str = join([fmt(:(DestructuringTestModule.$name)) for name in names], "\n")
+            str = join([rendered(:(DestructuringTestModule.$name)) for name in names], "\n")
             @test_reference ro_path("signature_destructuring.txt") str
-            @test fmt(:(DestructuringTestModule.Templated.templated)) ==
+            @test rendered(:(DestructuringTestModule.Templated.templated)) ==
                 "```julia\ntemplated((x, y))\n```\n\nmethod `templated`\n"
-        end
     end
 end

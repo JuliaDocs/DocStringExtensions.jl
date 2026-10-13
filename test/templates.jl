@@ -1,52 +1,50 @@
 @testset "templates" begin
-        let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))
-            @test occursin("(DEFAULT)", fmt(:(TemplateTests.K)))
-            @test fmt(:(TemplateTests.U)) == "(DEFAULT)\n\nconstant `U{S}`\n"
-            @test occursin("(TYPES)", fmt(:(TemplateTests.T)))
-            @test length(collect(eachmatch(r"\(TYPES\)", fmt(:(TemplateTests.S))))) == 1
-            @test occursin("(TYPES)", fmt(:(TemplateTests.ISSUE_115)))
-            @test occursin("(TYPES)", fmt(:(TemplateTests.P)))
+            @test occursin("(DEFAULT)", rendered(:(TemplateTests.K)))
+            @test rendered(:(TemplateTests.U)) == "(DEFAULT)\n\nconstant `U{S}`\n"
+            @test occursin("(TYPES)", rendered(:(TemplateTests.T)))
+            @test length(collect(eachmatch(r"\(TYPES\)", rendered(:(TemplateTests.S))))) == 1
+            @test occursin("(TYPES)", rendered(:(TemplateTests.ISSUE_115)))
+            @test occursin("(TYPES)", rendered(:(TemplateTests.P)))
             # Issue 147: abstract types have their own category.
-            @test fmt(:(TemplateTests.A)) == "(ABSTRACTTYPES)\n\nabstract type `A`\n"
-            @test fmt(:(TemplateTests.AP)) == "(ABSTRACTTYPES)\n\nabstract type `AP{S}`\n"
-            @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.f)))
-            @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.g)))
-            @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.h)))
-            @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.@m)))
-            @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.r)))
-            @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.early)))
-            @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.Inner)))
-            @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.InnerParametric)))
+            @test rendered(:(TemplateTests.A)) == "(ABSTRACTTYPES)\n\nabstract type `A`\n"
+            @test rendered(:(TemplateTests.AP)) == "(ABSTRACTTYPES)\n\nabstract type `AP{S}`\n"
+            @test occursin("(METHODS, MACROS)", rendered(:(TemplateTests.f)))
+            @test occursin("(METHODS, MACROS)", rendered(:(TemplateTests.g)))
+            @test occursin("(METHODS, MACROS)", rendered(:(TemplateTests.h)))
+            @test occursin("(METHODS, MACROS)", rendered(:(TemplateTests.@m)))
+            @test occursin("(METHODS, MACROS)", rendered(:(TemplateTests.r)))
+            @test occursin("(METHODS, MACROS)", rendered(:(TemplateTests.early)))
+            @test occursin("(METHODS, MACROS)", rendered(:(TemplateTests.Inner)))
+            @test occursin("(METHODS, MACROS)", rendered(:(TemplateTests.InnerParametric)))
             # `@doc` returns the binding before Julia 1.13 and the documented value from 1.13.
             doc_value(v) = v isa Docs.Binding ? (:binding, v.var) : (:value, nameof(v))
             @test doc_value(TemplateTests.DOC_VALUE) == doc_value(Untemplated.DOC_VALUE)
-            @test fmt(:(TemplateTests.LateTemplate.before)) == "method `before`\n"
-            @test fmt(:(TemplateTests.LateTemplate.after)) == "(LATE)\n\nmethod `after`\n"
+            @test rendered(:(TemplateTests.LateTemplate.before)) == "method `before`\n"
+            @test rendered(:(TemplateTests.LateTemplate.after)) == "(LATE)\n\nmethod `after`\n"
             # Bindings documented together each get the template for their own category.
-            @test occursin("(DEFAULT)", fmt(:(TemplateTests.paired)))
-            @test occursin("(TYPES)", fmt(:(TemplateTests.Paired)))
-            @test occursin("(DEFAULT)", fmt(:(TemplateTests.Documented)))
-            @test occursin("(DEFAULT)", fmt(:(TemplateTests.Redocumented)))
+            @test occursin("(DEFAULT)", rendered(:(TemplateTests.paired)))
+            @test occursin("(TYPES)", rendered(:(TemplateTests.Paired)))
+            @test occursin("(DEFAULT)", rendered(:(TemplateTests.Documented)))
+            @test occursin("(DEFAULT)", rendered(:(TemplateTests.Redocumented)))
             # Issue 158: a docstring can skip its template or use another category's.
-            @test fmt(:(TemplateTests.opted_out)) == "method `opted_out`\n"
-            @test fmt(:(TemplateTests.early_opted_out)) == "method `early_opted_out` documented before it is defined\n"
-            @test fmt(:(TemplateTests.OptedOut)) == "`@kwdef` struct `OptedOut`\n"
-            @test fmt(:(TemplateTests.redirected)) == "(DEFAULT)\n\nmethod `redirected`\n"
+            @test rendered(:(TemplateTests.opted_out)) == "method `opted_out`\n"
+            @test rendered(:(TemplateTests.early_opted_out)) == "method `early_opted_out` documented before it is defined\n"
+            @test rendered(:(TemplateTests.OptedOut)) == "`@kwdef` struct `OptedOut`\n"
+            @test rendered(:(TemplateTests.redirected)) == "(DEFAULT)\n\nmethod `redirected`\n"
 
-            @test occursin("(DEFAULT)", fmt(:(TemplateTests.InnerModule.K)))
-            @test occursin("(DEFAULT)", fmt(:(TemplateTests.InnerModule.T)))
-            @test occursin("field docs for x", fmt(:(TemplateTests.InnerModule.T)))
-            @test occursin("(DEFAULT)", fmt(:(TemplateTests.InnerModule.A)))
-            @test occursin("(METHODS, MACROS)", fmt(:(TemplateTests.InnerModule.f)))
-            @test occursin("(MACROS)", fmt(:(TemplateTests.InnerModule.@m)))
+            @test occursin("(DEFAULT)", rendered(:(TemplateTests.InnerModule.K)))
+            @test occursin("(DEFAULT)", rendered(:(TemplateTests.InnerModule.T)))
+            @test occursin("field docs for x", rendered(:(TemplateTests.InnerModule.T)))
+            @test occursin("(DEFAULT)", rendered(:(TemplateTests.InnerModule.A)))
+            @test occursin("(METHODS, MACROS)", rendered(:(TemplateTests.InnerModule.f)))
+            @test occursin("(MACROS)", rendered(:(TemplateTests.InnerModule.@m)))
 
-            @test occursin("(TYPES)", fmt(:(TemplateTests.OtherModule.T)))
-            @test occursin("(TYPES)", fmt(:(TemplateTests.OtherModule.ISSUE_115)))
+            @test occursin("(TYPES)", rendered(:(TemplateTests.OtherModule.T)))
+            @test occursin("(TYPES)", rendered(:(TemplateTests.OtherModule.ISSUE_115)))
             # A module without an `ABSTRACTTYPES` template documents abstract types with `TYPES`.
-            @test occursin("(TYPES)", fmt(:(TemplateTests.OtherModule.A)))
-            @test occursin("(MACROS)", fmt(:(TemplateTests.OtherModule.@m)))
-            @test fmt(:(TemplateTests.OtherModule.f)) == "method `f`\n"
-        end
+            @test occursin("(TYPES)", rendered(:(TemplateTests.OtherModule.A)))
+            @test occursin("(MACROS)", rendered(:(TemplateTests.OtherModule.@m)))
+            @test rendered(:(TemplateTests.OtherModule.f)) == "method `f`\n"
 
         # Issue 151: a template without `DOCSTRING` is rejected where it is defined.
         for template in ("test", Expr(:string, "test ", :SIGNATURES))

@@ -12,6 +12,9 @@ function with_test_repo(f)
     end
 end
 
+# The docstring of `expr`, a binding in a fixture module, as the REPL shows it.
+rendered(expr) = Markdown.plain(eval(:(@doc $expr)))
+
 # The docstring on `Param{T}() where {T}`, which records where it was written.
 function param_constructor_doc()
     local multidoc = Docs.meta(M)[Docs.Binding(M, :Param)]

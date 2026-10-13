@@ -8,11 +8,9 @@
         end
 
     @testset "Interpolation" begin
-        let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))
-            @test occursin("f(x)", fmt(:(InterpolationTestModule.f)))
-            @test occursin("x + 2", fmt(:(InterpolationTestModule.g)))
-            @test fmt(:(InterpolationTestModule.Templated.h)) == "h(x)\n\nmethod `h`\n"
-            @test fmt(:(InterpolationTestModule.StructOnlyTemplate.k)) == "method `k`\n"
-        end
+            @test occursin("f(x)", rendered(:(InterpolationTestModule.f)))
+            @test occursin("x + 2", rendered(:(InterpolationTestModule.g)))
+            @test rendered(:(InterpolationTestModule.Templated.h)) == "h(x)\n\nmethod `h`\n"
+            @test rendered(:(InterpolationTestModule.StructOnlyTemplate.k)) == "method `k`\n"
     end
 end
