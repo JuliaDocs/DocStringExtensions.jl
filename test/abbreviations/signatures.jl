@@ -415,4 +415,24 @@
         @test rendered(:(DestructuringTestModule.Templated.templated)) ==
             "```julia\ntemplated((x, y))\n```\n\nmethod `templated`\n"
     end
+
+    @testset "printed_typesig" begin
+        m = first(methods((x::Integer, y) -> x))
+        @test DSE.printed_typesig(m, Any[Tuple{Int}, Tuple{Integer, Any}]) == Tuple{Integer, Any}
+        @test DSE.printed_typesig(m, Any[Tuple{Int}, Tuple{Int, Int}]) == Tuple{Int, Int}
+        @test DSE.printed_typesig(m, Any[Tuple{T, T} where {T}]) == (Tuple{T, T} where {T})
+        @test DSE.printed_typesig(m, Any[Tuple{Int}]) == Tuple{Integer, Any}
+        # An expanded vararg and a parametric constructor keep their own signature.
+        expanded = first(methods((xs::Vararg{Int, 2}) -> xs))
+        @test DSE.printed_typesig(expanded, Any[Tuple{Any, Any}]) == Tuple{Int, Int}
+        constructor = first(methods(M.Param2{Int}, Tuple{Any}))
+        @test DSE.printed_typesig(constructor, Any[Tuple{Any}]) == DSE.argsig(constructor)
+    end
+
+    @testset "has_arity" begin
+        @test DSE.has_arity(Tuple{Int, Int}, 2)
+        @test DSE.has_arity(Tuple{T, T} where {T}, 2)
+        @test !DSE.has_arity(Tuple{Int}, 2)
+        @test !DSE.has_arity(Int, 1)
+    end
 end

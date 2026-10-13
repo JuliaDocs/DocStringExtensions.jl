@@ -180,32 +180,12 @@ function format(tms::TypedMethodSignatures, buf, doc)
     defaults = tms.defaults === false ? nothing : tms.definition
     return if !isempty(groups)
         group = groups[end]
+        tuples = alltypesigs(typesig)
         println(buf)
         println(buf, "```julia")
         for method in collapse_defaults(group, defaults)
-            N = length(arguments(method))
-            tuples = alltypesigs(typesig)
-            # Without a tuple equal to the method's signature, take one with as many arguments.
-            function f(t)
-                t isa UnionAll && return f(t.body)
-                return t <: Tuple && length(t.types) == N
-            end
-
-            idx = findfirst(t -> t == argsig(method), tuples)
-            if idx === nothing
-                @static if Sys.iswindows() && VERSION < v"1.8"
-                    idx = findlast(f, tuples)
-                else
-                    idx = findfirst(f, tuples)
-                end
-            end
-            # Julia 1.12 and later can normalise `typesig` to `Tuple`, leaving no tuple of length `N`.
-            # An expanded vararg has no tuple of length `N` either, and can match a wrong one.
-            # A parametric constructor's name needs the type parameters of its own signature.
-            t = idx === nothing || expanded_vararg(method) || constructor_parameters(method) !== nothing ?
-                argsig(method) : tuples[idx]
             printmethod(
-                buf, binding, func, method, t;
+                buf, binding, func, method, printed_typesig(method, tuples);
                 returns = tms.returns, definition = tms.definition,
                 brackets = tms.defaults === :brackets
             )
@@ -214,3 +194,26 @@ function format(tms::TypedMethodSignatures, buf, doc)
         println(buf, "```\n")
     end
 end
+
+# The signature `TYPEDSIGNATURES` prints for `method`: the tuple of `tuples` equal to the
+# method's signature, or else one with as many arguments.
+function printed_typesig(method::Method, tuples)
+    sig = argsig(method)
+    # An expanded vararg has no tuple with as many arguments, and can match a wrong one.
+    # A parametric constructor's name needs the type parameters of its own signature.
+    (expanded_vararg(method) || constructor_parameters(method) !== nothing) && return sig
+    idx = findfirst(t -> t == sig, tuples)
+    if idx === nothing
+        n = length(arguments(method))
+        @static if Sys.iswindows() && VERSION < v"1.8"
+            idx = findlast(t -> has_arity(t, n), tuples)
+        else
+            idx = findfirst(t -> has_arity(t, n), tuples)
+        end
+    end
+    # Julia 1.12 and later can normalise `typesig` to `Tuple`, leaving no tuple of length `n`.
+    return idx === nothing ? sig : tuples[idx]
+end
+
+has_arity(t::UnionAll, n) = has_arity(t.body, n)
+has_arity(t, n) = t <: Tuple && length(t.types) == n

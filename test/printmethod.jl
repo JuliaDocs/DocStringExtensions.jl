@@ -133,4 +133,26 @@
             @test DSE.append_defaults(["x"], ["kwargs..."], ["kwargs..."], m, d) == (["x=1"], ["kwargs..."])
         end
     end
+
+    @testset "used_typevars" begin
+        let T = TypeVar(:T), S = TypeVar(:S, Ref{T}), U = TypeVar(:U)
+            # `T` is used only in the bound of `S`.
+            @test DSE.used_typevars([T, S, U], Any[Tuple{S}]) == Any[T, S]
+            @test DSE.used_typevars([T, U], Any[Tuple{Int}, Vector{U}]) == Any[U]
+            @test DSE.used_typevars([T, U], Any[Tuple{Int}]) == Any[]
+        end
+    end
+
+    @testset "typed_argument" begin
+        typestring(t) = sprint(show, t)
+        unbounded = last(Tuple{Vararg{Int8}}.parameters)
+        counted = last((Tuple{Vararg{Int8, N}} where {N}).body.parameters)
+        @test DSE.typed_argument("x", Any, typestring) == "x"
+        @test DSE.typed_argument("x", Int8, typestring) == "x::Int8"
+        @test DSE.typed_argument("_", Int8, typestring) == "::Int8"
+        @test DSE.typed_argument("_", Any, typestring) == "_"
+        @test DSE.typed_argument("xs", unbounded, typestring) == "xs::Int8..."
+        @test DSE.typed_argument("_", unbounded, typestring) == "::Int8..."
+        @test DSE.typed_argument("xs", counted, typestring) == "xs::Vararg{Int8, N}"
+    end
 end
