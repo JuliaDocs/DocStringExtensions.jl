@@ -9,6 +9,29 @@ on:
   schedule:
     - cron: '0 0 * * 1' # runs 00:00 UTC on every Monday
 jobs:
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: julia-actions/setup-julia@fa02766e078afaaf09b14210362cee14137e6a32 # v3.0.2
+        with:
+          version: '1'
+      - uses: taiki-e/install-action@065d6a08a14e61e89fb0a4c10eecdbdef39c7d8e # v2.85.4
+        with:
+          tool: just
+      - name: Install runic
+        run: |
+          julia --project=@runic --startup-file=no -e 'using Pkg; Pkg.add("Runic")'
+          cat > runic <<'SCRIPT'
+          #!/bin/sh
+          export JULIA_LOAD_PATH="@runic"
+          exec julia --startup-file=no -e 'using Runic; exit(Runic.main(ARGS))' -- "$@"
+          SCRIPT
+          chmod +x runic
+          echo "$PWD" >> "$GITHUB_PATH"
+      - run: just fmt-check
+
   test:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }}
     runs-on: ${{ matrix.os }}

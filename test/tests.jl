@@ -80,7 +80,7 @@ typed_signatures_h_reference() =
 
         # How `Docs.docm` registers a docstring.
         #
-        # Used in src/templates.jl by forward_doc_calls(), which replaces each call to the
+        # Used in src/hook.jl by forward_doc_calls(), which replaces each call to the
         # `Docs.doc!` function object, and by the template_hook() method for the `@doc` calls
         # that `@__doc__` leaves to be expanded later. forward_doc!() takes the same arguments:
         # a signature, or none for a module.
@@ -103,14 +103,14 @@ typed_signatures_h_reference() =
 
         # Telling an abstract type from a concrete one, parametric or not.
         #
-        # Used in src/abbreviations.jl by template_key() to pick the `ABSTRACTTYPES` template.
+        # Used in src/templates.jl by template_key() to pick the `ABSTRACTTYPES` template.
         @test Base.isabstracttype(AbstractVector)
         @test !Base.isabstracttype(Vector)
         @test !Base.isabstracttype(Int8)
 
         # Getting keyword arguments of a method.
         #
-        # Used in src/utilities.jl for the keywords() function.
+        # Used in src/methods.jl for the keywords() function.
         #
         # The methodology is based on a snippet in Base at base/replutil.jl:572-576
         # (commit 3b45cdc9aab0). It uses the undocumented Base.kwarg_decl() function.
@@ -147,7 +147,7 @@ typed_signatures_h_reference() =
         # A method with keyword arguments ends by calling a body method, whose arguments are
         # the keywords, then the function, then the positional arguments.
         #
-        # Used in src/utilities.jl by keyword_body() and keyword_types().
+        # Used in src/methods.jl by keyword_body() and keyword_types().
         slots(body) = Base.uncompressed_ast(body).slotnames[2:body.nargs]
         let body = DSE.keyword_body(first(methods(M.i_5)))
             @test slots(body)[[1:4; end]] == [:a, :b, :c, :d, :x]
@@ -157,39 +157,40 @@ typed_signatures_h_reference() =
 
         # Whether a method's last positional argument is a vararg.
         #
-        # Used in src/utilities.jl for the untyped printmethod() method.
+        # Used in src/printmethod.jl for the untyped printmethod() method.
         @test first(methods(M.k_11)).isva
         @test !first(methods(M.f)).isva
 
         # Whether a name is exported, since `names` also returns `public` names on 1.11+.
         #
-        # Used in src/abbreviations.jl for the EXPORTS abbreviation.
+        # Used in src/abbreviations/module_names.jl for the EXPORTS abbreviation.
         @test Base.isexported(M, :f)
         @test !Base.isexported(M, :g_1)
 
         # Whether a method is `@generated`.
         #
-        # Used in src/utilities.jl for the typed printmethod() method. Julia before 1.10 has
+        # Used in src/methods.jl by method_return_type(). Julia before 1.10 has
         # no `Base.hasgenerator`, and the `hasgenerator` shim reads the `generator` field.
         @test DSE.hasgenerator(first(methods(M.g_1)))
         @test !DSE.hasgenerator(first(methods(M.f)))
 
         # `Base.return_types` lists one type per method, in the order `methods` lists them.
         #
-        # Used in src/utilities.jl for the method_return_type() function.
+        # Used in src/methods.jl for the method_return_type() function.
         @test collect(methods(M.overlapping, Tuple{Integer})) ==
             [which(M.overlapping, Tuple{Int8}), which(M.overlapping, Tuple{Integer})]
         @test Base.return_types(M.overlapping, Tuple{Integer}) == [Int8, String]
 
         # A method's argument types, without the function type.
         #
-        # Used in src/utilities.jl by argsig().
+        # Used in src/methods.jl by argsig().
         @test Base.tuple_type_tail(first(methods(M.k_0)).sig) == (Tuple{T} where T)
         @test Base.tuple_type_tail(which(M.k_13, Tuple{Int}).sig) == Tuple{Any,Vararg{Any}}
 
         # Recognising a vararg argument type and its element type.
         #
-        # Used in src/utilities.jl for the typed printmethod() method.
+        # Used in src/printmethod.jl for the typed printmethod() method, and in src/methods.jl
+        # by argument_types() and expanded_vararg().
         let varargs = Tuple{Int,Vararg{Real}}.types
             @test Base.isvarargtype(varargs[2])
             @test !Base.isvarargtype(varargs[1])
@@ -200,7 +201,7 @@ typed_signatures_h_reference() =
 
         # A fixed-count vararg expands in `method.sig`, and its `n` is a field of `Vararg`.
         #
-        # Used in src/utilities.jl by expanded_vararg() and vararg_length().
+        # Used in src/methods.jl by expanded_vararg() and vararg_length().
         @test first(methods(M.k_16)).isva
         @test Base.tuple_type_tail(first(methods(M.k_16)).sig) == Tuple{Real,Int,Int}
         @test DSE.vararg_length(Vararg{Int,2}) == 2
@@ -213,7 +214,7 @@ typed_signatures_h_reference() =
         # `Base._methods_by_ftype` finds by its full signature, and its docstring records
         # where it was written.
         #
-        # Used in src/utilities.jl by constructor_methods(), matched_methods(),
+        # Used in src/methods.jl by constructor_methods(), matched_methods(),
         # constructor_parameters() and documented_groups().
         let ctor = first(methods(M.Param{Int}, Tuple{})),
             multidoc = Docs.meta(M)[Docs.Binding(M, :Param)],
@@ -229,7 +230,7 @@ typed_signatures_h_reference() =
 
         # Printing a type parameter by name inside a method's `where` clause.
         #
-        # Used in src/utilities.jl for the typed printmethod() method.
+        # Used in src/printmethod.jl for the typed printmethod() method.
         let T = TypeVar(:T, Number)
             @test Base.has_typevar(Tuple{Vector{T}}, T)
             @test !Base.has_typevar(Tuple{String}, T)
@@ -239,7 +240,7 @@ typed_signatures_h_reference() =
 
         # Rendering default values as source text.
         #
-        # Used in src/utilities.jl for the definition_arguments() function.
+        # Used in src/definitions.jl for the definition_arguments() function.
         @test sprint(Base.show_unquoted, :(zero(T))) == "zero(T)"
         @test sprint(Base.show_unquoted, :x) == "x"
         @test sprint(Base.show_unquoted, "x") == "\"x\""
@@ -250,7 +251,7 @@ typed_signatures_h_reference() =
 
         # Where Julia places the constructors that a struct definition creates.
         #
-        # Used in src/utilities.jl by struct_constructors(), which takes the constructors
+        # Used in src/methods.jl by struct_constructors(), which takes the constructors
         # defined no later than the definition's last line, and by self_type() for the default
         # constructor of a parametric type.
         let mod = Module()
@@ -1052,7 +1053,7 @@ typed_signatures_h_reference() =
                 "```julia\nx + 1\n```\n\nmethod `templated`\n"
         end
     end
-    @testset "utilities" begin
+    @testset "internals" begin
         @testset "keywords" begin
             @test DSE.keywords(M.T, first(methods(M.T))) == Symbol[]
             @test DSE.keywords(M.K, first(methods(M.K))) == [:a]
@@ -1403,7 +1404,7 @@ typed_signatures_h_reference() =
         @testset "sourcepath" begin
             # A package module's files are shown relative to the package root, wherever it lives.
             file = string(first(methods(DSE.cleanpath)).file)
-            @test DSE.sourcepath(file, DSE) == "src/utilities.jl"
+            @test DSE.sourcepath(file, DSE) == "src/abbreviations/methodlist.jl"
             file = string(first(methods(Nested.Inner.f)).file)
             @test DSE.sourcepath(file, Nested.Inner) == "src/inner/Inner.jl"
             # `M` is not part of a package.
