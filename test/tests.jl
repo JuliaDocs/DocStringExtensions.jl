@@ -1282,6 +1282,7 @@ typed_signatures_h_reference() =
                 end
             end)) === nothing
             @test DSE.field_defaults(:(struct S a::Int end)) === nothing
+            @test DSE.field_defaults(:(@enum Color red blue)) === nothing
             @test DSE.field_defaults(:(f(x = 1) = x)) === nothing
         end
         @testset "append_defaults" begin
