@@ -15,7 +15,7 @@ struct Plain
 end
 
 """
-$(TypedMethodSignatures(false))
+$(TypedMethodSignatures(returns = false))
 """
 struct Typed
     a::Float64
@@ -23,7 +23,7 @@ struct Typed
 end
 
 """
-$(TypedMethodSignatures(false))
+$(TypedMethodSignatures(returns = false))
 """
 struct Parametric{T}
     x::T
@@ -51,7 +51,7 @@ Base.@kwdef struct Options
 end
 
 """
-$(TypedMethodSignatures(false))
+$(TypedMethodSignatures(returns = false))
 """
 Base.@kwdef struct TypedOptions
     retries::Float64 = 3.0

@@ -9,8 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Add `TYPEDMETHODLIST`, which lists methods like `METHODLIST` but with argument and return types. `TypedMethodList(false)` leaves out the return types ([#150](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/150), [#197](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/197))
-- Add `TypedMethodSignatures(false)`, which renders typed signatures without return types ([#159](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/159), [#179](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/179))
+- Add `TYPEDMETHODLIST`, which lists methods like `METHODLIST` but with argument and return types. `TypedMethodList(returns = false)` leaves out the return types ([#150](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/150), [#197](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/197))
+- Add `TypedMethodSignatures(returns = false)`, which renders typed signatures without return types ([#159](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/159), [#179](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/179))
+- Add a `returns` option to `MethodSignatures` and `MethodList` that follows each signature with its inferred return type. `MethodSignatures` and `TypedMethodSignatures` also take a string, such as `returns = "success::Bool"`, which they print after `->` in place of the inferred type ([#206](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/206), [#246](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/246))
 - Add a `defaults = true` option to `MethodSignatures` and `TypedMethodSignatures` that prints default argument values, with the methods generated for positional defaults collapsed into one signature ([#19](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/19), [#107](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/107), [#194](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/194))
 - Add `PUBLIC` to list a module's public names, both exported and declared `public` ([#190](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/190))
 - Add `INSTANCES` to list the instances of an enum with their values. It supports `@enum` and EnumX.jl's `@enumx` ([#171](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/171))

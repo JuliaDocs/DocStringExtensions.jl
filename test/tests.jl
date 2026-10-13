@@ -348,6 +348,18 @@ typed_signatures_h_reference() =
             windows = "defined at [`C:\\Users\\u\\.julia\\dev\\DocStringExtensions\\test\\TestModule\\M.jl:5`" * url
             @test redact_local_info(windows) ==
                 "defined at [`[...]test\\TestModule\\M.jl:5`](https://github.com/JuliaDocs/NonExistent.jl/tree/[...]/M.jl#L5)."
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :l_1),
+                :typesig => Union{},
+                :module => M,
+            )
+            str = with_test_repo(() -> formatted(DSE.MethodList(returns = true), doc))
+            @test_reference typed_method_lists_reference("method_lists_returns") redact_local_info(str)
+
+            # Each listed method has its own return type, so a list takes no fixed text.
+            @test_throws TypeError DSE.MethodList(returns = "success::Bool")
+            @test_throws TypeError DSE.TypedMethodList(returns = "success::Bool")
         end
 
         @testset "method lists with types" begin
@@ -359,7 +371,7 @@ typed_signatures_h_reference() =
             str = with_test_repo(() -> formatted(TYPEDMETHODLIST, doc))
             @test_reference typed_method_lists_reference("typed_method_lists") redact_local_info(str)
 
-            str = with_test_repo(() -> formatted(DSE.TypedMethodList(false), doc))
+            str = with_test_repo(() -> formatted(DSE.TypedMethodList(returns = false), doc))
             @test_reference typed_method_lists_reference("typed_method_lists_no_return") redact_local_info(str)
 
             # Each method shows its own return type when the signatures overlap.
@@ -430,6 +442,18 @@ typed_signatures_h_reference() =
             # docstring's location picks out the documented definition.
             str = formatted(SIGNATURES, param_constructor_doc())
             @test_reference ro_path("signatures_parametric_constructor.txt") str
+
+            doc.data = Dict(
+                :binding => Docs.Binding(M, :l_1),
+                :typesig => Tuple{String},
+                :module => M,
+            )
+            str = formatted(DSE.MethodSignatures(returns = true), doc)
+            @test_reference ro_path("signatures_returns_inferred.txt") str
+            str = formatted(DSE.MethodSignatures(returns = "success::Bool"), doc)
+            @test_reference ro_path("signatures_returns_text.txt") str
+            str = formatted(DSE.TypedMethodSignatures(returns = "success::Bool"), doc)
+            @test_reference ro_path("typed_signatures_returns_text.txt") str
         end
 
         @testset "method signatures with types" begin
@@ -681,7 +705,7 @@ typed_signatures_h_reference() =
                 :typesig => Tuple{M.A},
                 :module => M,
             )
-            str = formatted(DSE.TypedMethodSignatures(false), doc)
+            str = formatted(DSE.TypedMethodSignatures(returns = false), doc)
             str = replace(str, " " => "")
             if Sys.iswindows() && VERSION < v"1.8"
                 @test_reference ro_path("typed_method_signatures_no_return_h1_windows_pre_18.txt") str
@@ -694,7 +718,7 @@ typed_signatures_h_reference() =
                 :typesig => Tuple{String},
                 :module => M,
             )
-            str = formatted(DSE.TypedMethodSignatures(false), doc)
+            str = formatted(DSE.TypedMethodSignatures(returns = false), doc)
             @test_reference ro_path("typed_method_signatures_no_return_g2.txt") str
 
             doc.data = Dict(
@@ -702,7 +726,7 @@ typed_signatures_h_reference() =
                 :typesig => Tuple{Int,Int,Int},
                 :module => M,
             )
-            str = formatted(DSE.TypedMethodSignatures(false), doc)
+            str = formatted(DSE.TypedMethodSignatures(returns = false), doc)
             if typeof(1) === Int64
                 @test_reference ro_path("typed_method_signatures_no_return_h_64bit.txt") str
             else
@@ -714,7 +738,7 @@ typed_signatures_h_reference() =
                 :typesig => Tuple{Int},
                 :module => M,
             )
-            str = formatted(DSE.TypedMethodSignatures(false), doc)
+            str = formatted(DSE.TypedMethodSignatures(returns = false), doc)
             if typeof(1) === Int64
                 # On 1.10+, automatically generated methods have keywords in the metadata,
                 # hence the display difference between Julia versions.
@@ -1099,7 +1123,7 @@ typed_signatures_h_reference() =
                 m = first(methods(f))
 
                 @test DSE.printmethod(b, f, m) == "f(x, ::String)"
-                typed = DSE.printmethod(IOBuffer(), b, f, m, Tuple{Any,String}; print_return_types = false)
+                typed = DSE.printmethod(IOBuffer(), b, f, m, Tuple{Any,String}; returns = false)
                 @test String(take!(typed)) == "f(x, ::String)"
             end
             let b = Docs.Binding(M, :k_23),
@@ -1113,7 +1137,7 @@ typed_signatures_h_reference() =
                 m = first(methods(f))
 
                 # `T` appears only in the bound of `S`.
-                typed = DSE.printmethod(IOBuffer(), b, f, m, DSE.argsig(m); print_return_types = false)
+                typed = DSE.printmethod(IOBuffer(), b, f, m, DSE.argsig(m); returns = false)
                 @test String(take!(typed)) == "k_19(x::S) where {T, S<:Ref{T}}"
             end
             let b = Docs.Binding(M, :Param2),
@@ -1122,14 +1146,14 @@ typed_signatures_h_reference() =
 
                 # `Param2{T}` leaves the second parameter free.
                 @test DSE.printmethod(b, f, m) == "Param2{T}(b)"
-                typed = DSE.printmethod(IOBuffer(), b, f, m, DSE.argsig(m); print_return_types = false)
+                typed = DSE.printmethod(IOBuffer(), b, f, m, DSE.argsig(m); returns = false)
                 @test String(take!(typed)) == "Param2{T}(b) where T<:Number"
             end
             let b = Docs.Binding(M, :k_20),
                 f = M.k_20,
                 m = first(methods(f))
 
-                typed = DSE.printmethod(IOBuffer(), b, f, m, DSE.argsig(m); print_return_types = false)
+                typed = DSE.printmethod(IOBuffer(), b, f, m, DSE.argsig(m); returns = false)
                 @test String(take!(typed)) == "k_20(xs::Vararg{T, N}) where {T, N}"
             end
             let b = Docs.Binding(M, :k_11),
@@ -1201,7 +1225,7 @@ typed_signatures_h_reference() =
             end
             # Issue 97: typed signatures print the declared types of keyword arguments.
             typed(name) = let f = getfield(M, name), m = first(methods(f))
-                String(take!(DSE.printmethod(IOBuffer(), Docs.Binding(M, name), f, m, DSE.argsig(m); print_return_types = false)))
+                String(take!(DSE.printmethod(IOBuffer(), Docs.Binding(M, name), f, m, DSE.argsig(m); returns = false)))
             end
             @test typed(:i_3) == "i_3(x::T; y) where T"
             @test typed(:i_4) == "i_4(x; y::T, z::U) where {T, U}"

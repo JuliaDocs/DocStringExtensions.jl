@@ -30,7 +30,13 @@ Passing `defaults = true` to [`MethodSignatures`](@ref DocStringExtensions.Metho
 or [`TypedMethodSignatures`](@ref DocStringExtensions.TypedMethodSignatures) shows the
 default value and prints the two methods as one signature:
 
-$(DocStringExtensions.TypedMethodSignatures(true; defaults = true))
+$(DocStringExtensions.TypedMethodSignatures(defaults = true))
+
+---
+
+Passing a string as `returns` describes the return value in place of the inferred type:
+
+$(DocStringExtensions.MethodSignatures(returns = "sum::Int"))
 
 ---
 
