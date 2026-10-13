@@ -35,6 +35,15 @@ EOF
 
 `Pkg.test()` runs the same suite in a fresh sandbox. Use it as the final check before a commit.
 
+## Formatting
+
+Runic formats `src/`. The CI `Format` job runs the check and fails on any unformatted file.
+
+```bash
+just fmt        # Format in place
+just fmt-check  # Check without changing files, as CI does
+```
+
 ## Building docs
 
 ```bash
