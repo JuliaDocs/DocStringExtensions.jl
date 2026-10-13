@@ -4,9 +4,14 @@ DocStringExtensions adds abbreviations and templates to Julia's docsystem. An ab
 
 ## Layout
 
-- `src/abbreviations.jl` defines each abbreviation as a subtype of `Abbreviation`, a `const` instance (`TYPEDEF`, `METHODLIST`, ...), and a `format(abbr, buf, doc)` method that writes its Markdown to `buf`.
+- `src/interface.jl` declares `Abbreviation`, the `format` fallback, and the `interpolation` extension point.
+- `src/abbreviations/` holds one file per abbreviation, named after its `const` (`typedef.jl` for `TYPEDEF`). Each defines a subtype of `Abbreviation`, the `const` instance, and a `format(abbr, buf, doc)` method that writes its Markdown to `buf`. A typed variant shares its untyped twin's file, and `module_names.jl` and `package_files.jl` each hold two abbreviations that share a `format`.
+- `src/definitions.jl` reads the documented expression: argument defaults, field defaults, and where a struct definition ends.
+- `src/methods.jl` finds and groups the methods a docstring documents and reads their arguments and keywords.
+- `src/printmethod.jl` renders a method signature for `SIGNATURES`, `TYPEDSIGNATURES` and the method lists.
 - `src/templates.jl` implements `@template`, which wraps every docstring of a given kind in a module.
-- `src/utilities.jl` holds the method, signature, and source-URL introspection that the abbreviations call.
+- `src/hook.jl` replaces `Core.atdoc` to capture the documented expression for `interpolation` and to resolve templates.
+- `src/DocStringExtensions.jl` includes the files so that each loads after any type its fields or method signatures name.
 - `docs/` is the Documenter site. `docs/make.jl` builds it.
 - `test/` holds the suite. `test/AGENTS.md` covers how it is written.
 - `CHANGELOG.md` follows Keep a Changelog. Record user-facing changes under `Unreleased`, with issue and PR links written inline.

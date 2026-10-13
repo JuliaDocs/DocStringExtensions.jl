@@ -44,11 +44,27 @@ export SIGNATURES, TYPEDSIGNATURES, TYPEDEF, INSTANCES, SUBTYPES, DOCSTRING, FUN
 export README, LICENSE, NOTEMPLATE
 # export interpolation
 
-# Includes.
+# Includes. Each file loads after the files defining the types its fields and signatures name.
 
-include("utilities.jl")
-include("abbreviations.jl")
+include("interface.jl")
+include("definitions.jl")
+include("methods.jl")
+include("printmethod.jl")
+include("abbreviations/fields.jl")
+include("abbreviations/module_names.jl")
+include("abbreviations/imports.jl")
+include("abbreviations/methodlist.jl")
+include("abbreviations/signatures.jl")
+include("abbreviations/functionname.jl")
+include("abbreviations/body.jl")
+include("abbreviations/typedef.jl")
+include("abbreviations/instances.jl")
+include("abbreviations/subtypes.jl")
+include("abbreviations/package_files.jl")
+include("abbreviations/docstring.jl")
+include("abbreviations/notemplate.jl")
 include("templates.jl")
+include("hook.jl")
 
 #
 # Bootstrap abbreviations.

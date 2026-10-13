@@ -1,6 +1,3 @@
-const expander = Core.atdoc
-const setter! = Core.atdoc!
-
 """
 $(:SIGNATURES)
 
@@ -154,89 +151,86 @@ function copied_template(source::Module, category::Symbol)
     ))
 end
 
-# Runs in place of `Core.atdoc`, so it calls the default expander itself.
-function template_hook(source::LineNumberNode, mod::Module, docstr, expr::Expr, define...)
-    hooked(docstr) || (docstr = hook_docstring(mod, docstr, expr))
-    local out = expander(source, mod, docstr, expr, define...)
-    return isdefined(mod, TEMP_SYM) ? forward_doc_calls(out) : out
-end
-# On Julia 1.6 and later, the `@doc` calls that `@__doc__` leaves carry two leading arguments
-# that `Docs.docm` drops.
-template_hook(source::LineNumberNode, mod::Module, _, _, docstr, expr::Expr, define::Bool) =
-    template_hook(source, mod, docstr, expr, define)
-template_hook(args...) = expander(args...)
-
-function hook_docstring(mod::Module, docstr, expr::Expr)
-    docstr = _capture_expression(docstr, expr)
-    # During macro expansion we only need to wrap docstrings in special
-    # abbreviations that later print out what was before and after the
-    # docstring in it's specific template. This is only done when the module
-    # actually defines templates.
-    if isdefined(mod, TEMP_SYM)
-        dict = getfield(mod, TEMP_SYM)
-        # We unwrap interpolated strings so that we can add the `:before` and
-        # `:after` abbreviations. Otherwise they're just left as is.
-        unwrapped = Meta.isexpr(docstr, :string) ? docstr.args : [docstr]
-        before, after = Template{:before}(dict, expr), Template{:after}(dict, expr)
-        # Rebuild the original docstring, but with the template abbreviations
-        # surrounding it.
-        docstr = Expr(:string, before, unwrapped..., after)
-    end
-    return docstr
-end
-
-# `Docs.docm` registers a docstring by calling `Docs.doc!`, which `forward_doc!` replaces.
-# Only the expressions leading to such a call are copied, so a large definition is not.
-forward_doc_calls(@nospecialize(other)) = other
-function forward_doc_calls(ex::Expr)
-    local args = ex.args
-    for (index, arg) in enumerate(ex.args)
-        local forwarded = forward_doc_calls(arg)
-        forwarded === arg && continue
-        args === ex.args && (args = copy(ex.args))
-        args[index] = forwarded
-    end
-    if Meta.isexpr(ex, :call) && args[1] === Docs.doc!
-        args === ex.args && (args = copy(ex.args))
-        args[1] = forward_doc!
-    end
-    return args === ex.args ? ex : Expr(ex.head, args...)
-end
-
-# The documented object is defined by now, so the template is resolved and its documented
-# expression dropped. A binding that does not exist yet keeps its `Template` parts.
-function forward_doc!(mod::Module, binding::Docs.Binding, str::Docs.DocStr, @nospecialize(sig = Union{}))
-    isdefined(binding.mod, binding.var) && (str = resolve_templates(str, template_key(binding, sig)))
-    return Docs.doc!(mod, binding, str, sig)
-end
-
-# A new `DocStr`, since bindings documented together share one and each needs its own template.
-function resolve_templates(str::Docs.DocStr, key::Symbol)
-    local text = Any[]
-    local selector = template_selector(str.text, key)
-    for part in str.text
-        part isa Template ? append!(text, template_parts(part, selector)) : push!(text, part)
-    end
-    return Docs.DocStr(Core.svec(text...), str.object, copy(str.data))
-end
-
-# `Docs` documents each definition a macro marks with `@__doc__` by passing the docstring this
-# hook returned back through `@doc`.
-hooked(docstr) = Meta.isexpr(docstr, :string) && any(is_hook_part, docstr.args)
-is_hook_part(part) = isa(part, Template) || Meta.isexpr(part, :call) && part.args[1] === interpolation
-
 get_template(t::Dict, k::Symbol) =
     haskey(t, k) ? t[k] :
     k === :ABSTRACTTYPES ? get_template(t, :TYPES) :
     get(t, :DEFAULT, Any[DOCSTRING])
 
-# Every templated package calls these, so compiling them here saves each one doing it.
-const PRECOMPILED = (
-    (template_hook, (LineNumberNode, Module, String, Expr)),
-    (Template{:before}, (Dict{Symbol,Vector}, Expr)),
-    (Template{:after}, (Dict{Symbol,Vector}, Expr)),
-    (template_parts, (Template{:before}, Symbol)),
-    (template_parts, (Template{:after}, Symbol)),
-    (forward_doc!, (Module, Docs.Binding, Docs.DocStr, Any)),
-)
-foreach(((f, types),) -> precompile(f, types), PRECOMPILED)
+# The docstring's `TemplateOverride` if it has one, otherwise the `inferred` category.
+function template_selector(text, inferred::Symbol)
+    for part in text
+        part isa TemplateOverride && return part
+    end
+    return inferred
+end
+
+"""
+Internal abbreviation type used to wrap templated docstrings.
+
+`Location` is a `Symbol`, either `:before` or `:after`. `dict` stores a
+reference to a module's templates. `expr` is the documented expression, which is
+passed to [`interpolation`](@ref) for each part of the template.
+"""
+struct Template{Location} <: Abbreviation
+    dict::Dict{Symbol,Vector{Any}}
+    expr::Expr
+end
+
+function format(abbr::Template, buf, doc)
+    for part in template_parts(abbr, template_selector(doc.text, template_key(doc)))
+        # We don't call `DocStringExtensions.format` here since we need to be
+        # able to format any content in docstrings, rather than just
+        # abbreviations.
+        Docs.formatdoc(buf, doc, part)
+    end
+end
+
+# The parts of the template for `key` found before the `DOCSTRING` abbreviation, or after it.
+function template_parts(abbr::Template, key::Symbol)
+    local parts = get_template(abbr.dict, key)
+    return Any[interpolation(parts[index], abbr.expr) for index in included_range(abbr, parts)]
+end
+function template_parts(abbr::Template, override::TemplateOverride)
+    local category = override.category
+    category === nothing && return Any[]
+    haskey(abbr.dict, category) || throw(ArgumentError(
+        "`TemplateOverride` category `$category` has no template. " *
+        "Define one with `@template $category = \"...\"` before the docstring."
+    ))
+    return template_parts(abbr, category)
+end
+
+function included_range(abbr::Template, parts::Vector)
+    # Select the correct indexing depending on what we find.
+    build_range(::Template{:before}, index) = 1:(index - 1)
+    build_range(::Template{:after}, index) = (index + 1):lastindex(parts)
+    # Search for index from either the front or back.
+    find_index(::Template{:before}) = findfirst(is_docstr_template, parts)
+    find_index(::Template{:after}) = findlast(is_docstr_template, parts)
+    # Find and return the correct indices.
+    return build_range(abbr, find_index(abbr))
+end
+
+# Runs as each templated docstring is registered. Specialising on the documented object would
+# compile, and cache in the documenting package's image, an instance for every function.
+function template_key(binding::Docs.Binding, @nospecialize(typesig))
+    # Local helper methods for extracting the template key from a docstring.
+    ismacro(b::Docs.Binding) = startswith(string(b.var), '@')
+    objname(@nospecialize(obj::Union{Function,Module,DataType,Core.IntrinsicFunction}), b::Docs.Binding) = nameof(obj)
+    objname(@nospecialize(obj::UnionAll), b::Docs.Binding) = objname(Base.unwrap_unionall(obj), b)
+    objname(@nospecialize(obj), b::Docs.Binding) = Symbol("") # Empty to force resolving to `:CONSTANTS` below.
+    # Select the key returned based on input argument types.
+    _key(@nospecialize(::Module), @nospecialize(sig), binding)   = :MODULES
+    _key(@nospecialize(::Function), ::typeof(Union{}), binding)  = ismacro(binding) ? :MACROS : :FUNCTIONS
+    _key(@nospecialize(::Function), @nospecialize(sig), binding) = ismacro(binding) ? :MACROS : :METHODS
+    _key(@nospecialize(T::Union{DataType,UnionAll}), ::typeof(Union{}), binding) =
+        Base.isabstracttype(T) ? :ABSTRACTTYPES : :TYPES
+    _key(@nospecialize(_::Union{DataType,UnionAll}), @nospecialize(sig), binding) = :METHODS
+    _key(@nospecialize(other), @nospecialize(sig), binding)      = :DEFAULT
+
+    obj = Base.invokelatest(Docs.resolve, binding)
+    name = objname(obj, binding)
+    key = name === binding.var ? _key(obj, typesig, binding) : :CONSTANTS
+    return key
+end
+template_key(doc::Docs.DocStr) = template_key(doc.data[:binding], doc.data[:typesig])
