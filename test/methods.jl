@@ -44,7 +44,9 @@
     end
 
     @testset "arguments" begin
-        @test @inferred(DSE.arguments(first(methods(M.T)))) == ["a", "b", "c"]
+        @test DSE.arguments(first(methods(M.T))) == ["a", "b", "c"]
+        # Inference only matters from Julia 1.10.
+        VERSION >= v"1.10" && @test @inferred(DSE.arguments(first(methods(M.T)))) isa Vector{String}
         @test DSE.arguments(first(methods(M.K))) == String[]
         @test DSE.arguments(first(methods(M.f))) == ["x"]
         let m = first(methods(() -> ()))
@@ -67,6 +69,12 @@
         let m = first(methods(((a, b), c) -> c))
             @test DSE.arguments(m) == ["_", "c"]
         end
+    end
+
+    @testset "return types" begin
+        @test Base.return_types(DSE.argsig, (Method,)) == [Type]
+        @test Base.return_types(DSE.get_method_source, (Method,)) == [Core.CodeInfo]
+        @test Base.return_types(DSE.method_return_type, (Function, Method, Type)) == [Vector{Any}]
     end
 
     @testset "tuple_parameters" begin

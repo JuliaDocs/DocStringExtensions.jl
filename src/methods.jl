@@ -85,8 +85,8 @@ which can match a method of another definition. All of `groups` when `doc` recor
 no group follows it.
 """
 function documented_groups(groups, doc)
-    path = get(doc.data, :path, nothing)
-    line = get(doc.data, :linenumber, nothing)
+    path = get(doc.data, :path, nothing)::Union{String, Nothing}
+    line = get(doc.data, :linenumber, nothing)::Union{Int, Nothing}
     (path === nothing || line === nothing) && return groups
     after = filter(g -> String(first(g).file) == path && first(g).line >= line, groups)
     isempty(after) && return groups
@@ -94,7 +94,7 @@ function documented_groups(groups, doc)
 end
 
 # The argument types of `m`, without the function's own type.
-argsig(m::Method) = Base.rewrap_unionall(Base.tuple_type_tail(m.sig), m.sig)
+argsig(m::Method) = Base.rewrap_unionall(Base.tuple_type_tail(m.sig), m.sig)::Type
 
 """
 $(:SIGNATURES)
@@ -198,7 +198,7 @@ function method_return_type(func, method::Method, typesig)
     # Inference cannot run a generator on abstract argument types: Julia 1.0 throws and 1.10
     # hits a `BoundsError` in Base. Other versions infer `Any` for a generated method itself.
     any(hasgenerator, matching) && !isconcretetype(typesig) && return []
-    return [Base.invokelatest(Base.return_types, func, typesig)[idx]]
+    return Any[(Base.invokelatest(Base.return_types, func, typesig)::Vector{Any})[idx]]
 end
 
 if isdefined(Base, :hasgenerator)
@@ -271,7 +271,7 @@ function constructor_methods(func::UnionAll, typesig)
     results = Method[]
     for each in alltypesigs(typesig)
         args = tuple_parameters(each)
-        tt = Base.rewrap_unionall(Base.rewrap_unionall(Tuple{self, args...}, each), func)
+        tt = Base.rewrap_unionall(Base.rewrap_unionall(Tuple{self, args...}, each), func)::Type
         append!(results, matched_methods(tt))
     end
     return results
@@ -368,7 +368,7 @@ end
 """
 groupby(f, K, V, data) = groupby!(f, Dict{K, V}(), data)
 
-get_method_source(m::Method) = Base.uncompressed_ast(m)
+get_method_source(m::Method) = Base.uncompressed_ast(m)::Core.CodeInfo
 nargs(m::Method) = m.nargs
 
 """
@@ -480,13 +480,10 @@ function arguments(m::Method)
             argnames = template.slotnames
         end
     end
-    names = String[]
-    argnames === nothing && return names
-    # `argnames` is untyped, and a typed comprehension over it can infer as `AbstractArray`.
-    for arg in argnames[1:nargs(m)]
-        isself(arg) || push!(names, isunnamed(arg) ? "_" : string(arg))
-    end
-    return names
+    argnames === nothing && return String[]
+    # The container type of `argnames` varies across Julia versions; its elements are `Symbol`s.
+    args = Symbol[argnames[1:nargs(m)]...]
+    return String[isunnamed(arg) ? "_" : string(arg) for arg in args if !isself(arg)]
 end
 
 isself(arg) = arg === Symbol("#self#") || arg === Symbol("#ctor-self#")
