@@ -159,6 +159,18 @@
         @test data[:linenumber] < ctor.line
     end
 
+    # A constructor called through an alias is a method of `Type{A}` for the alias's own
+    # type `A`, egal to the binding's value.
+    #
+    # Used in src/methods.jl by constructor_parameters().
+    let self(m) = Base.unwrap_unionall(Base.unwrap_unionall(m.sig).parameters[1]).parameters[1],
+            A = AliasesTestModule
+
+        @test self(which(A.Mat, (Matrix{Int},))) === A.Mat
+        @test self(which(A.LTM, (Ref{Int},))) === A.LTM
+        @test self(which(A.Arr{Int, 2}, (Tuple,))) !== A.Arr
+    end
+
     # Printing a type parameter by name inside a method's `where` clause.
     #
     # Used in src/printmethod.jl for the typed printmethod() method.

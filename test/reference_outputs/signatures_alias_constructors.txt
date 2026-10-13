@@ -1,0 +1,29 @@
+```julia
+Mat(a)
+```
+
+```julia
+Mat(a::AbstractArray)
+```
+
+alias `Mat`
+
+```julia
+LTM(r)
+```
+
+```julia
+LTM(r::Ref{T}) where T
+```
+
+alias `LTM`
+
+```julia
+Curve{Main.AliasesTestModule.Linear}(x)
+```
+
+```julia
+Curve{Main.AliasesTestModule.Linear}(x::Real)
+```
+
+constructor `Curve{Linear}`

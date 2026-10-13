@@ -83,6 +83,19 @@
         @test_throws TypeError DSE.tuple_parameters(Union{Tuple{Int}, Tuple{String}})
     end
 
+    # The documented callable tells a constructor written with parameters from one called
+    # through an alias. `Curve{Linear}(x)` and `LinearCurve(x)` define the same method.
+    @testset "constructor_parameters" begin
+        A = AliasesTestModule
+        explicit = which(A.Arr{Int, 2}, (Tuple,))
+        @test string.(DSE.constructor_parameters(A.Arr, explicit)) == ["T", "2"]
+        @test DSE.constructor_parameters(A.Mat, which(A.Mat, (Matrix{Int},))) === nothing
+        @test DSE.constructor_parameters(A.LTM, which(A.LTM, (Ref{Int},))) === nothing
+        curve = which(A.Curve{A.Linear}, (Real,))
+        @test DSE.constructor_parameters(A.Curve, curve) == [A.Linear]
+        @test DSE.constructor_parameters(A.LinearCurve, curve) === nothing
+    end
+
     @testset "getmethods" begin
         @test length(DSE.getmethods(M.f, Union{})) == 1
         @test length(DSE.getmethods(M.f, Tuple{})) == 0

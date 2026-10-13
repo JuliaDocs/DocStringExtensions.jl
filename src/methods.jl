@@ -142,13 +142,16 @@ end
 $(:SIGNATURES)
 
 The type parameters written in a constructor call, such as `[T]` for `Point{T}(x) where {T}`,
-or `nothing` when `method` is not a constructor written with parameters. Julia stores such a
-method under `Type{Point{T}}`, so `methods(Point)` leaves it out.
+or `nothing` when `method` is not a constructor of `func` written with parameters. Julia stores
+such a method under `Type{Point{T}}`, so `methods(Point)` leaves it out.
 """
-function constructor_parameters(method::Method)
+function constructor_parameters(func, method::Method)
     f = Base.unwrap_unionall(self_type(method))
     istypeoftype(f) || return nothing
     t = type_parameter(f)
+    # A call through an alias, such as `Mat(a)` for `const Mat{T,B} = Arr{T,2,B}`, writes none.
+    # Julia 1.13 finds `Point{T} == Point` for a free `T`, which `===` does not.
+    t === func && return nothing
     body = Base.unwrap_unionall(t)
     body isa DataType || return nothing
     # `Point{T}` for a type with more parameters leaves the trailing ones free.

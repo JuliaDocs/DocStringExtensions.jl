@@ -185,7 +185,7 @@ function format(tms::TypedMethodSignatures, buf, doc)
         println(buf, "```julia")
         for method in collapse_defaults(group, defaults)
             printmethod(
-                buf, binding, func, method, printed_typesig(method, tuples);
+                buf, binding, func, method, printed_typesig(func, method, tuples);
                 returns = tms.returns, definition = tms.definition,
                 brackets = tms.defaults === :brackets
             )
@@ -197,11 +197,11 @@ end
 
 # The signature `TYPEDSIGNATURES` prints for `method`: the tuple of `tuples` equal to the
 # method's signature, or else one with as many arguments.
-function printed_typesig(method::Method, tuples)
+function printed_typesig(func, method::Method, tuples)
     sig = argsig(method)
     # An expanded vararg has no tuple with as many arguments, and can match a wrong one.
     # A parametric constructor's name needs the type parameters of its own signature.
-    (expanded_vararg(method) || constructor_parameters(method) !== nothing) && return sig
+    (expanded_vararg(method) || constructor_parameters(func, method) !== nothing) && return sig
     idx = findfirst(t -> t == sig, tuples)
     if idx === nothing
         n = length(arguments(method))

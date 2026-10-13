@@ -73,7 +73,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     method.isva && (args[end] *= "...")
     kws = string.(keywords(func, method))
     args, kws = append_defaults(args, kws, kws, method, definition; brackets = brackets)
-    name = callable_name(binding, constructor_parameters(method), typestring)
+    name = callable_name(binding, constructor_parameters(func, method), typestring)
     return_type = return_annotation(returns, func, method, argsig(method))
     return printmethod_format(buffer, name, args, kws; return_type = return_type)
 end
@@ -155,7 +155,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     body = Base.unwrap_unionall(typesig)
     body isa DataType && body <: Tuple ||
         error("Expected `typeof($body)` to be `Tuple` or `UnionAll` but found `$(typeof(body))`")
-    params = constructor_parameters(method)
+    params = constructor_parameters(func, method)
     vars = params === nothing ? typevars(typesig) : [typevars(method.sig); typevars(self_type(method))]
     kwtypes, kwvars = keyword_types(method, kwnames, vars)
     types = Any[body; collect(values(kwtypes))]
