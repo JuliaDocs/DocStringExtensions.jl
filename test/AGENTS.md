@@ -1,6 +1,11 @@
 # Tests
 
-`runtests.jl` loads `reference.jl` and `tests.jl`. `tests.jl` pulls in the fixtures: `TestModule/M.jl` (module `M`), `templates.jl`, and `interpolation.jl`.
+The suite mirrors `src/`: the tests for `src/X.jl` live in `test/X.jl`, and each abbreviation's tests in `test/abbreviations/`. Each file holds one top-level testset.
+
+- `runtests.jl` loads the fixtures, then includes each test file inside the `DocStringExtensions` testset.
+- `fixtures/` holds the documented modules the tests render, such as `TestModule/M.jl` (module `M`) and `templates.jl` (module `TemplateTests`).
+- `helpers.jl` holds the shared helpers, `reference.jl` the reference tests below.
+- `base_assumptions.jl` records each undocumented Base internal the package relies on, and `world_age.jl` formats from a stale world.
 
 ## Reference tests
 
@@ -24,5 +29,5 @@ Run the suite with `DSE_UPDATE_REFERENCES=true` to rewrite every reference the r
 
 ## Output that varies by environment
 
-- Julia version, OS, or word size: keep one reference per variant, suffixed `_pre_110`, `_110_and_later`, `_windows`, `_64bit`, and so on. When two testsets select between the same variants, put the choice in a helper such as `method_lists_reference()` next to `redact_local_info` in `tests.jl`.
-- Local paths and commit hashes: `METHODLIST` output links to the source file and the commit. Format it inside `with_test_repo`, which commits `TestModule/M.jl` to a throwaway repo with a fixed remote. Pass the result through `redact_local_info` before comparing.
+- Julia version, OS, or word size: keep one reference per variant, suffixed `_pre_110`, `_110_and_later`, `_windows`, `_64bit`, and so on. When two testsets select between the same variants, put the choice in a helper such as `method_lists_reference()` next to `redact_local_info` in `helpers.jl`.
+- Local paths and commit hashes: `METHODLIST` output links to the source file and the commit. Format it inside `with_test_repo`, which commits `fixtures/TestModule/M.jl` to a throwaway repo with a fixed remote. Pass the result through `redact_local_info` before comparing.

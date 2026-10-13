@@ -22,18 +22,18 @@ g(x) = x + 2
 
 module Templated
 
-using DocStringExtensions
-import ..TestType
+    using DocStringExtensions
+    import ..TestType
 
-@template METHODS =
+    @template METHODS =
     """
     $(TestType(1))
 
     $(DOCSTRING)
     """
 
-"method `h`"
-h(x) = x + 3
+    "method `h`"
+    h(x) = x + 3
 
 end
 
@@ -44,19 +44,19 @@ DocStringExtensions.interpolation(::StructOnly, ex::Expr) =
 
 module StructOnlyTemplate
 
-using DocStringExtensions
-import ..StructOnly
+    using DocStringExtensions
+    import ..StructOnly
 
-# Deciding whether to keep `expr` must not call `interpolation` on another category's parts.
-@template TYPES =
+    # Deciding whether to keep `expr` must not call `interpolation` on another category's parts.
+    @template TYPES =
     """
     $(StructOnly())
 
     $(DOCSTRING)
     """
 
-"method `k`"
-k(x) = x
+    "method `k`"
+    k(x) = x
 
 end
 

@@ -70,18 +70,18 @@ varargs_bracketed(x = 1, xs...) = x
 
 module Templated
 
-using DocStringExtensions
-import DocStringExtensions: MethodSignatures
+    using DocStringExtensions
+    import DocStringExtensions: MethodSignatures
 
-@template METHODS =
+    @template METHODS =
     """
     $(MethodSignatures(defaults = true))
 
     $(DOCSTRING)
     """
 
-"method `templated`"
-templated(x, y = 1) = x
+    "method `templated`"
+    templated(x, y = 1) = x
 
 end
 

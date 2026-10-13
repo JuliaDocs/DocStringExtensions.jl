@@ -26,16 +26,16 @@ i_4(x; y::T = zero(T), z::U = zero(U)) where {T, U} = x + y + z
 j_1(x, y) = x * y # two arguments, no keyword arguments
 j_1(x; y = x) = x * y # one argument, one keyword argument
 
-k_0(x::T) where T = x
-k_1(x::String, y::T = 0, z::T = zero(T)) where T <: Number = x
-k_2(x::String, y::U, z::T) where T <: Number where U <: Complex = x
+k_0(x::T) where {T} = x
+k_1(x::String, y::T = 0, z::T = zero(T)) where {T <: Number} = x
+k_2(x::String, y::U, z::T) where {T <: Number} where {U <: Complex} = x
 k_3(x, y::T, z::U) where {T, U} = x + y + z
 k_4(::String, ::Int = 0) = nothing
-k_5(::Type{T}, x::String, func::Union{Nothing, Function} = nothing) where T <: Number = x
-k_6(x::Vector{T}) where T <: Number = x
-k_7(x::Union{T,Nothing}, y::T = zero(T)) where {T <: Integer} = x
+k_5(::Type{T}, x::String, func::Union{Nothing, Function} = nothing) where {T <: Number} = x
+k_6(x::Vector{T}) where {T <: Number} = x
+k_7(x::Union{T, Nothing}, y::T = zero(T)) where {T <: Integer} = x
 k_8(x) = x
-k_9(x::T where T<:Any) = x
+k_9(x::T where {T <: Any}) = x
 k_11(x::Int, xs...) = x
 k_12(x::Int, xs::Real...) = x
 
@@ -65,11 +65,11 @@ primitive type BitType8 8 end
 
 primitive type BitType32 <: Real 32 end
 
-@enum Color red green=3
+@enum Color red green = 3
 
 # The shape EnumX.jl gives an enum: a module holding the `Enum` subtype `T`.
 module Fruit
-    @enum T Apple=1 Banana=5
+    @enum T Apple = 1 Banana = 5
 end
 
 # The first method's signature lies inside the second's.
@@ -94,11 +94,11 @@ abstract type Container{T} end
 struct Box{T} <: Container{T} end
 
 k_15(x::T, xs::T...) where {T <: Number} = x
-k_16(x::Real, xs::Vararg{Int,2}) = x
-k_17(xs::Vararg{T,2}) where {T <: Integer} = 1
-k_18(x::Int, xs::Vararg{Int,0}) = x
+k_16(x::Real, xs::Vararg{Int, 2}) = x
+k_17(xs::Vararg{T, 2}) where {T <: Integer} = 1
+k_18(x::Int, xs::Vararg{Int, 0}) = x
 k_19(x::S) where {T, S <: Ref{T}} = x
-k_20(xs::Vararg{T,N}) where {T, N} = 1
+k_20(xs::Vararg{T, N}) where {T, N} = 1
 k_21(x::T = 1, xs::T...) where {T} = x
 k_22(x::T) where {Int8 <: T <: Integer} = x
 k_23(_, ::Val{N}, ::String...) where {N} = N

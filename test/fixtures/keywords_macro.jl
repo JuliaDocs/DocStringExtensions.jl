@@ -7,8 +7,10 @@ macro keywords(ex)
     local names = [f.args[1].args[1] for f in fields]
     ex.args[3].args = Any[Meta.isexpr(f, :(=)) ? f.args[1] : f for f in ex.args[3].args]
     push!(ex.args[3].args, :($name($(names...)) = new($(names...))))
-    return esc(quote
-        Base.@__doc__ $ex
-        $name(; $(keywords...)) = $name($(names...))
-    end)
+    return esc(
+        quote
+            Base.@__doc__ $ex
+            $name(; $(keywords...)) = $name($(names...))
+        end
+    )
 end

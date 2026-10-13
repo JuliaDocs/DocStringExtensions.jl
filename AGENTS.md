@@ -20,7 +20,7 @@ DocStringExtensions adds abbreviations and templates to Julia's docsystem. An ab
 ## Constraints
 
 - CI runs Julia 1.0, the LTS, the latest release, and nightly. Code in `src/` and `test/` must parse and run on 1.0, so check any syntax or Base function newer than that against the floor.
-- The package leans on undocumented Base internals (`Base.kwarg_decl`, method table fields, binding partitions on 1.12+). The `Base assumptions` testset in `test/tests.jl` records each one. Add a case there when the code starts relying on another.
+- The package leans on undocumented Base internals (`Base.kwarg_decl`, method table fields, binding partitions on 1.12+). The `Base assumptions` testset in `test/base_assumptions.jl` records each one. Add a case there when the code starts relying on another.
 - A user-facing change updates every page that shows the feature, in the same commit as the code. Check the docstring, the `Examples` module in `docs/Examples/src/` and its page in `docs/src/examples/`, `docs/src/setup.md`, and `CHANGELOG.md`. Search `docs/` for the names the change touches, then build the docs as CI does. The build runs the doctests and fails on a broken `@ref`.
 - `format` methods can run in a stale world during macro expansion. Wrap binding lookups such as `Docs.resolve` and `methods` in `Base.invokelatest`, as the existing `format` methods do.
 
@@ -37,7 +37,7 @@ EOF
 
 ## Formatting
 
-Runic formats `src/`. The CI `Format` job runs the check and fails on any unformatted file.
+Runic formats `src/` and `test/`. The CI `Format` job runs the check and fails on any unformatted file.
 
 ```bash
 just fmt        # Format in place
