@@ -87,11 +87,12 @@ function format(abbrv::TypeFields, buf, doc)
     binding = doc_binding(doc)
     object = Base.invokelatest(Docs.resolve, binding)::Union{DataType, UnionAll}
     fields = isabstracttype(object) ? Symbol[] : Symbol[fieldnames(object)...]
+    io = alias_context(binding.mod)
     if !isempty(fields)
         println(buf)
         for field in fields
             text = string(field)
-            abbrv.types && (text *= string("::", fieldtype(object, field)))
+            abbrv.types && (text *= "::" * type_text(fieldtype(object, field), io))
             default = abbrv.defaults === nothing ? nothing : get(abbrv.defaults, field, nothing)
             default === nothing || (text *= " = " * first_line(default))
             print(buf, "  - ", code_span(text))

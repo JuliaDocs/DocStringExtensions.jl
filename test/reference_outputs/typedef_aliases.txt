@@ -1,0 +1,11 @@
+```julia
+struct Shapes{A<:Main.AnonymousTypeVarsTestModule.SmallV{<:Union{Int8, String}}, B<:Main.AnonymousTypeVarsTestModule.RefRef{<:Real}, C<:Main.AnonymousTypeVarsTestModule.Keyed{Symbol, <:Real}, D<:Ref{Main.AnonymousTypeVarsTestModule.ScalarOrRef{<:AbstractFloat}}, E<:Type{Main.AnonymousTypeVarsTestModule.ScalarOrRef{<:AbstractFloat}}} <: Main.AnonymousTypeVarsTestModule.Shaped{Main.AnonymousTypeVarsTestModule.ScalarOrRef{<:AbstractFloat}, Main.AnonymousTypeVarsTestModule.SmallV{<:Union{Int8, String}}, Main.AnonymousTypeVarsTestModule.RefRef{<:Real}, Main.AnonymousTypeVarsTestModule.Keyed{Symbol, <:Real}, Ref{Main.AnonymousTypeVarsTestModule.ScalarOrRef{<:AbstractFloat}}, Type{Main.AnonymousTypeVarsTestModule.ScalarOrRef{<:AbstractFloat}}}
+```
+
+type `Shapes`
+
+```julia
+struct SmallVec{T, Vector{T}}
+```
+
+alias `SmallV`

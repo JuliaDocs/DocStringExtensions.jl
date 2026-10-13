@@ -119,7 +119,8 @@ return type. See [`printmethod`](@ref) for the simplifications it applies. In th
 of a struct, it prints the constructors that [`SIGNATURES`](@ref) lists. A callable such as
 `(e::E)(x::Int)` prints as `(e::Main.E)(x::Int64)` when `E` is defined in `Main`. A macro
 prints as [`SIGNATURES`](@ref) prints it, with argument types such as `@m ex::Expr` and no
-inferred return type.
+inferred return type. An inferred return type that Julia would print with a name it generated,
+as for a parameter written `<:T` that no `const` alias gives, is left out.
 
 # Examples
 

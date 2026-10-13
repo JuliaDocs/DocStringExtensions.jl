@@ -451,6 +451,13 @@
         end
     end
 
+    # A parameter written `<:T` prints as written, and `Ref{<:Any}` as `Ref`, on every version.
+    @testset "anonymous type parameter signatures" begin
+        names = [:grids, :unnamed, :anys, :bounded, :scaled, :scalar, :small, :deep, :keyed, :boxed, :kind, :held]
+        str = join([[rendered(:(AnonymousTypeVarsTestModule.$name)) for name in names]; rendered(:(AnonymousTypeVarsTestModule.Nested.leaf))], "\n")
+        @test_reference ro_path("signatures_anonymous.txt") str
+    end
+
     # A callable on `Type{<:T}` is filed under `Type`, so it prints the instance type.
     @testset "Type callable signatures" begin
         multidoc = Docs.meta(CallablesTestModule)[Docs.Binding(Core, :Type)]

@@ -33,30 +33,40 @@ julia> @doc Point
 """
 const TYPEDEF = TypeDefinition()
 
-function print_supertype(buf, object)
+# `io` with the type parameters of `object` in its `:unionall_env`, so that a bound or the
+# supertype names them, as in `Leap{T<:Real} <: AbstractLeap{T}` and `{N, T<:Ref{N}}`.
+parameter_context(object, io) = unionall_env(filter(p -> p isa TypeVar, collect(object.parameters)), io)
+
+function print_supertype(buf, object, io)
     super = supertype(object)
-    return super != Any && print(buf, " <: ", super)
+    return super != Any && print(buf, " <: ", type_text(super, parameter_context(object, io)))
 end
 
-function print_params(buf, object)
-    return if !isempty(object.parameters)
-        print(buf, "{")
-        join(buf, object.parameters, ", ")
-        print(buf, "}")
-    end
+function print_params(buf, object, io)
+    isempty(object.parameters) && return
+    env = parameter_context(object, io)
+    print(buf, "{")
+    join(buf, map(p -> parameter_text(p, env), object.parameters), ", ")
+    print(buf, "}")
+    return
 end
 
-function print_primitive_type(buf, object)
+# A type parameter as `print` writes it, with any parameter written `<:T` inside it as written.
+parameter_text(p::TypeVar, io) = typevar_text(p, io)
+parameter_text(@nospecialize(p::Type), io) = type_text(p, io)
+parameter_text(p, io) = p
+
+function print_primitive_type(buf, object, io)
     print(buf, "primitive type ", object.name.name)
-    print_supertype(buf, object)
+    print_supertype(buf, object, io)
     print(buf, " ", sizeof(object) * 8)
     return println(buf)
 end
 
-function print_abstract_type(buf, object)
+function print_abstract_type(buf, object, io)
     print(buf, "abstract type ", object.name.name)
-    print_params(buf, object)
-    print_supertype(buf, object)
+    print_params(buf, object, io)
+    print_supertype(buf, object, io)
     return println(buf)
 end
 
@@ -70,11 +80,11 @@ if !isdefined(Base, :ismutabletype)
     end
 end
 
-function print_mutable_struct_or_struct(buf, object)
+function print_mutable_struct_or_struct(buf, object, io)
     ismutabletype(object) && print(buf, "mutable ")
     print(buf, "struct ", object.name.name)
-    print_params(buf, object)
-    print_supertype(buf, object)
+    print_params(buf, object, io)
+    print_supertype(buf, object, io)
     return println(buf)
 end
 
@@ -86,12 +96,13 @@ function format(::TypeDefinition, buf, doc)
     object = gettype(Base.invokelatest(Docs.resolve, binding))
     return if isa(object, DataType)
         println(buf, "\n```julia")
+        io = alias_context(binding.mod)
         if isprimitivetype(object)
-            print_primitive_type(buf, object)
+            print_primitive_type(buf, object, io)
         elseif isabstracttype(object)
-            print_abstract_type(buf, object)
+            print_abstract_type(buf, object, io)
         else
-            print_mutable_struct_or_struct(buf, object)
+            print_mutable_struct_or_struct(buf, object, io)
         end
         println(buf, "```\n")
     end

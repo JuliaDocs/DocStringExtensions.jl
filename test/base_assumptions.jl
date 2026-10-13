@@ -237,6 +237,42 @@
         @test t{S} == Ref{S}
     end
 
+    # Applying an alias to `<:T` substitutes the generated variable into the alias's body,
+    # keeping the order of a `Union`'s components, and a deprecated binding can be told apart
+    # before it is read.
+    #
+    # Used in src/printmethod.jl by match_alias!(), which reads the alias's body and the
+    # type in parallel, and by isalias().
+    let T = TypeVar(:T, Real),
+            body = Union{T, Ref{T}},
+            t = UnionAll(T, body){<:AbstractFloat},
+            v = t.var
+
+        @test t.body.a == (body.a === T ? v : Ref{v})
+        @test t.body.b == (body.b === T ? v : Ref{v})
+    end
+    let mod = Module()
+        Core.eval(mod, :(Base.@deprecate_binding Old Int))
+        @test Base.invokelatest(Base.isdeprecated, mod, :Old)
+        @test !Base.isdeprecated(Base, :Vector)
+    end
+    # `names` lists a name that a module imports with `import`, and `which` gives the module
+    # that defines it.
+    #
+    # Used in src/printmethod.jl by module_aliases() and alias_text().
+    let mod = Module()
+        Core.eval(
+            mod, :(
+                module Lib
+                const PairOf{T} = Pair{T, Ref{T}}
+                end
+            )
+        )
+        Core.eval(mod, :(import .Lib: PairOf))
+        @test :PairOf in Base.invokelatest(names, mod; all = true, imported = true)
+        @test Base.invokelatest(which, mod, :PairOf) === Base.invokelatest(getfield, mod, :Lib)
+    end
+
     # Rendering default values as source text.
     #
     # Used in src/definitions.jl for the definition_arguments() function.
