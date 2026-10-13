@@ -31,17 +31,17 @@ end
 
 module Templated
 
-using DocStringExtensions
+    using DocStringExtensions
 
-@template METHODS =
+    @template METHODS =
     """
     $(SIGNATURES)
 
     $(DOCSTRING)
     """
 
-"method `templated`"
-templated((x, y)) = x
+    "method `templated`"
+    templated((x, y)) = x
 
 end
 

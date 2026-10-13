@@ -97,21 +97,21 @@ abstract type Abstract end
 
 module Templated
 
-using DocStringExtensions
+    using DocStringExtensions
 
-@template TYPES =
+    @template TYPES =
     """
     $(SIGNATURES)
 
     $(DOCSTRING)
     """
 
-"type `Point`"
-struct Point
-    x::Float64
-end
+    "type `Point`"
+    struct Point
+        x::Float64
+    end
 
-Point() = Point(0.0)
+    Point() = Point(0.0)
 
 end
 

@@ -67,17 +67,17 @@ struct NotAMethod end
 
 module Templated
 
-using DocStringExtensions
+    using DocStringExtensions
 
-@template METHODS =
+    @template METHODS =
     """
     $(BODY)
 
     $(DOCSTRING)
     """
 
-"method `templated`"
-templated(x) = x + 1
+    "method `templated`"
+    templated(x) = x + 1
 
 end
 

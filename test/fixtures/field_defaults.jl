@@ -50,19 +50,19 @@ end
 
 module Templated
 
-using DocStringExtensions
+    using DocStringExtensions
 
-@template TYPES =
+    @template TYPES =
     """
     $(TYPEDFIELDS)
 
     $(DOCSTRING)
     """
 
-"type `Config`"
-Base.@kwdef struct Config
-    a::Float64 = 1.0
-end
+    "type `Config`"
+    Base.@kwdef struct Config
+        a::Float64 = 1.0
+    end
 
 end
 

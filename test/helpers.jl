@@ -3,12 +3,12 @@ function with_test_repo(f)
     repo = LibGit2.init(joinpath(@__DIR__, "fixtures", "TestModule"))
     LibGit2.add!(repo, "M.jl")
     sig = LibGit2.Signature("zeptodoctor", "zeptodoctor@zeptodoctor.com", round(time()), 0)
-    LibGit2.commit(repo, "M.jl", committer=sig, author=sig)
+    LibGit2.commit(repo, "M.jl", committer = sig, author = sig)
     LibGit2.GitRemote(repo, "origin", "https://github.com/JuliaDocs/NonExistent.jl.git")
-    try
+    return try
         f()
     finally
-        rm(joinpath(@__DIR__, "fixtures", "TestModule", ".git"); force=true, recursive=true)
+        rm(joinpath(@__DIR__, "fixtures", "TestModule", ".git"); force = true, recursive = true)
     end
 end
 
