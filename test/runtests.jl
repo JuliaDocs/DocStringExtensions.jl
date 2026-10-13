@@ -47,6 +47,8 @@ import Nested
     include("templates.jl")
     include("hook.jl")
     include("world_age.jl")
+    # Every docstring in the package parses, abbreviations included.
+    @test DSE.parsedocs(DSE) === nothing
 end
-
-DSE.parsedocs(DSE)
+# `include` returns its last value, and a REPL would print the whole testset.
+nothing
