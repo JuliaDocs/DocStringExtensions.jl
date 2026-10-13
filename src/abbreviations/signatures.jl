@@ -1,9 +1,3 @@
-function check_defaults(defaults::Union{Bool,Symbol})
-    defaults isa Bool || defaults === :brackets || throw(ArgumentError(
-        "`defaults` must be `true`, `false`, or `:brackets`, got `$(repr(defaults))`."))
-    return defaults
-end
-
 """
 The type for [`SIGNATURES`](@ref) abbreviations.
 
@@ -14,6 +8,12 @@ struct MethodSignatures <: Abbreviation
     defaults::Union{Bool,Symbol}
     definition::Union{DefinitionArguments,Nothing}
     type_definition::Union{StructDefinition,Nothing}
+end
+
+function check_defaults(defaults::Union{Bool,Symbol})
+    defaults isa Bool || defaults === :brackets || throw(ArgumentError(
+        "`defaults` must be `true`, `false`, or `:brackets`, got `$(repr(defaults))`."))
+    return defaults
 end
 
 MethodSignatures(; returns::Union{Bool,String} = false, defaults::Union{Bool,Symbol} = false) =
@@ -152,6 +152,22 @@ function signature_groups(abbr::Union{MethodSignatures,TypedMethodSignatures}, f
         return isempty(constructors) ? Vector{Method}[] : [constructors]
     end
     return documented_groups(methodgroups(func, doc.data[:typesig], modname), doc)
+end
+
+"""
+$(:SIGNATURES)
+
+Drop the methods of `group` that Julia generated for positional default values, keeping
+the method that takes every argument of `definition`.
+"""
+collapse_defaults(group, ::Nothing) = group
+function collapse_defaults(group, definition::DefinitionArguments)
+    local matching = filter(m -> matches_definition(m, definition), group)
+    isempty(matching) && return group
+    local longest = maximum(m -> length(arguments(m)), matching)
+    return filter(group) do m
+        !matches_definition(m, definition) || length(arguments(m)) == longest
+    end
 end
 
 function format(tms::TypedMethodSignatures, buf, doc)

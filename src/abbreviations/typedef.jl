@@ -60,6 +60,16 @@ function print_abstract_type(buf, object)
     println(buf)
 end
 
+# This is compat to make sure that we have ismutabletype available pre-1.7.
+# Implementation borrowed from JuliaLang/julia (MIT license).
+# https://github.com/JuliaLang/julia/pull/39037
+if !isdefined(Base, :ismutabletype)
+    function ismutabletype(@nospecialize(t::Type))
+        t = Base.unwrap_unionall(t)
+        return isa(t, DataType) && t.mutable
+    end
+end
+
 function print_mutable_struct_or_struct(buf, object)
     ismutabletype(object) && print(buf, "mutable ")
     print(buf, "struct ", object.name.name)
@@ -67,6 +77,9 @@ function print_mutable_struct_or_struct(buf, object)
     print_supertype(buf, object)
     println(buf)
 end
+
+gettype(T::UnionAll) = gettype(T.body)
+gettype(other) = other
 
 function format(::TypeDefinition, buf, doc)
     local binding = doc.data[:binding]
@@ -81,15 +94,5 @@ function format(::TypeDefinition, buf, doc)
             print_mutable_struct_or_struct(buf, object)
         end
         println(buf, "```\n")
-    end
-end
-
-# This is compat to make sure that we have ismutabletype available pre-1.7.
-# Implementation borrowed from JuliaLang/julia (MIT license).
-# https://github.com/JuliaLang/julia/pull/39037
-if !isdefined(Base, :ismutabletype)
-    function ismutabletype(@nospecialize(t::Type))
-        t = Base.unwrap_unionall(t)
-        return isa(t, DataType) && t.mutable
     end
 end

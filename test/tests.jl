@@ -169,14 +169,14 @@ typed_signatures_h_reference() =
 
         # Whether a method is `@generated`.
         #
-        # Used in src/printmethod.jl for the typed printmethod() method. Julia before 1.10 has
+        # Used in src/methods.jl by method_return_type(). Julia before 1.10 has
         # no `Base.hasgenerator`, and the `hasgenerator` shim reads the `generator` field.
         @test DSE.hasgenerator(first(methods(M.g_1)))
         @test !DSE.hasgenerator(first(methods(M.f)))
 
         # `Base.return_types` lists one type per method, in the order `methods` lists them.
         #
-        # Used in src/printmethod.jl for the method_return_type() function.
+        # Used in src/methods.jl for the method_return_type() function.
         @test collect(methods(M.overlapping, Tuple{Integer})) ==
             [which(M.overlapping, Tuple{Int8}), which(M.overlapping, Tuple{Integer})]
         @test Base.return_types(M.overlapping, Tuple{Integer}) == [Int8, String]
@@ -189,7 +189,8 @@ typed_signatures_h_reference() =
 
         # Recognising a vararg argument type and its element type.
         #
-        # Used in src/printmethod.jl for the typed printmethod() method.
+        # Used in src/printmethod.jl for the typed printmethod() method, and in src/methods.jl
+        # by argument_types() and expanded_vararg().
         let varargs = Tuple{Int,Vararg{Real}}.types
             @test Base.isvarargtype(varargs[2])
             @test !Base.isvarargtype(varargs[1])
@@ -200,7 +201,7 @@ typed_signatures_h_reference() =
 
         # A fixed-count vararg expands in `method.sig`, and its `n` is a field of `Vararg`.
         #
-        # Used in src/printmethod.jl by expanded_vararg() and vararg_length().
+        # Used in src/methods.jl by expanded_vararg() and vararg_length().
         @test first(methods(M.k_16)).isva
         @test Base.tuple_type_tail(first(methods(M.k_16)).sig) == Tuple{Real,Int,Int}
         @test DSE.vararg_length(Vararg{Int,2}) == 2
@@ -213,8 +214,8 @@ typed_signatures_h_reference() =
         # `Base._methods_by_ftype` finds by its full signature, and its docstring records
         # where it was written.
         #
-        # Used in src/methods.jl by constructor_methods(), matched_methods() and
-        # documented_groups(), and in src/printmethod.jl by constructor_parameters().
+        # Used in src/methods.jl by constructor_methods(), matched_methods(),
+        # constructor_parameters() and documented_groups().
         let ctor = first(methods(M.Param{Int}, Tuple{})),
             multidoc = Docs.meta(M)[Docs.Binding(M, :Param)],
             data = multidoc.docs[first(multidoc.order)].data,
@@ -251,8 +252,8 @@ typed_signatures_h_reference() =
         # Where Julia places the constructors that a struct definition creates.
         #
         # Used in src/methods.jl by struct_constructors(), which takes the constructors
-        # defined no later than the definition's last line, and in src/printmethod.jl by
-        # self_type() for the default constructor of a parametric type.
+        # defined no later than the definition's last line, and by self_type() for the default
+        # constructor of a parametric type.
         let mod = Module()
             Base.include_string(mod, """
                 struct Defaults
@@ -1052,7 +1053,7 @@ typed_signatures_h_reference() =
                 "```julia\nx + 1\n```\n\nmethod `templated`\n"
         end
     end
-    @testset "utilities" begin
+    @testset "internals" begin
         @testset "keywords" begin
             @test DSE.keywords(M.T, first(methods(M.T))) == Symbol[]
             @test DSE.keywords(M.K, first(methods(M.K))) == [:a]

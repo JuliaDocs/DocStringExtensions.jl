@@ -99,6 +99,114 @@ argsig(m::Method) = Base.rewrap_unionall(Base.tuple_type_tail(m.sig), m.sig)
 """
 $(:SIGNATURES)
 
+The declared types of the first `n` positional arguments of `method`, with a vararg
+argument's element type in place of its `Vararg`. A vararg with a count, such as
+`xs::Vararg{Int,2}`, gets `Any`.
+"""
+function argument_types(method::Method, n::Integer)
+    local types = Any[Base.unwrap_unionall(method.sig).parameters[2:end]...]
+    method.isva || return types[1:n]
+    local vararg = expanded_vararg(method) ? Any : Base.unwrapva(types[end])
+    return Any[types[1:n-1]; vararg]
+end
+
+# The type parameters `t` declares, outermost first.
+function typevars(t)
+    local vars = TypeVar[]
+    while t isa UnionAll
+        push!(vars, t.var)
+        t = t.body
+    end
+    return vars
+end
+
+"""
+$(:SIGNATURES)
+
+The type parameters written in a constructor call, such as `[T]` for `Point{T}(x) where {T}`,
+or `nothing` when `method` is not a constructor written with parameters. Julia stores such a
+method under `Type{Point{T}}`, so `methods(Point)` leaves it out.
+"""
+function constructor_parameters(method::Method)
+    local f = Base.unwrap_unionall(self_type(method))
+    istypeoftype(f) || return nothing
+    local t = type_parameter(f)
+    local body = Base.unwrap_unionall(t)
+    body isa DataType || return nothing
+    # `Point{T}` for a type with more parameters leaves the trailing ones free.
+    local params = collect(body.parameters)
+    local free = typevars(t)
+    while !isempty(params) && last(params) in free
+        pop!(params)
+    end
+    return isempty(params) ? nothing : params
+end
+
+# The type of the callable a method belongs to. Julia 1.10 stores the default constructor of
+# `Point{T}` under `Type{Point{T}} where T`, which declares its own type parameters.
+self_type(method::Method) = Base.unwrap_unionall(method.sig).parameters[1]
+
+# Julia 1.14 gives `Type{T}` the kind `TypeEq` in place of `DataType`.
+@static if isdefined(Core, :TypeEq)
+    istypeoftype(t) = Base.isType(t)
+    type_parameter(t) = Base.type_parameter(t)
+else
+    istypeoftype(t) = t isa DataType && t.name === Type.body.name
+    type_parameter(t) = t.parameters[1]
+end
+
+"""
+$(:SIGNATURES)
+
+Whether `method` takes `xs::Vararg{T,n}`, which Julia writes into `method.sig` as `n`
+arguments of type `T`.
+"""
+expanded_vararg(method::Method) =
+    method.isva && !Base.isvarargtype(last(Base.unwrap_unionall(method.sig).parameters))
+
+"""
+$(:SIGNATURES)
+
+The `n` of a `Vararg{T,n}` type, an `Int` or a method's type parameter, or `nothing` when
+the vararg has no count.
+"""
+function vararg_length(t)
+    local n = @static if VERSION > v"1.7-"
+        isdefined(t, :N) ? t.N : nothing
+    else
+        # Before Julia 1.7, `xs::T...` is `Vararg{T,N} where N`, binding its own `N`.
+        t isa UnionAll ? nothing : t.parameters[2]
+    end
+    return n isa Union{Int,TypeVar} ? n : nothing
+end
+
+"""
+$(:SIGNATURES)
+
+The inferred return type of `method` for argument types `typesig`, as a vector holding one
+type, or an empty vector when `method` does not match `typesig`. `Base.return_types` infers
+every method that matches, so a more specific method whose signature overlaps `method` is
+skipped by its position in `methods(func, typesig)`.
+"""
+function method_return_type(func, method::Method, typesig)
+    local matching = collect(Base.invokelatest(methods, func, typesig))
+    local idx = findfirst(m -> m === method, matching)
+    idx === nothing && return []
+    # Inference cannot run a generator on abstract argument types: Julia 1.0 throws and 1.10
+    # hits a `BoundsError` in Base. Other versions infer `Any` for a generated method itself.
+    any(hasgenerator, matching) && !isconcretetype(typesig) && return []
+    return [Base.invokelatest(Base.return_types, func, typesig)[idx]]
+end
+
+if isdefined(Base, :hasgenerator)
+    const hasgenerator = Base.hasgenerator
+else
+    hasgenerator(m::Method) = isdefined(m, :generator)
+end
+
+"""
+$(:SIGNATURES)
+
 Compare methods `a` and `b` by file and line number.
 """
 function comparemethods(a::Method, b::Method)
@@ -117,11 +225,9 @@ if isdefined(Base, :UnionAll)
         end
         return out
     end
-    gettype(T::UnionAll) = gettype(T.body)
 else
     uniontypes(T) = collect(T.types)
 end
-gettype(other) = other
 
 """
 $(:SIGNATURES)
