@@ -52,9 +52,7 @@ interpolation(abbr::TypeFields, expr::Expr) =
 
 """
 An [`Abbreviation`](@ref) that lists the fields of a type, with the docstring of each field
-that has one. A field given a default value in a struct definition written with a macro such
-as `Base.@kwdef` shows that default. A default that spans several lines or contains a backtick
-prints in a code block below the field.
+that has one. A field given a default value, as `Base.@kwdef` allows, shows that default.
 
 # Examples
 
@@ -126,10 +124,10 @@ function format(abbrv::TypeFields, buf, doc)
     local object = Base.invokelatest(Docs.resolve, binding)
     local fields = isabstracttype(object) ? Symbol[] : fieldnames(object)
     if !isempty(fields)
-            local text = string(field)
-            abbrv.types && (text *= string("::", fieldtype(object, field)))
         println(buf)
         for field in fields
+            local text = string(field)
+            abbrv.types && (text *= string("::", fieldtype(object, field)))
             local default = abbrv.defaults === nothing ? nothing : get(abbrv.defaults, field, nothing)
             default === nothing || (text *= " = " * first_line(default))
             print(buf, "  - ", code_span(text))
@@ -466,10 +464,7 @@ An [`Abbreviation`](@ref) that prints the signatures of the documented method, w
 names and keywords but no types. See [`printmethod`](@ref) for the simplifications it
 applies.
 
-In the docstring of a struct, it prints the constructors that the struct definition creates:
-the default constructors, the inner constructors, and the keyword constructor of
-`Base.@kwdef`. Constructors defined after the struct are left out. Field default values are
-listed by [`FIELDS`](@ref), not here.
+In the docstring of a struct, it prints the constructors that the struct definition creates.
 
 # Examples
 
