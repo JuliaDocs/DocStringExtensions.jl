@@ -149,7 +149,6 @@ sig = printmethod(Docs.Binding(Main, :f), f, first(methods(f)))
 ```
 """
 function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method, typesig; returns = true, definition = nothing, brackets = false)
-    # TODO: print qualified?
     args = argument_names(method, definition)
     kwnames = string.(keywords(func, method))
 
@@ -159,15 +158,9 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     params = constructor_parameters(method)
     vars = params === nothing ? typevars(typesig) : [typevars(method.sig); typevars(self_type(method))]
     kwtypes, kwvars = keyword_types(method, kwnames, vars)
-    # Innermost first: a type parameter used only in a later parameter's bound is still used.
-    used = Any[]
-    for v in reverse([vars; kwvars])
-        if Base.has_typevar(body, v) || params !== nothing && any(p -> Base.has_typevar(p, v), params) ||
-                any(t -> Base.has_typevar(t, v), values(kwtypes)) ||
-                any(u -> Base.has_typevar(u.lb, v) || Base.has_typevar(u.ub, v), used)
-            pushfirst!(used, v)
-        end
-    end
+    types = Any[body; collect(values(kwtypes))]
+    params === nothing || append!(types, params)
+    used = used_typevars([vars; kwvars], types)
     env = unionall_env(used)
     typestring(t) = sprint(show, t; context = env)
 
@@ -178,28 +171,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         argtypes = Any[argtypes[1:(end - n)]..., Vararg{n > 0 ? argtypes[end] : Any, n}]
     end
 
-    args = map(args, argtypes) do arg, t
-        type = ""
-        suffix = ""
-        if Base.isvarargtype(t)
-            len = vararg_length(t)
-            t = Base.unwrapva(t)
-            if len === nothing
-                suffix = "..."
-            else
-                type = "::Vararg{$(typestring(t)), $len}"
-            end
-        end
-        if t !== Any && isempty(type)
-            type = "::$(typestring(t))"
-        end
-        # An unnamed argument with a type prints as `::T`.
-        if arg == "_" && !isempty(type)
-            arg = ""
-        end
-
-        "$arg$type$suffix"
-    end
+    args = map((arg, t) -> typed_argument(arg, t, typestring), args, argtypes)
     kws = map(kwnames) do kw
         t = get(kwtypes, kw, Any)
         t === Any ? kw : "$kw::$(typestring(t))"
@@ -214,6 +186,42 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         where_clause = where_clause(used),
         return_type = return_annotation(returns, func, method, typesig)
     )
+end
+
+# The type variables among `vars` that appear in `types` or in the bounds of another used one.
+function used_typevars(vars, types)
+    # Innermost first: a type parameter used only in a later parameter's bound is still used.
+    used = Any[]
+    for v in reverse(vars)
+        if any(t -> Base.has_typevar(t, v), types) ||
+                any(u -> Base.has_typevar(u.lb, v) || Base.has_typevar(u.ub, v), used)
+            pushfirst!(used, v)
+        end
+    end
+    return used
+end
+
+# The positional argument `arg` of type `t`, as the typed `printmethod` prints it.
+function typed_argument(arg, t, typestring)
+    type = ""
+    suffix = ""
+    if Base.isvarargtype(t)
+        len = vararg_length(t)
+        t = Base.unwrapva(t)
+        if len === nothing
+            suffix = "..."
+        else
+            type = "::Vararg{$(typestring(t)), $len}"
+        end
+    end
+    if t !== Any && isempty(type)
+        type = "::$(typestring(t))"
+    end
+    # An unnamed argument with a type prints as `::T`.
+    if arg == "_" && !isempty(type)
+        arg = ""
+    end
+    return "$arg$type$suffix"
 end
 
 """
