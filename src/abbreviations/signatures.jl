@@ -71,7 +71,6 @@ function format(abbr::MethodSignatures, buf, doc)
     local defaults = abbr.defaults === false ? nothing : abbr.definition
 
     if !isempty(groups)
-        # A struct's typed constructor and its untyped fallback print the same signature.
         local lines = String[]
         for group in groups, method in collapse_defaults(group, defaults)
             push!(lines, sprint(io -> printmethod(io, binding, func, method;
@@ -80,6 +79,7 @@ function format(abbr::MethodSignatures, buf, doc)
         end
         println(buf)
         println(buf, "```julia")
+        # A struct's typed constructor and its untyped fallback print the same signature.
         foreach(line -> println(buf, line), unique(lines))
         println(buf, "```\n")
     end
@@ -174,9 +174,6 @@ function format(tms::TypedMethodSignatures, buf, doc)
     local binding = doc.data[:binding]
     local typesig = doc.data[:typesig]
     local func = Base.invokelatest(Docs.resolve, binding)
-    # TODO: why is methodgroups returning invalid methods?
-    # the methodgroups always appears to return a Vector and the size depends on whether parametric types are used
-    # and whether default arguments are used
     local groups = signature_groups(tms, func, doc)
     local defaults = tms.defaults === false ? nothing : tms.definition
     if !isempty(groups)

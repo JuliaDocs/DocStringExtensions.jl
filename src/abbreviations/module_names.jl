@@ -1,7 +1,5 @@
 """
 The singleton type for [`EXPORTS`](@ref) abbreviations.
-
-$(:FIELDS)
 """
 struct ModuleExports <: Abbreviation end
 
@@ -61,8 +59,6 @@ end
 
 """
 The singleton type for [`PUBLIC`](@ref) abbreviations.
-
-$(:FIELDS)
 """
 struct ModulePublic <: Abbreviation end
 

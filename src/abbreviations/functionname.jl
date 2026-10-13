@@ -1,7 +1,5 @@
 """
 The singleton type for [`FUNCTIONNAME`](@ref) abbreviations.
-
-$(:FIELDS)
 """
 struct FunctionName <: Abbreviation end
 

@@ -1,7 +1,5 @@
 """
 The singleton type for [`IMPORTS`](@ref) abbreviations.
-
-$(:FIELDS)
 """
 struct ModuleImports <: Abbreviation end
 

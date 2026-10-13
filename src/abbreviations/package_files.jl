@@ -2,6 +2,7 @@
 The singleton type for [`README`](@ref) abbreviations.
 """
 struct Readme <: Abbreviation end
+
 """
 An [`Abbreviation`](@ref) that includes the package README: the first file in the package
 root whose name contains `readme`, in any case. It prints nothing for a module that is not
@@ -13,10 +14,12 @@ part of a package.
     supported.
 """
 const README = Readme()
+
 """
 The singleton type for [`LICENSE`](@ref) abbreviations.
 """
 struct License <: Abbreviation end
+
 """
 An [`Abbreviation`](@ref) that includes the package license: the first file in the package
 root whose name contains `license`, in any case. It prints nothing for a module that is not

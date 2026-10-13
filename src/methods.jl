@@ -42,12 +42,12 @@ groups = methodgroups(f, Union{Tuple{Any}, Tuple{Any, Integer}}, Main; exact = f
 ```
 """
 function methodgroups(func, typesig, modname; exact = true)
-    # Group methods by file and line number.
     local methods = getmethods(func, typesig)
     # A docstring on a constructor written as `T{P}(...)` documents a method of `Type{T{P}}`.
     if func isa UnionAll && typesig != Union{}
         methods = unique([methods; constructor_methods(func, typesig)])
     end
+    # Group methods by file and line number.
     local groups = groupby(Tuple{Symbol, Int}, Vector{Method}, methods) do m
         (m.file, m.line), m
     end
