@@ -1001,7 +1001,12 @@ typed_signatures_h_reference() =
             @test_reference ro_path("signature_defaults.txt") str
             @test fmt(:(DefaultsTestModule.Templated.templated)) ==
                 "```julia\ntemplated(x, y=1)\n```\n\nmethod `templated`\n"
+            names = [:bracketed, :typed_bracketed, :unnamed_bracketed, :varargs_bracketed]
+            str = join([fmt(:(DefaultsTestModule.$name)) for name in names], "\n")
+            @test_reference ro_path("signature_defaults_brackets.txt") str
         end
+        @test_throws ArgumentError DSE.MethodSignatures(defaults = :bracket)
+        @test_throws ArgumentError DSE.TypedMethodSignatures(defaults = :Brackets)
     end
     @testset "field defaults" begin
         let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))

@@ -34,6 +34,13 @@ $(DocStringExtensions.TypedMethodSignatures(defaults = true))
 
 ---
 
+Passing `defaults = :brackets` prints one signature without the default value, with the
+optional argument in brackets:
+
+$(DocStringExtensions.MethodSignatures(defaults = :brackets))
+
+---
+
 Passing a string as `returns` describes the return value in place of the inferred type:
 
 $(DocStringExtensions.MethodSignatures(returns = "sum::Int"))

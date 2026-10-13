@@ -48,6 +48,26 @@ $(MethodSignatures(defaults = true))
 """
 varargs(x = 1, xs...) = x
 
+"""
+$(MethodSignatures(defaults = :brackets))
+"""
+bracketed(x, y = 1, z = "z"; k = 2, kwargs...) = x
+
+"""
+$(TypedMethodSignatures(returns = false, defaults = :brackets))
+"""
+typed_bracketed(x::Float64, y::Float64 = 2.0; z = nothing, w::Float64 = 1.0) = x
+
+"""
+$(TypedMethodSignatures(returns = false, defaults = :brackets))
+"""
+unnamed_bracketed(::String, ::Float64 = 0.0) = nothing
+
+"""
+$(MethodSignatures(defaults = :brackets))
+"""
+varargs_bracketed(x = 1, xs...) = x
+
 module Templated
 
 using DocStringExtensions
