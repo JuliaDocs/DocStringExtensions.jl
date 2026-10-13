@@ -87,4 +87,12 @@
             @test occursin("`$source` has no `MODULES` template", result.value.msg)
         end
     end
+
+    @testset "template_key" begin
+        @test @inferred(DSE.template_key(Docs.Binding(M, :f), Union{})) === :FUNCTIONS
+        @test @inferred(DSE.template_key(Docs.Binding(M, :T), Union{})) === :TYPES
+        @test @inferred(DSE.template_key(Docs.Binding(Main, :M), Union{})) === :MODULES
+    end
+
+    @test @inferred(DSE.module_templates(TemplateTests)) isa Dict{Symbol, Vector}
 end

@@ -8,7 +8,7 @@ function _capture_expression(docstr::Expr, expr::Expr)
     if Meta.isexpr(docstr, :string)
         quoted = QuoteNode(expr)
         new_docstring = Expr(:string)
-        append!(new_docstring.args, [_process_interpolation(each, quoted) for each in docstr.args])
+        append!(new_docstring.args, Any[_process_interpolation(each, quoted) for each in docstr.args])
         return new_docstring
     end
     return docstr
@@ -37,7 +37,7 @@ function hook_docstring(mod::Module, docstr, expr::Expr)
     # docstring in it's specific template. This is only done when the module
     # actually defines templates.
     if isdefined(mod, TEMP_SYM)
-        dict = getfield(mod, TEMP_SYM)
+        dict = module_templates(mod)
         # We unwrap interpolated strings so that we can add the `:before` and
         # `:after` abbreviations. Otherwise they're just left as is.
         unwrapped = Meta.isexpr(docstr, :string) ? docstr.args : [docstr]

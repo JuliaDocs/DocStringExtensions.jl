@@ -85,8 +85,8 @@ which can match a method of another definition. All of `groups` when `doc` recor
 no group follows it.
 """
 function documented_groups(groups, doc)
-    path = get(doc.data, :path, nothing)
-    line = get(doc.data, :linenumber, nothing)
+    path = get(doc.data, :path, nothing)::Union{String, Nothing}
+    line = get(doc.data, :linenumber, nothing)::Union{Int, Nothing}
     (path === nothing || line === nothing) && return groups
     after = filter(g -> String(first(g).file) == path && first(g).line >= line, groups)
     isempty(after) && return groups
@@ -94,7 +94,7 @@ function documented_groups(groups, doc)
 end
 
 # The argument types of `m`, without the function's own type.
-argsig(m::Method) = Base.rewrap_unionall(Base.tuple_type_tail(m.sig), m.sig)
+argsig(m::Method) = Base.rewrap_unionall(Base.tuple_type_tail(m.sig), m.sig)::Type
 
 """
 $(:SIGNATURES)
@@ -104,10 +104,10 @@ argument's element type in place of its `Vararg`. A vararg with a count, such as
 `xs::Vararg{Int,2}`, gets `Any`.
 """
 function argument_types(method::Method, n::Integer)
-    types = Any[Base.unwrap_unionall(method.sig).parameters[2:end]...]
+    types = Any[tuple_parameters(method.sig)[2:end]...]
     method.isva || return types[1:n]
     vararg = expanded_vararg(method) ? Any : Base.unwrapva(types[end])
-    return Any[types[1:(n - 1)]; vararg]
+    return push!(types[1:(n - 1)], vararg)
 end
 
 # The type parameters `t` declares, outermost first.
@@ -144,7 +144,10 @@ end
 
 # The type of the callable a method belongs to. Julia 1.10 stores the default constructor of
 # `Point{T}` under `Type{Point{T}} where T`, which declares its own type parameters.
-self_type(method::Method) = Base.unwrap_unionall(method.sig).parameters[1]
+self_type(method::Method) = tuple_parameters(method.sig)[1]
+
+# The parameters of the `Tuple` type `sig`, inside any `where`.
+tuple_parameters(@nospecialize(sig)) = (Base.unwrap_unionall(sig)::DataType).parameters
 
 # Julia 1.14 gives `Type{T}` the kind `TypeEq` in place of `DataType`.
 @static if isdefined(Core, :TypeEq)
@@ -162,7 +165,7 @@ Whether `method` takes `xs::Vararg{T,n}`, which Julia writes into `method.sig` a
 arguments of type `T`.
 """
 expanded_vararg(method::Method) =
-    method.isva && !Base.isvarargtype(last(Base.unwrap_unionall(method.sig).parameters))
+    method.isva && !Base.isvarargtype(last(tuple_parameters(method.sig)))
 
 """
 $(:SIGNATURES)
@@ -189,13 +192,13 @@ every method that matches, so a more specific method whose signature overlaps `m
 skipped by its position in `methods(func, typesig)`.
 """
 function method_return_type(func, method::Method, typesig)
-    matching = collect(Base.invokelatest(methods, func, typesig))
+    matching = collect(Base.invokelatest(methods, func, typesig)::Base.MethodList)
     idx = findfirst(m -> m === method, matching)
     idx === nothing && return []
     # Inference cannot run a generator on abstract argument types: Julia 1.0 throws and 1.10
     # hits a `BoundsError` in Base. Other versions infer `Any` for a generated method itself.
     any(hasgenerator, matching) && !isconcretetype(typesig) && return []
-    return [Base.invokelatest(Base.return_types, func, typesig)[idx]]
+    return Any[(Base.invokelatest(Base.return_types, func, typesig)::Vector{Any})[idx]]
 end
 
 if isdefined(Base, :hasgenerator)
@@ -236,12 +239,12 @@ A helper method for [`getmethods`](@ref) that collects methods in `results`.
 """
 function getmethods!(results, f, sig)
     if sig == Union{}
-        append!(results, Base.invokelatest(methods, f))
+        append!(results, Base.invokelatest(methods, f)::Base.MethodList)
     else
         # Each signature keeps its `where` bounds: Julia 1.14 matches no method against a
         # type variable left free with a bound.
         for each in alltypesigs(sig)
-            append!(results, Base.invokelatest(methods, f, each))
+            append!(results, Base.invokelatest(methods, f, each)::Base.MethodList)
         end
     end
     return results
@@ -267,8 +270,8 @@ function constructor_methods(func::UnionAll, typesig)
     self = Type{Base.unwrap_unionall(func)}
     results = Method[]
     for each in alltypesigs(typesig)
-        args = Base.unwrap_unionall(each).parameters
-        tt = Base.rewrap_unionall(Base.rewrap_unionall(Tuple{self, args...}, each), func)
+        args = tuple_parameters(each)
+        tt = Base.rewrap_unionall(Base.rewrap_unionall(Tuple{self, args...}, each), func)::Type
         append!(results, matched_methods(tt))
     end
     return results
@@ -365,7 +368,7 @@ end
 """
 groupby(f, K, V, data) = groupby!(f, Dict{K, V}(), data)
 
-get_method_source(m::Method) = Base.uncompressed_ast(m)
+get_method_source(m::Method) = Base.uncompressed_ast(m)::Core.CodeInfo
 nargs(m::Method) = m.nargs
 
 """
@@ -424,7 +427,7 @@ function keyword_body(method::Method)
         callee = ssa_value(code, call.args[3])
     end
     callee isa GlobalRef || return nothing
-    found = Base.invokelatest(methods, Base.invokelatest(getfield, callee.mod, callee.name))
+    found = Base.invokelatest(methods, Base.invokelatest(getfield, callee.mod, callee.name))::Base.MethodList
     return length(found) == 1 ? first(found) : nothing
 end
 
@@ -446,7 +449,7 @@ function keyword_types(method::Method, kws, vars)
     shared = Dict(v.name => v for v in vars)
     sig = isempty(own) ? body.sig : body.sig{[get(shared, v.name, v) for v in own]...}
     names = get_method_source(body).slotnames[2:nargs(body)]
-    for (name, type) in zip(names, sig.parameters[2:end])
+    for (name, type) in zip(names, tuple_parameters(sig)[2:end])
         types[string(name)] = type
     end
     return types, filter(v -> !haskey(shared, v.name), own)
@@ -456,7 +459,8 @@ end
 """
 $(:SIGNATURES)
 
-Returns the list of arguments for a particular method `m`.
+The names of the positional arguments of method `m`, with `"_"` for an unnamed or
+destructured argument.
 
 # Examples
 
@@ -476,13 +480,10 @@ function arguments(m::Method)
             argnames = template.slotnames
         end
     end
-    if argnames !== nothing
-        args = map(argnames[1:nargs(m)]) do arg
-            isself(arg) ? arg : isunnamed(arg) ? "_" : arg
-        end
-        return filter(!isself, args)
-    end
-    return Symbol[]
+    argnames === nothing && return String[]
+    # The container type of `argnames` varies across Julia versions; its elements are `Symbol`s.
+    args = Symbol[argnames[1:nargs(m)]...]
+    return String[isunnamed(arg) ? "_" : string(arg) for arg in args if !isself(arg)]
 end
 
 isself(arg) = arg === Symbol("#self#") || arg === Symbol("#ctor-self#")

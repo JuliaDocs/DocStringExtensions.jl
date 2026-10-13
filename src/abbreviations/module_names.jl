@@ -36,7 +36,7 @@ julia> @doc Shapes
 const EXPORTS = ModuleExports()
 
 function format(::ModuleExports, buf, doc)
-    object = Base.invokelatest(Docs.resolve, doc.data[:binding])
+    object = Base.invokelatest(Docs.resolve, doc_binding(doc))::Module
     # `names` also returns `public` names on Julia 1.11 and later.
     return print_name_list(buf, object, filter(sym -> Base.isexported(object, sym), names(object)))
 end
@@ -99,6 +99,6 @@ julia> @doc Shapes
 const PUBLIC = ModulePublic()
 
 function format(::ModulePublic, buf, doc)
-    object = Base.invokelatest(Docs.resolve, doc.data[:binding])
+    object = Base.invokelatest(Docs.resolve, doc_binding(doc))::Module
     return print_name_list(buf, object, names(object))
 end

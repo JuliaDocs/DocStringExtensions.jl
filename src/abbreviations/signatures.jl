@@ -61,7 +61,7 @@ julia> @doc area
 const SIGNATURES = MethodSignatures()
 
 function format(abbr::MethodSignatures, buf, doc)
-    binding = doc.data[:binding]
+    binding = doc_binding(doc)
     func = Base.invokelatest(Docs.resolve, binding)
     groups = signature_groups(abbr, func, doc)
     defaults = abbr.defaults === false ? nothing : abbr.definition
@@ -148,7 +148,7 @@ const TYPEDSIGNATURES = TypedMethodSignatures()
 # The methods a signature abbreviation prints: the constructors of a documented struct, or the
 # documented method's group.
 function signature_groups(abbr::Union{MethodSignatures, TypedMethodSignatures}, func, doc)
-    modname = doc.data[:module]
+    modname = doc_module(doc)
     if abbr.type_definition !== nothing
         constructors = struct_constructors(func, abbr.type_definition, modname)
         return isempty(constructors) ? Vector{Method}[] : [constructors]
@@ -173,7 +173,7 @@ function collapse_defaults(group, definition::DefinitionArguments)
 end
 
 function format(tms::TypedMethodSignatures, buf, doc)
-    binding = doc.data[:binding]
+    binding = doc_binding(doc)
     typesig = doc.data[:typesig]
     func = Base.invokelatest(Docs.resolve, binding)
     groups = signature_groups(tms, func, doc)

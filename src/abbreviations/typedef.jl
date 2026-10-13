@@ -82,7 +82,7 @@ gettype(T::UnionAll) = gettype(T.body)
 gettype(other) = other
 
 function format(::TypeDefinition, buf, doc)
-    binding = doc.data[:binding]
+    binding = doc_binding(doc)
     object = gettype(Base.invokelatest(Docs.resolve, binding))
     return if isa(object, DataType)
         println(buf, "\n```julia")

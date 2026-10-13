@@ -7,6 +7,13 @@
         @test result.value.msg == "`format` not implemented for `Nothing`."
     end
 
+    @testset "doc data" begin
+        data = Dict{Symbol, Any}(:binding => Docs.Binding(M, :f), :module => M)
+        doc = Docs.DocStr(Core.svec(), nothing, data)
+        @test @inferred(DSE.doc_binding(doc)) == Docs.Binding(M, :f)
+        @test @inferred(DSE.doc_module(doc)) === M
+    end
+
     @testset "Interpolation" begin
         @test occursin("f(x)", rendered(:(InterpolationTestModule.f)))
         @test occursin("x + 2", rendered(:(InterpolationTestModule.g)))

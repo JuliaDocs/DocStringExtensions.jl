@@ -34,7 +34,7 @@
 
     # Telling an abstract type from a concrete one, parametric or not.
     #
-    # Used in src/templates.jl by template_key() to pick the `ABSTRACTTYPES` template.
+    # Used in src/templates.jl by template_category() to pick the `ABSTRACTTYPES` template.
     @test Base.isabstracttype(AbstractVector)
     @test !Base.isabstracttype(Vector)
     @test !Base.isabstracttype(Int8)
