@@ -60,10 +60,10 @@ function methodgroups(func, typesig, modname; exact = true)
         if exact
             # Julia 1.12 and later can normalise the union of a definition's signatures
             # into a single type, such as `Union{Tuple{}, Tuple{Any, Vararg{Any}}} == Tuple`.
-            # When no method matches a component, keep the group if `typesig` covers it.
-            # Subtyping cannot always prove the converse, as for `where T` outside a union.
+            # When no method matches a component, keep the group if its signatures together
+            # equal `typesig`.
             matching = filter(m -> argsig(m) in typesigs, group)
-            if !isempty(matching) || !all(m -> argsig(m) <: typesig, group)
+            if !isempty(matching) || !signatures_equal(group, typesig)
                 group = matching
             end
         end
@@ -95,6 +95,24 @@ end
 
 # The argument types of `m`, without the function's own type.
 argsig(m::Method) = Base.rewrap_unionall(Base.tuple_type_tail(m.sig), m.sig)::Type
+
+"""
+$(:SIGNATURES)
+
+Whether the methods of `group` together have the signature `typesig`. Subtyping cannot prove
+that for a vararg tuple split across methods, such as `Tuple{Vararg{T}} where T` and the two
+methods of `f(x::T = 1, xs::T...) where {T}`. So the types are compared at each number of
+arguments, up to one past the most parameters any tuple declares. Larger counts only meet
+varargs and compare the same.
+"""
+function signatures_equal(group, typesig)
+    sigs = map(argsig, group)
+    combined = Union{sigs...}
+    longest = mapreduce(t -> length(tuple_parameters(t)), max, [alltypesigs(typesig); sigs]; init = 0)
+    return all(0:(longest + 1)) do n
+        typeintersect(typesig, NTuple{n, Any}) == typeintersect(combined, NTuple{n, Any})
+    end
+end
 
 """
 $(:SIGNATURES)

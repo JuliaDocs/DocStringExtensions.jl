@@ -116,6 +116,16 @@
         @test length(DSE.methodgroups(M.k_14, Tuple{Any}, M)[1]) == 1
     end
 
+    @testset "signatures_equal" begin
+        defaults = (x = 1, y = 2, zs...) -> x
+        @test DSE.signatures_equal(collect(methods(defaults)), Tuple)
+        @test !DSE.signatures_equal(collect(methods((x::Integer) -> x)), Tuple{Any})
+        # A vararg typesig takes more arguments than any fixed method.
+        fixed = collect(methods((x = 1, y = 2) -> x))
+        @test !DSE.signatures_equal(fixed, Tuple)
+        @test DSE.signatures_equal(fixed, Union{Tuple{}, Tuple{Any}, Tuple{Any, Any}})
+    end
+
     @testset "alltypesigs" begin
         @test DSE.alltypesigs(Union{}) == Any[]
         @test DSE.alltypesigs(Union{Tuple{}}) == Any[Tuple{}]

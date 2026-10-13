@@ -1,0 +1,15 @@
+constructor `D`
+
+```julia
+E(r)
+E{NF}(r)
+```
+
+```julia
+E(r)
+E{NF}(r) where NF
+```
+
+callable `E`
+
+macro `@mac`

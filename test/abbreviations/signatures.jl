@@ -408,6 +408,13 @@
             "```julia\nPoint(x)\n```\n\ntype `Point`\n"
     end
 
+    # A method of another definition whose signature only falls inside the typesig is left out.
+    @testset "other definitions" begin
+        names = [:D, :E, Symbol("@mac")]
+        str = join([rendered(:(OtherDefinitionsTestModule.$name)) for name in names], "\n")
+        @test_reference ro_path("signatures_other_definitions.txt") str
+    end
+
     @testset "signature destructuring" begin
         names = [:pair, :typed, :nested, :unshowable]
         str = join([rendered(:(DestructuringTestModule.$name)) for name in names], "\n")
