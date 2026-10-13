@@ -38,6 +38,7 @@
     @test occursin("(DEFAULT)", rendered(:(TemplateTests.InnerModule.A)))
     @test occursin("(METHODS, MACROS)", rendered(:(TemplateTests.InnerModule.f)))
     @test occursin("(MACROS)", rendered(:(TemplateTests.InnerModule.@m)))
+    @test occursin("(METHODS, MACROS)", rendered(Expr(:., :(TemplateTests.InnerModule), QuoteNode(Symbol("@notmacro")))))
 
     @test occursin("(TYPES)", rendered(:(TemplateTests.OtherModule.T)))
     @test occursin("(TYPES)", rendered(:(TemplateTests.OtherModule.ISSUE_115)))

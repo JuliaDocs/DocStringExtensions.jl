@@ -112,11 +112,12 @@ function ismacro(m::Method)
     return startswith(String(m.name), "@") && length(params) >= 3 &&
         params[2] === LineNumberNode && params[3] === Module
 end
+ismacro(@nospecialize(f::Function)) = any(ismacro, Base.invokelatest(methods, f)::Base.MethodList)
 
 # The argument types `f` is called with for those in `sig`, which a macro's docstring gives as
 # its caller writes them.
 call_signature(f, sig) =
-    f isa Function && any(ismacro, Base.invokelatest(methods, f)::Base.MethodList) ?
+    f isa Function && ismacro(f) ?
     Base.rewrap_unionall(Tuple{LineNumberNode, Module, tuple_parameters(sig)...}, sig) : sig
 
 """
