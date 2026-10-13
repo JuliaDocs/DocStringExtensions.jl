@@ -1,0 +1,165 @@
+```julia
+@vararg xs...
+```
+
+```julia
+@vararg xs...
+```
+
+vararg `@vararg`
+
+```julia
+@pair a b
+```
+
+```julia
+@pair a b
+```
+
+two arguments `@pair`
+
+```julia
+@two a
+```
+
+```julia
+@two a
+```
+
+one argument `@two`
+
+```julia
+@two a b
+```
+
+```julia
+@two a b
+```
+
+two arguments `@two`
+
+```julia
+@typed ex s
+```
+
+```julia
+@typed ex::Expr s::Symbol
+```
+
+typed `@typed`
+
+```julia
+@default a
+@default a b
+```
+
+```julia
+@default a
+@default a b
+```
+
+```julia
+@default a b=1
+```
+
+```julia
+@default a [b]
+```
+
+```julia
+@default a b=1
+```
+
+default `@default`
+
+```julia
+@typeddefault a
+@typeddefault a b
+```
+
+```julia
+@typeddefault a::Symbol
+@typeddefault a::Symbol b::Integer
+```
+
+```julia
+@typeddefault a b=1
+```
+
+```julia
+@typeddefault a::Symbol b::Integer=1
+```
+
+```julia
+@typeddefault a::Symbol [b::Integer]
+```
+
+typed default `@typeddefault`
+
+```julia
+@typedvararg ex xs...
+```
+
+```julia
+@typedvararg ex::Expr xs::Symbol...
+```
+
+typed vararg `@typedvararg`
+
+```julia
+@destructured (a, b) c
+```
+
+```julia
+@destructured (a, b) c
+```
+
+destructured `@destructured`
+
+```julia
+@returns xs...
+```
+
+```julia
+@returns xs...
+```
+
+```julia
+@returns xs... -> Expr
+```
+
+```julia
+@returns xs... -> Expr
+```
+
+returns `@returns`
+
+```julia
+@none
+```
+
+```julia
+@none
+```
+
+no arguments `@none`
+
+```julia
+@long first_argument_name second_argument_name third_argument_name
+```
+
+```julia
+@long first_argument_name::Expr second_argument_name::Symbol third_argument_name::Expr
+```
+
+long `@long`
+
+```julia
+@notmacro(a, b, c)
+```
+
+```julia
+@notmacro(a, b, c)
+```
+
+function `@notmacro`

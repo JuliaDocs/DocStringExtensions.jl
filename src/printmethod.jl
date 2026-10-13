@@ -5,7 +5,13 @@ Decides whether a length of method is too big to be visually appealing.
 """
 method_length_over_limit(len::Int) = len > 60
 
-function printmethod_format(buffer::IOBuffer, binding::String, args::Vector{String}, kws::Vector{String}; where_clause = "", return_type = "")
+function printmethod_format(buffer::IOBuffer, binding::String, args::Vector{String}, kws::Vector{String}; where_clause = "", return_type = "", macrocall = false)
+    # A macro call separates its arguments with spaces and stays on one line, as in `@time ex`.
+    if macrocall
+        join(buffer, [binding; args], " ")
+        print(buffer, where_clause, return_type)
+        return buffer
+    end
 
     sep_delim = " "
     paren_delim = ""
@@ -52,7 +58,9 @@ simplifications include:
   * no types, except `::T` for an unnamed argument of type `T`;
   * no default values, unless `definition` gives them;
   * `_` printed for untyped unnamed arguments, and for destructured arguments unless
-    `definition` gives them.
+    `definition` gives them;
+  * a macro printed as its caller writes it, `@m a b`, without `__source__` and
+    `__module__` or an inferred return type.
 
 `definition` is the [`DefinitionArguments`](@ref) of the documented method definition, or
 `nothing`. `returns` selects the [`return_annotation`](@ref) after the signature.
@@ -89,7 +97,10 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         instance_call(method, string(binding.var))
     end
     return_type = return_annotation(returns, func, method, argsig(method))
-    return printmethod_format(buffer, name, args, kws; where_clause = where_clause(vars), return_type = return_type)
+    return printmethod_format(
+        buffer, name, args, kws;
+        where_clause = where_clause(vars), return_type = return_type, macrocall = ismacro(method)
+    )
 end
 
 """
@@ -201,7 +212,8 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         args,
         kws;
         where_clause = where_clause([typevar_text(v, IOContext(devnull)) for v in used]),
-        return_type = return_annotation(returns, func, method, typesig)
+        return_type = return_annotation(returns, func, method, typesig),
+        macrocall = ismacro(method)
     )
 end
 
@@ -297,7 +309,8 @@ inferred to return for `typesig`, `false` for none, or the text to print as `T`.
 return_annotation(returns::String, func, method::Method, typesig) = " -> $returns"
 
 function return_annotation(returns::Bool, func, method::Method, typesig)
-    returns || return ""
+    # A macro returns the expression it generates, whose type tells the reader nothing.
+    returns && !ismacro(method) || return ""
     rt = method_return_type(func, method, typesig)
     return isempty(rt) || rt[1] === Nothing || rt[1] === Union{} ? "" : " -> $(type_text(rt[1], IOContext(devnull)))"
 end

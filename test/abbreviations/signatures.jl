@@ -415,6 +415,14 @@
         @test_reference ro_path("signatures_other_definitions.txt") str
     end
 
+    # A macro prints as its caller writes it, on one line, without `__source__` and
+    # `__module__`, and with no inferred return type.
+    @testset "macro signatures" begin
+        names = [:vararg, :pair, :two, :typed, :default, :typeddefault, :typedvararg, :destructured, :returns, :none, :long, :notmacro]
+        str = join([rendered(:(MacrosTestModule.$(Symbol("@", name)))) for name in names], "\n")
+        @test_reference ro_path("signatures_macros.txt") str
+    end
+
     # A constructor called through an alias prints as the alias, without the parameters the
     # alias fixes. One written with its parameters keeps them.
     @testset "alias constructors" begin

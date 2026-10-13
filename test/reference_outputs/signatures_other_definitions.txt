@@ -21,4 +21,12 @@ constructor `D`
 
 callable `E`
 
+```julia
+@mac xs...
+```
+
+```julia
+@mac xs...
+```
+
 macro `@mac`

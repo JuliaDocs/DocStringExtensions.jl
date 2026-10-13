@@ -60,6 +60,13 @@
         @test_reference ro_path("method_lists_callables.txt") replace(str, r"defined at .*\n\n" => "")
     end
 
+    # A macro lists without `__source__` and `__module__`. The link names this checkout's
+    # commit, so it is dropped.
+    @testset "macro lists" begin
+        str = rendered(:(MacrosTestModule.$(Symbol("@listed"))))
+        @test_reference ro_path("method_lists_macros.txt") replace(str, r"defined at .*\n\n" => "")
+    end
+
     @testset "url" begin
         @test !isempty(DSE.url(first(methods(sin))))
         with_test_repo() do

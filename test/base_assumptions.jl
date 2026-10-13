@@ -200,6 +200,22 @@
         @test DSE.slot_names(which(C.Zero(), (Any,)))[1] === Symbol("#self#")
     end
 
+    # A macro's method is named `@name` and takes `__source__::LineNumberNode` and
+    # `__module__::Module` before the arguments its caller writes. Its docstring is filed
+    # under the caller's argument types.
+    #
+    # Used in src/methods.jl by ismacro(), argsig(), hidden_arguments(), call_signature() and
+    # arguments().
+    let mac = getfield(MacrosTestModule, Symbol("@pair")),
+            m = first(methods(mac)),
+            multidoc = Docs.meta(MacrosTestModule)[Docs.Binding(MacrosTestModule, Symbol("@pair"))]
+
+        @test m.name === nameof(mac) === Symbol("@pair")
+        @test Base.tuple_type_tail(m.sig) == Tuple{LineNumberNode, Module, Any, Any}
+        @test DSE.slot_names(m)[2:3] == [:__source__, :__module__]
+        @test multidoc.order == [Tuple{Any, Any}]
+    end
+
     # Printing a type parameter by name inside a method's `where` clause.
     #
     # Used in src/printmethod.jl for the typed printmethod() method.

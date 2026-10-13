@@ -97,8 +97,27 @@ function documented_groups(groups, doc)
     return [after[argmin(map(g -> first(g).line, after))]]
 end
 
-# The argument types of `m`, without the function's own type.
-argsig(m::Method) = Base.rewrap_unionall(Base.tuple_type_tail(m.sig), m.sig)::Type
+# The argument types of `m`, without the function's own type or a macro's hidden arguments.
+function argsig(m::Method)
+    params = tuple_parameters(Base.tuple_type_tail(m.sig))
+    return Base.rewrap_unionall(Tuple{params[(1 + hidden_arguments(m)):end]...}, m.sig)::Type
+end
+
+# A macro method takes `__source__` and `__module__` before the arguments its caller writes.
+hidden_arguments(m::Method) = ismacro(m) ? 2 : 0
+
+# A function named `var"@f"` is not a macro, so the name alone does not decide.
+function ismacro(m::Method)
+    params = tuple_parameters(m.sig)
+    return startswith(String(m.name), "@") && length(params) >= 3 &&
+        params[2] === LineNumberNode && params[3] === Module
+end
+
+# The argument types `f` is called with for those in `sig`, which a macro's docstring gives as
+# its caller writes them.
+call_signature(f, sig) =
+    f isa Function && any(ismacro, Base.invokelatest(methods, f)::Base.MethodList) ?
+    Base.rewrap_unionall(Tuple{LineNumberNode, Module, tuple_parameters(sig)...}, sig) : sig
 
 """
 $(:SIGNATURES)
@@ -126,7 +145,7 @@ argument's element type in place of its `Vararg`. A vararg with a count, such as
 `xs::Vararg{Int,2}`, gets `Any`.
 """
 function argument_types(method::Method, n::Integer)
-    types = Any[tuple_parameters(method.sig)[2:end]...]
+    types = Any[tuple_parameters(argsig(method))...]
     method.isva || return types[1:n]
     vararg = expanded_vararg(method) ? Any : Base.unwrapva(types[end])
     return push!(types[1:(n - 1)], vararg)
@@ -288,7 +307,7 @@ function getmethods!(results, f, sig)
         # Each signature keeps its `where` bounds: Julia 1.14 matches no method against a
         # type variable left free with a bound.
         for each in alltypesigs(sig)
-            append!(results, Base.invokelatest(methods, f, each)::Base.MethodList)
+            append!(results, Base.invokelatest(methods, f, call_signature(f, each))::Base.MethodList)
         end
     end
     return results
@@ -540,7 +559,7 @@ args = arguments(first(methods(f)))
 ```
 """
 function arguments(m::Method)
-    return String[isunnamed(arg) ? "_" : string(arg) for arg in slot_names(m)[2:end]]
+    return String[isunnamed(arg) ? "_" : string(arg) for arg in slot_names(m)[(2 + hidden_arguments(m)):end]]
 end
 
 # The names of the argument slots of `m`, the callable itself first. Empty when `m` records none.

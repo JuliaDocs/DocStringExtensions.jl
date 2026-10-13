@@ -35,6 +35,21 @@ bar(x::AbstractArray{T}, ::String) where {T <: Integer}
 bar(x::AbstractArray{T}, y::U) where {T <: Integer, U <: AbstractFloat}
 ```
 
+## Macros
+
+[`SIGNATURES`](@ref) and [`TYPEDSIGNATURES`](@ref) print a macro the way it is called, with
+its arguments separated by spaces:
+
+```@eval
+Main.example_source("macros.jl")
+```
+
+The docstring renders as:
+
+```@docs
+@repeat
+```
+
 ## Function bodies
 
 [`BODY`](@ref) prints the code of the documented method. Julia prints it from the parsed
