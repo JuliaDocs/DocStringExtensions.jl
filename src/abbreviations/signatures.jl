@@ -19,13 +19,6 @@ end
 MethodSignatures(; returns::Union{Bool,String} = false, defaults::Union{Bool,Symbol} = false) =
     MethodSignatures(returns, check_defaults(defaults), nothing, nothing)
 
-interpolation(abbr::MethodSignatures, expr::Expr) = MethodSignatures(
-    abbr.returns,
-    abbr.defaults,
-    definition_arguments(expr, abbr.defaults !== false),
-    struct_extent(expr),
-)
-
 """
 An [`Abbreviation`](@ref) that prints the signatures of the documented method, with argument
 names and keywords but no types. See [`printmethod`](@ref) for the simplifications it
@@ -100,7 +93,7 @@ end
 TypedMethodSignatures(; returns::Union{Bool,String} = true, defaults::Union{Bool,Symbol} = false) =
     TypedMethodSignatures(returns, check_defaults(defaults), nothing, nothing)
 
-interpolation(abbr::TypedMethodSignatures, expr::Expr) = TypedMethodSignatures(
+interpolation(abbr::T, expr::Expr) where {T<:Union{MethodSignatures,TypedMethodSignatures}} = T(
     abbr.returns,
     abbr.defaults,
     definition_arguments(expr, abbr.defaults !== false),
