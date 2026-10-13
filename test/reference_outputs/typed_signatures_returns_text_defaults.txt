@@ -1,0 +1,6 @@
+
+```julia
+l_1(x::Symbol) -> success::Bool
+l_1(x::Symbol, y::Bool) -> success::Bool
+```
+

@@ -592,7 +592,7 @@ simplifications include:
     `definition` gives them.
 
 `definition` is the [`DefinitionArguments`](@ref) of the documented method definition, or
-`nothing`.
+`nothing`. `returns` selects the [`return_annotation`](@ref) after the signature.
 
 # Examples
 
@@ -601,7 +601,7 @@ f(x; a = 1, b...) = x
 sig = printmethod(Docs.Binding(Main, :f), f, first(methods(f)))
 ```
 """
-function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method; definition = nothing)
+function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method; definition = nothing, returns = false)
     local env = unionall_env(typevars(method.sig))
     typestring(t) = sprint(show, t; context = env)
     local names = argument_names(method, definition)
@@ -612,7 +612,8 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     local kws = string.(keywords(func, method))
     args, kws = append_defaults(args, kws, kws, method, definition)
     local name = callable_name(binding, constructor_parameters(method), typestring)
-    return printmethod_format(buffer, name, args, kws)
+    local return_type = return_annotation(returns, func, method, argsig(method))
+    return printmethod_format(buffer, name, args, kws; return_type = return_type)
 end
 
 """
@@ -747,8 +748,8 @@ end
 $(:TYPEDSIGNATURES)
 
 Print a method signature to `buffer` with the argument types from `typesig` and the declared
-types of the keyword arguments, followed by the inferred return type when
-`print_return_types` is set. Type parameters keep their names and are declared in a `where`
+types of the keyword arguments, followed by the return annotation that `returns` selects (see
+[`return_annotation`](@ref)). Type parameters keep their names and are declared in a `where`
 clause after the arguments. Default values are left out unless `definition` gives them.
 
 `definition` is as for the untyped `printmethod`.
@@ -760,7 +761,7 @@ f(x::Int; a = 1, b...) = x
 sig = printmethod(Docs.Binding(Main, :f), f, first(methods(f)))
 ```
 """
-function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method, typesig; print_return_types=true, definition=nothing)
+function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method, typesig; returns=true, definition=nothing)
     # TODO: print qualified?
     local args = argument_names(method, definition)
     local kwnames = string.(keywords(func, method))
@@ -818,26 +819,28 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     end
     args, kws = append_defaults(args, kws, kwnames, method, definition)
 
-    rt = method_return_type(func, method, typesig)
-    return_type_string = if (
-        print_return_types &&
-        length(rt) >= 1 &&
-        rt[1] !== Nothing &&
-        rt[1] !== Union{}
-    )
-        " -> $(rt[1])"
-    else
-        ""
-    end
-
     return printmethod_format(
         buffer,
         callable_name(binding, params, typestring),
         args,
         kws;
         where_clause=where_clause(used),
-        return_type=return_type_string
+        return_type=return_annotation(returns, func, method, typesig)
     )
+end
+
+"""
+$(:SIGNATURES)
+
+The ` -> T` that follows a signature. `returns` is `true` for the type that `method` is
+inferred to return for `typesig`, `false` for none, or the text to print as `T`.
+"""
+return_annotation(returns::String, func, method::Method, typesig) = " -> $returns"
+
+function return_annotation(returns::Bool, func, method::Method, typesig)
+    returns || return ""
+    local rt = method_return_type(func, method, typesig)
+    return isempty(rt) || rt[1] === Nothing || rt[1] === Union{} ? "" : " -> $(rt[1])"
 end
 
 printmethod(b, f, m) = String(take!(printmethod(IOBuffer(), b, f, m)))

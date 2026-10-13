@@ -324,11 +324,15 @@ end
 #
 
 """
-The singleton type for [`METHODLIST`](@ref) abbreviations.
+The type for [`METHODLIST`](@ref) abbreviations.
 
 $(:FIELDS)
 """
-struct MethodList <: Abbreviation end
+struct MethodList <: Abbreviation
+    returns::Bool
+end
+
+MethodList(; returns::Bool = false) = MethodList(returns)
 
 """
 An [`Abbreviation`](@ref) that lists the methods of the documented function or type that
@@ -357,6 +361,10 @@ julia> @doc scale
   scale(x, factor)
   scale(x)
 ```
+
+!!! tip "Showing the Return Type"
+    To follow each signature with its inferred return type, use
+    `\$(DocStringExtensions.MethodList(returns = true))`.
 """
 const METHODLIST = MethodList()
 
@@ -371,8 +379,10 @@ The type for [`TYPEDMETHODLIST`](@ref) abbreviations.
 $(:FIELDS)
 """
 struct TypedMethodList <: Abbreviation
-    return_types::Bool
+    returns::Bool
 end
+
+TypedMethodList(; returns::Bool = true) = TypedMethodList(returns)
 
 """
 An [`Abbreviation`](@ref) that lists methods like [`METHODLIST`](@ref), with argument types
@@ -400,13 +410,14 @@ julia> @doc scale
 
 !!! tip "Disabling the Return Type"
     The return type is often inferred as `Any`. To leave it out, use
-    `\$(DocStringExtensions.TypedMethodList(false))`.
+    `\$(DocStringExtensions.TypedMethodList(returns = false))`.
 """
-const TYPEDMETHODLIST = TypedMethodList(true)
+const TYPEDMETHODLIST = TypedMethodList()
 
-printlisted(buf, ::MethodList, binding, func, method) = printmethod(buf, binding, func, method)
+printlisted(buf, abbr::MethodList, binding, func, method) =
+    printmethod(buf, binding, func, method; returns = abbr.returns)
 printlisted(buf, abbr::TypedMethodList, binding, func, method) =
-    printmethod(buf, binding, func, method, argsig(method); print_return_types = abbr.return_types)
+    printmethod(buf, binding, func, method, argsig(method); returns = abbr.returns)
 
 function format(abbr::Union{MethodList,TypedMethodList}, buf, doc)
     local binding = doc.data[:binding]
@@ -449,15 +460,21 @@ The type for [`SIGNATURES`](@ref) abbreviations.
 $(:FIELDS)
 """
 struct MethodSignatures <: Abbreviation
+    returns::Union{Bool,String}
     show_defaults::Bool
     definition::Union{DefinitionArguments,Nothing}
     type_definition::Union{StructDefinition,Nothing}
 end
 
-MethodSignatures(; defaults::Bool = false) = MethodSignatures(defaults, nothing, nothing)
+MethodSignatures(; returns::Union{Bool,String} = false, defaults::Bool = false) =
+    MethodSignatures(returns, defaults, nothing, nothing)
 
-interpolation(abbr::MethodSignatures, expr::Expr) =
-    MethodSignatures(abbr.show_defaults, definition_arguments(expr, abbr.show_defaults), struct_extent(expr))
+interpolation(abbr::MethodSignatures, expr::Expr) = MethodSignatures(
+    abbr.returns,
+    abbr.show_defaults,
+    definition_arguments(expr, abbr.show_defaults),
+    struct_extent(expr),
+)
 
 """
 An [`Abbreviation`](@ref) that prints the signatures of the documented method, with argument
@@ -486,6 +503,12 @@ julia> @doc area
     Default values of positional and keyword arguments are omitted. To show them, use
     `\$(DocStringExtensions.MethodSignatures(defaults = true))`. The methods that Julia
     generates for positional defaults are then printed as a single signature.
+
+!!! tip "Showing the Return Value"
+    To follow each signature with its inferred return type, use
+    `\$(DocStringExtensions.MethodSignatures(returns = true))`. To describe the return
+    value yourself, pass a string: `MethodSignatures(returns = "success::Bool")` prints
+    `-> success::Bool` after each signature.
 """
 const SIGNATURES = MethodSignatures()
 
@@ -499,7 +522,8 @@ function format(abbr::MethodSignatures, buf, doc)
         # A struct's typed constructor and its untyped fallback print the same signature.
         local lines = String[]
         for group in groups, method in collapse_defaults(group, defaults)
-            push!(lines, sprint(io -> printmethod(io, binding, func, method; definition = abbr.definition)))
+            push!(lines, sprint(io -> printmethod(io, binding, func, method;
+                definition = abbr.definition, returns = abbr.returns)))
         end
         println(buf)
         println(buf, "```julia")
@@ -519,17 +543,17 @@ The type for [`TYPEDSIGNATURES`](@ref) abbreviations.
 $(:FIELDS)
 """
 struct TypedMethodSignatures <: Abbreviation
-    return_types::Bool
+    returns::Union{Bool,String}
     show_defaults::Bool
     definition::Union{DefinitionArguments,Nothing}
     type_definition::Union{StructDefinition,Nothing}
 end
 
-TypedMethodSignatures(return_types::Bool; defaults::Bool = false) =
-    TypedMethodSignatures(return_types, defaults, nothing, nothing)
+TypedMethodSignatures(; returns::Union{Bool,String} = true, defaults::Bool = false) =
+    TypedMethodSignatures(returns, defaults, nothing, nothing)
 
 interpolation(abbr::TypedMethodSignatures, expr::Expr) = TypedMethodSignatures(
-    abbr.return_types,
+    abbr.returns,
     abbr.show_defaults,
     definition_arguments(expr, abbr.show_defaults),
     struct_extent(expr),
@@ -556,17 +580,19 @@ julia> @doc area
   Compute the area of a rectangle.
 ```
 
-!!! tip "Disabling the Return Type"
+!!! tip "Changing the Return Type"
     The return type is often inferred as `Any`. To leave it out, use
-    `\$(DocStringExtensions.TypedMethodSignatures(false))`.
+    `\$(DocStringExtensions.TypedMethodSignatures(returns = false))`. To describe the
+    return value yourself, pass a string: `TypedMethodSignatures(returns = "success::Bool")`
+    prints `-> success::Bool` after each signature.
 
 !!! tip "Showing Default Values"
     Default values of positional and keyword arguments are omitted. To show them, pass
-    `defaults = true`: `\$(DocStringExtensions.TypedMethodSignatures(true; defaults = true))`.
+    `defaults = true`: `\$(DocStringExtensions.TypedMethodSignatures(defaults = true))`.
     The methods that Julia generates for positional defaults are then printed as a single
     signature.
 """
-const TYPEDSIGNATURES = TypedMethodSignatures(true)
+const TYPEDSIGNATURES = TypedMethodSignatures()
 
 # The methods a signature abbreviation prints: the constructors of a documented struct, or the
 # documented method's group.
@@ -621,7 +647,7 @@ function format(tms::TypedMethodSignatures, buf, doc)
             t = idx === nothing || expanded_vararg(method) || constructor_parameters(method) !== nothing ?
                 argsig(method) : tuples[idx]
             printmethod(buf, binding, func, method, t;
-                print_return_types=tms.return_types, definition = tms.definition)
+                returns = tms.returns, definition = tms.definition)
             println(buf)
         end
         println(buf, "```\n")

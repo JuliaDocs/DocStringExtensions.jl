@@ -9,7 +9,7 @@ $(SIGNATURES)
 pair((a, b)) = a
 
 """
-$(TypedMethodSignatures(false))
+$(TypedMethodSignatures(returns = false))
 """
 typed((a, b)::Tuple, (c, d), e::String) = e
 

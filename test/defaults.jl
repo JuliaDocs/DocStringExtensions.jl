@@ -14,17 +14,17 @@ $(MethodSignatures(defaults = true))
 keywords(x; a = :a, b::Float64 = 2.0, c, d...) = x
 
 """
-$(TypedMethodSignatures(false; defaults = true))
+$(TypedMethodSignatures(returns = false, defaults = true))
 """
 typed(x::Float64, y::Float64 = 2.0; z = nothing, w::Float64 = 1.0) = x
 
 """
-$(TypedMethodSignatures(false; defaults = true))
+$(TypedMethodSignatures(returns = false, defaults = true))
 """
 parametric(x::T, y::T = zero(T)) where {T <: Real} = x
 
 """
-$(TypedMethodSignatures(false; defaults = true))
+$(TypedMethodSignatures(returns = false, defaults = true))
 """
 unnamed(::String, ::Float64 = 0.0) = nothing
 
