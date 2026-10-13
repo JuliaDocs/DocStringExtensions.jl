@@ -430,6 +430,26 @@
         @test_reference ro_path("signatures_partial_parameter_constructors.txt") str
     end
 
+    # A callable method of a type's instances prints as the call on an instance, and not as a
+    # constructor of the type that takes as many arguments.
+    @testset "callable signatures" begin
+        names = [:Scale, :Zero, :Entrainment, :Reconstruct, :Weighted]
+        str = join([rendered(:(CallablesTestModule.$name)) for name in names], "\n")
+        # Before Julia 1.9 the docsystem files `(e::Entrainment{NF})(σ, τ::NF)` under `e`.
+        if VERSION >= v"1.9"
+            @test_reference ro_path("signatures_callables_19_and_later.txt") str
+        else
+            @test_reference ro_path("signatures_callables_pre_19.txt") str
+        end
+    end
+
+    # A callable on `Type{<:T}` is filed under `Type`, so it prints the instance type.
+    @testset "Type callable signatures" begin
+        multidoc = Docs.meta(CallablesTestModule)[Docs.Binding(Core, :Type)]
+        str = join([Markdown.plain(Docs.parsedoc(multidoc.docs[sig])) for sig in multidoc.order], "\n")
+        @test_reference ro_path("signatures_type_callables.txt") str
+    end
+
     @testset "signature destructuring" begin
         names = [:pair, :typed, :nested, :unshowable]
         str = join([rendered(:(DestructuringTestModule.$name)) for name in names], "\n")

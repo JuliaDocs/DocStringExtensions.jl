@@ -53,6 +53,13 @@
         @test_reference method_lists_reference("typed_method_lists_overlapping") redact_local_info(str)
     end
 
+    # A type's list holds the methods of its constructors, and not the callables of its
+    # instances. The link names this checkout's commit, so it is dropped.
+    @testset "callable lists" begin
+        str = rendered(:(CallablesTestModule.Listed))
+        @test_reference ro_path("method_lists_callables.txt") replace(str, r"defined at .*\n\n" => "")
+    end
+
     @testset "url" begin
         @test !isempty(DSE.url(first(methods(sin))))
         with_test_repo() do

@@ -19,6 +19,15 @@
         typed = DSE.printmethod(IOBuffer(), b, f, m, Tuple{Any, String}; returns = false)
         @test String(take!(typed)) == "f(x, ::String)"
     end
+    let b = Docs.Binding(Main, :f),
+            f = (x::Ref{<:Real}, y::Ref{>:Int}, ::Type{<:Integer}) -> x,
+            m = first(methods(f))
+
+        # A parameter written `<:T` prints as written, not as the type variable Julia generates.
+        @test DSE.printmethod(b, f, m) == "f(x, y, ::Type{<:Integer})"
+        typed = DSE.printmethod(IOBuffer(), b, f, m, DSE.argsig(m); returns = false)
+        @test String(take!(typed)) == "f(x::Ref{<:Real}, y::Ref{>:$Int}, ::Type{<:Integer})"
+    end
     let b = Docs.Binding(M, :k_23),
             f = M.k_23,
             m = first(methods(f))
@@ -140,6 +149,10 @@
             @test DSE.used_typevars([T, S, U], Any[Tuple{S}]) == Any[T, S]
             @test DSE.used_typevars([T, U], Any[Tuple{Int}, Vector{U}]) == Any[U]
             @test DSE.used_typevars([T, U], Any[Tuple{Int}]) == Any[]
+        end
+        let A = TypeVar(Symbol("#s1"), Real), S = TypeVar(:S, Ref{A})
+            # A type variable Julia generated stays out of the `where` clause, even in a bound.
+            @test DSE.used_typevars([A, S], Any[Tuple{S}, Vector{A}]) == Any[S]
         end
     end
 

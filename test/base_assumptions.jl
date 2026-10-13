@@ -184,6 +184,22 @@
         @test self(which(A.Arr{Int, 2}, (Tuple,))) !== A.Arr
     end
 
+    # A callable `(e::E)(σ)` is a method of `E`'s instances, which `methods(E)` leaves out. Its
+    # signature starts with the instance type, and its first slot holds the instance's name.
+    #
+    # Used in src/methods.jl by callable_methods(), instance_type() and slot_names().
+    let C = CallablesTestModule,
+            callable = which(C.Entrainment(0.5), (Any,)),
+            Self = TypeVar(:Self, C.Entrainment)
+
+        @test callable ∉ collect(methods(C.Entrainment, Tuple{Any}))
+        @test DSE.matched_methods(UnionAll(Self, Tuple{Self, Any})) == [callable]
+        @test DSE.self_type(callable) === C.Entrainment
+        @test DSE.self_type(which(C.Entrainment(0.5), (Any, Float64))) isa DataType
+        @test DSE.slot_names(callable)[1] === :e
+        @test DSE.slot_names(which(C.Zero(), (Any,)))[1] === Symbol("#self#")
+    end
+
     # Printing a type parameter by name inside a method's `where` clause.
     #
     # Used in src/printmethod.jl for the typed printmethod() method.
@@ -192,6 +208,17 @@
         @test !Base.has_typevar(Tuple{String}, T)
         @test sprint(show, Union{Nothing, T}; context = :unionall_env => T) == "Union{Nothing, T}"
         @test sprint(show, T) == "T<:Number"
+    end
+
+    # A parameter written `<:T` is a type variable with a generated name that starts with `#`,
+    # and applying its `UnionAll` to another type variable puts that one in its place.
+    #
+    # Used in src/printmethod.jl by isanonymous() and name_anonymous!().
+    let t = Base.unwrap_unionall(first(methods((x::Ref{<:Real}) -> x)).sig).parameters[2],
+            S = TypeVar(:S, Real)
+
+        @test t isa UnionAll && startswith(string(t.var.name), "#")
+        @test t{S} == Ref{S}
     end
 
     # Rendering default values as source text.

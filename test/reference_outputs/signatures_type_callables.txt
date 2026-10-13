@@ -1,0 +1,19 @@
+```julia
+(::Type{<:Grid})(n)
+```
+
+```julia
+(::Type{<:Main.CallablesTestModule.Grid})(n::Integer)
+```
+
+callable `Type{<:Grid}`
+
+```julia
+(::Type{T})(x) where T<:Arr
+```
+
+```julia
+(::Type{T})(x::Symbol) where T<:Main.CallablesTestModule.Arr
+```
+
+callable `Type{T}`

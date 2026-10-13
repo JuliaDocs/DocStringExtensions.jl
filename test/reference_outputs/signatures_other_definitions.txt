@@ -12,13 +12,11 @@ D{T}(
 constructor `D`
 
 ```julia
-E(r)
-E{NF}(r)
+(e::E)(σ)
 ```
 
 ```julia
-E(r)
-E{NF}(r) where NF
+(e::Main.OtherDefinitionsTestModule.E)(σ)
 ```
 
 callable `E`

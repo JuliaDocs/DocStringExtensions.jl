@@ -43,9 +43,13 @@ groups = methodgroups(f, Union{Tuple{Any}, Tuple{Any, Integer}}, Main; exact = f
 """
 function methodgroups(func, typesig, modname; exact = true)
     methods = getmethods(func, typesig)
-    # A docstring on a constructor written as `T{P}(...)` documents a method of `Type{T{P}}`.
-    if func isa UnionAll && typesig != Union{}
-        methods = unique([methods; constructor_methods(func, typesig)])
+    # A docstring on a constructor written as `T{P}(...)` documents a method of `Type{T{P}}`,
+    # and one on `(e::T)(x)` a method of `T`'s instances. A list of `T`'s methods leaves out
+    # the callables.
+    if func isa Type && typesig != Union{}
+        func isa UnionAll && append!(methods, constructor_methods(func, typesig))
+        exact && append!(methods, callable_methods(func, typesig))
+        unique!(methods)
     end
     # Group methods by file and line number.
     groups = groupby(Tuple{Symbol, Int}, Vector{Method}, methods) do m
@@ -178,6 +182,14 @@ end
 # `Point{T}` under `Type{Point{T}} where T`, which declares its own type parameters.
 self_type(method::Method) = tuple_parameters(method.sig)[1]
 
+# The type of the instance that `method` is called on when it is a method of the instances of
+# `func`, such as `E` for `(e::E)(σ)` or `E{NF}` for `(e::E{NF})(σ) where {NF}`, or `nothing`.
+function instance_type(func, method::Method)
+    func isa Type || return nothing
+    self = self_type(method)
+    return Base.rewrap_unionall(self, method.sig) <: func ? self : nothing
+end
+
 # The parameters of the `Tuple` type `sig`, inside any `where`.
 tuple_parameters(@nospecialize(sig)) = (Base.unwrap_unionall(sig)::DataType).parameters
 
@@ -303,10 +315,30 @@ so each leading run of `func`'s parameters is searched.
 function constructor_methods(func::UnionAll, typesig)
     vars = typevars(func)
     results = Method[]
-    for n in 1:length(vars), each in alltypesigs(typesig)
-        self = Type{func{vars[1:n]...}}
-        args = tuple_parameters(each)
-        tt = Base.rewrap_unionall(Base.rewrap_unionall(Tuple{self, args...}, each), func)::Type
+    for n in 1:length(vars)
+        append!(results, self_methods(t -> Base.rewrap_unionall(t, func), Type{func{vars[1:n]...}}, typesig))
+    end
+    return results
+end
+
+"""
+$(:SIGNATURES)
+
+The methods of the instances of the type `func` whose arguments match `typesig`. These are
+the callables written as `(e::T)(...)`, which `methods(T)` leaves out.
+"""
+function callable_methods(func::Type, typesig)
+    self = TypeVar(:Self, func)
+    found = self_methods(t -> UnionAll(self, t), self, typesig)
+    return filter(m -> instance_type(func, m) !== nothing, found)
+end
+
+# The methods of the callable type `self` whose arguments match `typesig`. `wrap` declares
+# the type parameters that `self` uses.
+function self_methods(wrap, self, typesig)
+    results = Method[]
+    for each in alltypesigs(typesig)
+        tt = wrap(Base.rewrap_unionall(Tuple{self, tuple_parameters(each)...}, each))::Type
         append!(results, matched_methods(tt))
     end
     return results
@@ -420,7 +452,10 @@ kws = keywords(f, first(methods(f)))
 """
 function keywords(func, m::Method)
     kwargs = @static if VERSION < v"1.4.0-DEV.215"
-        table::Core.MethodTable = methods(func).mt
+        # A callable of a type's instances sits in the table of its self type, not the
+        # constructor table that `methods` returns for the type.
+        table::Core.MethodTable = instance_type(func, m) === nothing ? methods(func).mt :
+            Base.unwrap_unionall(self_type(m)).name.mt
         # For some reason, the :kwsorter field is not always defined.
         # An undefined kwsorter seems to imply that there are no methods
         # in the MethodTable with keyword arguments.
@@ -505,6 +540,11 @@ args = arguments(first(methods(f)))
 ```
 """
 function arguments(m::Method)
+    return String[isunnamed(arg) ? "_" : string(arg) for arg in slot_names(m)[2:end]]
+end
+
+# The names of the argument slots of `m`, the callable itself first. Empty when `m` records none.
+function slot_names(m::Method)
     argnames = nothing
     if isdefined(m, :generator)
         # Generated function.
@@ -515,13 +555,10 @@ function arguments(m::Method)
             argnames = template.slotnames
         end
     end
-    argnames === nothing && return String[]
+    argnames === nothing && return Symbol[]
     # The container type of `argnames` varies across Julia versions; its elements are `Symbol`s.
-    args = Symbol[argnames[1:nargs(m)]...]
-    return String[isunnamed(arg) ? "_" : string(arg) for arg in args if !isself(arg)]
+    return Symbol[argnames[1:nargs(m)]...]
 end
-
-isself(arg) = arg === Symbol("#self#") || arg === Symbol("#ctor-self#")
 
 # Unnamed and destructured arguments get compiler names such as `#unused#`, `#temp#`
 # or an empty symbol.
