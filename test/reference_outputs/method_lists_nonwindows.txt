@@ -3,6 +3,6 @@
 f(x)
 ```
 
-defined at [`[...]test/TestModule/M.jl:5`](https://github.com/JuliaDocs/NonExistent.jl/tree/[...]/M.jl#L5).
+defined at [`[...]test/fixtures/TestModule/M.jl:5`](https://github.com/JuliaDocs/NonExistent.jl/tree/[...]/M.jl#L5).
 
 
