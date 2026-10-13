@@ -41,11 +41,18 @@ $(:FIELDS)
 """
 struct TypeFields <: Abbreviation
     types::Bool
+    show_defaults::Bool
+    defaults::Union{Dict{Symbol,String},Nothing}
 end
+
+TypeFields(types::Bool; defaults::Bool = true) = TypeFields(types, defaults, nothing)
+
+interpolation(abbr::TypeFields, expr::Expr) =
+    TypeFields(abbr.types, abbr.show_defaults, abbr.show_defaults ? field_defaults(expr) : nothing)
 
 """
 An [`Abbreviation`](@ref) that lists the fields of a type, with the docstring of each field
-that has one.
+that has one. A field given a default value, as `Base.@kwdef` allows, shows that default.
 
 # Examples
 
@@ -54,13 +61,13 @@ julia> \"""
        A point in the plane.
        \$(FIELDS)
        \"""
-       struct Point
+       Base.@kwdef struct Point
            "Horizontal coordinate."
            x::Float64
            "Vertical coordinate."
            y::Float64
-           label::String
-       end
+           label::String = "origin"
+       end;
 
 julia> @doc Point
   A point in the plane.
@@ -69,8 +76,11 @@ julia> @doc Point
 
     •  y: Vertical coordinate.
 
-    •  label
+    •  label = "origin"
 ```
+
+!!! tip "Hiding Default Values"
+    To leave out default values, use `\$(DocStringExtensions.TypeFields(false; defaults = false))`.
 """
 const FIELDS = TypeFields(false)
 
@@ -102,6 +112,9 @@ julia> @doc Point
 
     •  label::String
 ```
+
+!!! tip "Hiding Default Values"
+    To leave out default values, use `\$(DocStringExtensions.TypeFields(true; defaults = false))`.
 """
 const TYPEDFIELDS = TypeFields(true)
 
@@ -113,9 +126,11 @@ function format(abbrv::TypeFields, buf, doc)
     if !isempty(fields)
         println(buf)
         for field in fields
-            print(buf, "  - `", field)
-            abbrv.types && print(buf, "::", fieldtype(object, field))
-            print(buf, "`")
+            local text = string(field)
+            abbrv.types && (text *= string("::", fieldtype(object, field)))
+            local default = abbrv.defaults === nothing ? nothing : get(abbrv.defaults, field, nothing)
+            default === nothing || (text *= " = " * first_line(default))
+            print(buf, "  - ", code_span(text))
             # Print the field docs if they exist and aren't a `doc"..."` docstring.
             if haskey(docs, field) && isa(docs[field], AbstractString)
                 print(buf, ": ")
@@ -436,17 +451,20 @@ $(:FIELDS)
 struct MethodSignatures <: Abbreviation
     show_defaults::Bool
     definition::Union{DefinitionArguments,Nothing}
+    type_definition::Union{StructDefinition,Nothing}
 end
 
-MethodSignatures(; defaults::Bool = false) = MethodSignatures(defaults, nothing)
+MethodSignatures(; defaults::Bool = false) = MethodSignatures(defaults, nothing, nothing)
 
 interpolation(abbr::MethodSignatures, expr::Expr) =
-    MethodSignatures(abbr.show_defaults, definition_arguments(expr, abbr.show_defaults))
+    MethodSignatures(abbr.show_defaults, definition_arguments(expr, abbr.show_defaults), struct_extent(expr))
 
 """
 An [`Abbreviation`](@ref) that prints the signatures of the documented method, with argument
 names and keywords but no types. See [`printmethod`](@ref) for the simplifications it
 applies.
+
+In the docstring of a struct, it prints the constructors that the struct definition creates.
 
 # Examples
 
@@ -473,21 +491,19 @@ const SIGNATURES = MethodSignatures()
 
 function format(abbr::MethodSignatures, buf, doc)
     local binding = doc.data[:binding]
-    local typesig = doc.data[:typesig]
-    local modname = doc.data[:module]
     local func = Base.invokelatest(Docs.resolve, binding)
-    local groups = documented_groups(methodgroups(func, typesig, modname), doc)
+    local groups = signature_groups(abbr, func, doc)
     local defaults = abbr.show_defaults ? abbr.definition : nothing
 
     if !isempty(groups)
+        # A struct's typed constructor and its untyped fallback print the same signature.
+        local lines = String[]
+        for group in groups, method in collapse_defaults(group, defaults)
+            push!(lines, sprint(io -> printmethod(io, binding, func, method; definition = abbr.definition)))
+        end
         println(buf)
         println(buf, "```julia")
-        for group in groups
-            for method in collapse_defaults(group, defaults)
-                printmethod(buf, binding, func, method; definition = abbr.definition)
-                println(buf)
-            end
-        end
+        foreach(line -> println(buf, line), unique(lines))
         println(buf, "```\n")
     end
 end
@@ -506,18 +522,24 @@ struct TypedMethodSignatures <: Abbreviation
     return_types::Bool
     show_defaults::Bool
     definition::Union{DefinitionArguments,Nothing}
+    type_definition::Union{StructDefinition,Nothing}
 end
 
 TypedMethodSignatures(return_types::Bool; defaults::Bool = false) =
-    TypedMethodSignatures(return_types, defaults, nothing)
+    TypedMethodSignatures(return_types, defaults, nothing, nothing)
 
-interpolation(abbr::TypedMethodSignatures, expr::Expr) =
-    TypedMethodSignatures(abbr.return_types, abbr.show_defaults, definition_arguments(expr, abbr.show_defaults))
+interpolation(abbr::TypedMethodSignatures, expr::Expr) = TypedMethodSignatures(
+    abbr.return_types,
+    abbr.show_defaults,
+    definition_arguments(expr, abbr.show_defaults),
+    struct_extent(expr),
+)
 
 """
 An [`Abbreviation`](@ref) that prints the signatures of the documented method like
 [`SIGNATURES`](@ref), with the types of positional and keyword arguments and the inferred
-return type. See [`printmethod`](@ref) for the simplifications it applies.
+return type. See [`printmethod`](@ref) for the simplifications it applies. In the docstring
+of a struct, it prints the constructors that [`SIGNATURES`](@ref) lists.
 
 # Examples
 
@@ -546,15 +568,25 @@ julia> @doc area
 """
 const TYPEDSIGNATURES = TypedMethodSignatures(true)
 
+# The methods a signature abbreviation prints: the constructors of a documented struct, or the
+# documented method's group.
+function signature_groups(abbr::Union{MethodSignatures,TypedMethodSignatures}, func, doc)
+    local modname = doc.data[:module]
+    if abbr.type_definition !== nothing
+        local constructors = struct_constructors(func, abbr.type_definition, modname)
+        return isempty(constructors) ? Vector{Method}[] : [constructors]
+    end
+    return documented_groups(methodgroups(func, doc.data[:typesig], modname), doc)
+end
+
 function format(tms::TypedMethodSignatures, buf, doc)
     local binding = doc.data[:binding]
     local typesig = doc.data[:typesig]
-    local modname = doc.data[:module]
     local func = Base.invokelatest(Docs.resolve, binding)
     # TODO: why is methodgroups returning invalid methods?
     # the methodgroups always appears to return a Vector and the size depends on whether parametric types are used
     # and whether default arguments are used
-    local groups = documented_groups(methodgroups(func, typesig, modname), doc)
+    local groups = signature_groups(tms, func, doc)
     local defaults = tms.show_defaults ? tms.definition : nothing
     if !isempty(groups)
         group = groups[end]

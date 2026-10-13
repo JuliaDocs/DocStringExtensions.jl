@@ -14,6 +14,7 @@ The docstring renders as:
 
 ```@docs
 Foobar
+Settings
 Shape
 Circle
 Square

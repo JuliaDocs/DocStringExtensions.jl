@@ -3,6 +3,8 @@ const DSE = DocStringExtensions
 include("templates.jl")
 include("interpolation.jl")
 include("defaults.jl")
+include("field_defaults.jl")
+include("constructors.jl")
 include("destructuring.jl")
 include("body.jl")
 include("TestModule/M.jl")
@@ -245,6 +247,34 @@ typed_signatures_h_reference() =
         # A destructured argument prints as it is written.
         @test sprint(Base.show_unquoted, :((a, (b, c)))) == "(a, (b, c))"
         @test Base.remove_linenums!(Expr(:block, LineNumberNode(1), :x)) == Expr(:block, :x)
+
+        # Where Julia places the constructors that a struct definition creates.
+        #
+        # Used in src/utilities.jl by struct_constructors(), which takes the constructors
+        # defined no later than the definition's last line, and by self_type() for the default
+        # constructor of a parametric type.
+        let mod = Module()
+            Base.include_string(mod, """
+                struct Defaults
+                    x::Float64
+                end
+                struct Inner
+                    x::Float64
+                    Inner() = new(0.0)
+                end
+                struct Parametric{T}
+                    x::T
+                end
+                """, "constructors.jl")
+            local constructors(name) = Base.invokelatest(methods, Base.invokelatest(getfield, mod, name))
+            # No later than the last field, the definition's last line before `end`.
+            @test all(m -> String(m.file) == "constructors.jl" && m.line <= 2, constructors(:Defaults))
+            @test [m.line for m in constructors(:Inner)] == [6]
+            local parametric = Base.invokelatest(getfield, mod, :Parametric)
+            local defaults = Base.invokelatest(methods, parametric{Int})
+            # Julia 1.10 stores it under `Type{Parametric{T}} where T`, Julia 1.6 under `Type{Parametric{T}}`.
+            @test all(m -> DSE.istypeoftype(Base.unwrap_unionall(DSE.self_type(m))), defaults)
+        end
     end
     @testset "format" begin
         # Setup.
@@ -938,6 +968,25 @@ typed_signatures_h_reference() =
                 "```julia\ntemplated(x, y=1)\n```\n\nmethod `templated`\n"
         end
     end
+    @testset "field defaults" begin
+        let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))
+            names = [:Options, :Settings, :Verbatim, :Hidden, :Plain]
+            str = join([fmt(:(FieldDefaultsTestModule.$name)) for name in names], "\n")
+            @test_reference ro_path("field_defaults.txt") str
+            @test fmt(:(FieldDefaultsTestModule.Templated.Config)) ==
+                "  * `a::Float64 = 1.0`\n\ntype `Config`\n"
+        end
+    end
+    @testset "constructor signatures" begin
+        let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))
+            names = [:Plain, :Typed, :Parametric, :Inner, :Options, :TypedOptions, :EmptyOptions, :Wrapped, :Generated, :Empty]
+            str = join([fmt(:(ConstructorsTestModule.$name)) for name in names], "\n")
+            @test_reference ro_path("constructor_signatures.txt") str
+            @test isempty(fmt(:(ConstructorsTestModule.Abstract)))
+            @test fmt(:(ConstructorsTestModule.Templated.Point)) ==
+                "```julia\nPoint(x)\n```\n\ntype `Point`\n"
+        end
+    end
     @testset "signature destructuring" begin
         let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))
             names = [:pair, :typed, :nested, :unshowable]
@@ -1189,6 +1238,58 @@ typed_signatures_h_reference() =
                 @test !occursin("#=", d.positional[1][2])
                 @test !occursin("#=", d.keywords["k"])
             end
+        end
+        @testset "field_defaults" begin
+            @test DSE.field_defaults(:(Base.@kwdef struct S
+                "Documented."
+                a::Int = 1
+                b = [1, 2]
+                c::Float64
+                d = @m(a)
+                S(a, b, c, d) = new(a, b, c, d)
+                S(a::T) where {T} = new(a, [], 0.0, nothing)
+            end)) == Dict(:a => "1", :b => "[1, 2]", :d => "@m(a)")
+            # StructUtils.jl writes field tags after the default.
+            @test DSE.field_defaults(:(@defaults struct S
+                a::String = "x" & (json = (name = "y",),)
+                b::Int & (name = "z",)
+                c = x & y
+            end)) == Dict(:a => "\"x\"", :c => "x & y")
+            # Parameters.jl allows assertions in the body.
+            @test DSE.field_defaults(:(@with_kw struct S
+                a = 1
+                @assert a > 0
+            end)) == Dict(:a => "1")
+            # Configurations.jl takes an alias before the struct.
+            @test DSE.field_defaults(:(@option "alias" struct S
+                a::Int = 1
+            end)) == Dict(:a => "1")
+            # `const` fields parse only from Julia 1.8.
+            let body = Expr(:block, Expr(:const, :(a::Int = 1)))
+                @test DSE.field_defaults(Expr(:struct, true, :S, body)) == Dict(:a => "1")
+            end
+            # Fields in a nested block, and an `@atomic` field.
+            let atomic = Expr(:(=), Expr(:macrocall, Symbol("@atomic"), nothing, :(a::Int)), 1),
+                body = Expr(:block, atomic, Expr(:block, :(b = 2)))
+
+                @test DSE.field_defaults(Expr(:struct, true, :S, body)) == Dict(:a => "1", :b => "2")
+            end
+            @test DSE.field_defaults(:(Base.@kwdef struct S
+                a = "use `f` here"
+                b = begin
+                    x + 1
+                end
+            end)) == Dict(:a => "\"use `f` here\"", :b => "begin\n    x + 1\nend")
+            @test DSE.field_defaults(:(struct S a::Int end)) === nothing
+            @test DSE.field_defaults(:(@enum Color red blue)) === nothing
+            @test DSE.field_defaults(:(f(x = 1) = x)) === nothing
+        end
+        @testset "code_span" begin
+            @test DSE.code_span("a = 1") == "`a = 1`"
+            @test DSE.code_span("a = \"`b`\"") == "```a = \"`b`\"```"
+            @test DSE.code_span("a = ``") == "``` a = `` ```"
+            @test DSE.code_span("a = \"```\"") == "`````a = \"```\"`````"
+            @test DSE.first_line("begin\n    x\nend") == "begin …"
         end
         @testset "append_defaults" begin
             let d = definition_arguments_with_defaults(:(g(x = 1, y = 2, z = 3; kwargs...) = x)),
