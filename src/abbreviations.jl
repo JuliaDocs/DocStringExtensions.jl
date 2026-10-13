@@ -461,18 +461,18 @@ $(:FIELDS)
 """
 struct MethodSignatures <: Abbreviation
     returns::Union{Bool,String}
-    show_defaults::Bool
+    defaults::Union{Bool,Symbol}
     definition::Union{DefinitionArguments,Nothing}
     type_definition::Union{StructDefinition,Nothing}
 end
 
-MethodSignatures(; returns::Union{Bool,String} = false, defaults::Bool = false) =
-    MethodSignatures(returns, defaults, nothing, nothing)
+MethodSignatures(; returns::Union{Bool,String} = false, defaults::Union{Bool,Symbol} = false) =
+    MethodSignatures(returns, check_defaults(defaults), nothing, nothing)
 
 interpolation(abbr::MethodSignatures, expr::Expr) = MethodSignatures(
     abbr.returns,
-    abbr.show_defaults,
-    definition_arguments(expr, abbr.show_defaults),
+    abbr.defaults,
+    definition_arguments(expr, abbr.defaults !== false),
     struct_extent(expr),
 )
 
@@ -502,7 +502,9 @@ julia> @doc area
 !!! tip "Showing Default Values"
     Default values of positional and keyword arguments are omitted. To show them, use
     `\$(DocStringExtensions.MethodSignatures(defaults = true))`. The methods that Julia
-    generates for positional defaults are then printed as a single signature.
+    generates for positional defaults are then printed as a single signature. Pass
+    `defaults = :brackets` to print that signature without the values, marking each
+    optional positional argument in brackets: `area(width, [height])`.
 
 !!! tip "Showing the Return Value"
     To follow each signature with its inferred return type, use
@@ -516,14 +518,15 @@ function format(abbr::MethodSignatures, buf, doc)
     local binding = doc.data[:binding]
     local func = Base.invokelatest(Docs.resolve, binding)
     local groups = signature_groups(abbr, func, doc)
-    local defaults = abbr.show_defaults ? abbr.definition : nothing
+    local defaults = abbr.defaults === false ? nothing : abbr.definition
 
     if !isempty(groups)
         # A struct's typed constructor and its untyped fallback print the same signature.
         local lines = String[]
         for group in groups, method in collapse_defaults(group, defaults)
             push!(lines, sprint(io -> printmethod(io, binding, func, method;
-                definition = abbr.definition, returns = abbr.returns)))
+                definition = abbr.definition, returns = abbr.returns,
+                brackets = abbr.defaults === :brackets)))
         end
         println(buf)
         println(buf, "```julia")
@@ -544,18 +547,18 @@ $(:FIELDS)
 """
 struct TypedMethodSignatures <: Abbreviation
     returns::Union{Bool,String}
-    show_defaults::Bool
+    defaults::Union{Bool,Symbol}
     definition::Union{DefinitionArguments,Nothing}
     type_definition::Union{StructDefinition,Nothing}
 end
 
-TypedMethodSignatures(; returns::Union{Bool,String} = true, defaults::Bool = false) =
-    TypedMethodSignatures(returns, defaults, nothing, nothing)
+TypedMethodSignatures(; returns::Union{Bool,String} = true, defaults::Union{Bool,Symbol} = false) =
+    TypedMethodSignatures(returns, check_defaults(defaults), nothing, nothing)
 
 interpolation(abbr::TypedMethodSignatures, expr::Expr) = TypedMethodSignatures(
     abbr.returns,
-    abbr.show_defaults,
-    definition_arguments(expr, abbr.show_defaults),
+    abbr.defaults,
+    definition_arguments(expr, abbr.defaults !== false),
     struct_extent(expr),
 )
 
@@ -590,7 +593,8 @@ julia> @doc area
     Default values of positional and keyword arguments are omitted. To show them, pass
     `defaults = true`: `\$(DocStringExtensions.TypedMethodSignatures(defaults = true))`.
     The methods that Julia generates for positional defaults are then printed as a single
-    signature.
+    signature. Pass `defaults = :brackets` to print that signature without the values,
+    marking each optional positional argument in brackets.
 """
 const TYPEDSIGNATURES = TypedMethodSignatures()
 
@@ -613,7 +617,7 @@ function format(tms::TypedMethodSignatures, buf, doc)
     # the methodgroups always appears to return a Vector and the size depends on whether parametric types are used
     # and whether default arguments are used
     local groups = signature_groups(tms, func, doc)
-    local defaults = tms.show_defaults ? tms.definition : nothing
+    local defaults = tms.defaults === false ? nothing : tms.definition
     if !isempty(groups)
         group = groups[end]
         println(buf)
@@ -647,7 +651,8 @@ function format(tms::TypedMethodSignatures, buf, doc)
             t = idx === nothing || expanded_vararg(method) || constructor_parameters(method) !== nothing ?
                 argsig(method) : tuples[idx]
             printmethod(buf, binding, func, method, t;
-                returns = tms.returns, definition = tms.definition)
+                returns = tms.returns, definition = tms.definition,
+                brackets = tms.defaults === :brackets)
             println(buf)
         end
         println(buf, "```\n")

@@ -1,0 +1,15 @@
+```julia
+bracketed(x, [y], [z]; k, kwargs...)
+```
+
+```julia
+typed_bracketed(x::Float64, [y::Float64]; z, w::Float64)
+```
+
+```julia
+unnamed_bracketed(::String, [::Float64])
+```
+
+```julia
+varargs_bracketed([x], xs...)
+```

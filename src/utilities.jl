@@ -85,6 +85,12 @@ function definition_arguments(expr::Expr, show_defaults::Bool)
     return DefinitionArguments(positional, keywords)
 end
 
+function check_defaults(defaults::Union{Bool,Symbol})
+    defaults isa Bool || defaults === :brackets || throw(ArgumentError(
+        "`defaults` must be `true`, `false`, or `:brackets`, got `$(repr(defaults))`."))
+    return defaults
+end
+
 function definition_call(expr::Expr)
     local definition = method_definition(expr)
     return definition === nothing ? nothing : signature_call(definition.args[1])
@@ -601,7 +607,7 @@ f(x; a = 1, b...) = x
 sig = printmethod(Docs.Binding(Main, :f), f, first(methods(f)))
 ```
 """
-function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method; definition = nothing, returns = false)
+function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method; definition = nothing, returns = false, brackets = false)
     local env = unionall_env(typevars(method.sig))
     typestring(t) = sprint(show, t; context = env)
     local names = argument_names(method, definition)
@@ -610,7 +616,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     end
     method.isva && (args[end] *= "...")
     local kws = string.(keywords(func, method))
-    args, kws = append_defaults(args, kws, kws, method, definition)
+    args, kws = append_defaults(args, kws, kws, method, definition; brackets = brackets)
     local name = callable_name(binding, constructor_parameters(method), typestring)
     local return_type = return_annotation(returns, func, method, argsig(method))
     return printmethod_format(buffer, name, args, kws; return_type = return_type)
@@ -682,14 +688,16 @@ $(:SIGNATURES)
 
 Append `=default` to each formatted argument in `args` and keyword in `kws` that has a
 default value in `definition`. `kwnames` names the keyword formatted in each entry of
-`kws`. Leaves both unchanged when `method` does not match `definition`.
+`kws`. With `brackets` set, wrap each positional argument that has a default in brackets
+and leave `kws` unchanged. Leaves both unchanged when `method` does not match `definition`.
 """
-function append_defaults(args, kws, kwnames, method::Method, definition)
+function append_defaults(args, kws, kwnames, method::Method, definition; brackets::Bool = false)
     matches_definition(method, definition) || return args, kws
     args = map(enumerate(args)) do (i, arg)
         _, default = definition.positional[i]
-        default === nothing ? arg : "$arg=$default"
+        default === nothing ? arg : brackets ? "[$arg]" : "$arg=$default"
     end
+    brackets && return args, kws
     kws = map(kws, kwnames) do kw, name
         default = get(definition.keywords, name, nothing)
         default === nothing ? kw : "$kw=$default"
@@ -761,7 +769,7 @@ f(x::Int; a = 1, b...) = x
 sig = printmethod(Docs.Binding(Main, :f), f, first(methods(f)))
 ```
 """
-function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method, typesig; returns=true, definition=nothing)
+function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method, typesig; returns=true, definition=nothing, brackets=false)
     # TODO: print qualified?
     local args = argument_names(method, definition)
     local kwnames = string.(keywords(func, method))
@@ -817,7 +825,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         local t = get(kwtypes, kw, Any)
         t === Any ? kw : "$kw::$(typestring(t))"
     end
-    args, kws = append_defaults(args, kws, kwnames, method, definition)
+    args, kws = append_defaults(args, kws, kwnames, method, definition; brackets = brackets)
 
     return printmethod_format(
         buffer,
