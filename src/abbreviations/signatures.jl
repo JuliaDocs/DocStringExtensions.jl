@@ -178,13 +178,8 @@ function format(tms::TypedMethodSignatures, buf, doc)
             tuples = alltypesigs(typesig)
             # Without a tuple equal to the method's signature, take one with as many arguments.
             function f(t)
-                if t isa DataType
-                    return t <: Tuple && length(t.types) == N
-                elseif t isa UnionAll
-                    return f(t.body)
-                else
-                    return false
-                end
+                t isa UnionAll && return f(t.body)
+                return t <: Tuple && length(t.types) == N
             end
 
             idx = findfirst(t -> t == argsig(method), tuples)
