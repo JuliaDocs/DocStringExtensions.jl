@@ -82,8 +82,8 @@ gettype(T::UnionAll) = gettype(T.body)
 gettype(other) = other
 
 function format(::TypeDefinition, buf, doc)
-    local binding = doc.data[:binding]
-    local object = gettype(Base.invokelatest(Docs.resolve, binding))
+    binding = doc.data[:binding]
+    object = gettype(Base.invokelatest(Docs.resolve, binding))
     return if isa(object, DataType)
         println(buf, "\n```julia")
         if isprimitivetype(object)

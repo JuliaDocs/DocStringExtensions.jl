@@ -28,7 +28,7 @@ julia> @doc Fruit
 const INSTANCES = EnumInstances()
 
 function format(::EnumInstances, buf, doc)
-    local entries = Base.invokelatest(enum_entries ∘ Docs.resolve, doc.data[:binding])
+    entries = Base.invokelatest(enum_entries ∘ Docs.resolve, doc.data[:binding])
     if !isempty(entries)
         println(buf)
         for (name, value) in entries

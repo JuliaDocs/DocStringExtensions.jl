@@ -109,10 +109,10 @@ end
 function template(source::LineNumberNode, mod::Module, tuple::Expr, docstr::Union{String, Symbol, Expr})
     Meta.isexpr(tuple, :tuple) || error("invalid `@template` syntax on LHS.")
     isdefined(mod, TEMP_SYM) || Core.eval(mod, :(const $(TEMP_SYM) = $(Dict{Symbol, Vector}())))
-    local block = Expr(:block)
+    block = Expr(:block)
     for category in tuple.args
-        local key = Meta.quot(category)
-        local vec =
+        key = Meta.quot(category)
+        vec =
             docstr isa String ? :($(checked_template)([$(docstr)])) :
             Meta.isexpr(docstr, :string) ? :($(checked_template)($(Expr(:vect, docstr.args...)))) :
             :($(copied_template)($(docstr), $(key)))
@@ -146,7 +146,7 @@ end
 function copied_template(source::Module, category::Symbol)
     isdefined(source, TEMP_SYM) && haskey(getfield(source, TEMP_SYM), category) &&
         return getfield(source, TEMP_SYM)[category]
-    local name = nameof(source)
+    name = nameof(source)
     throw(
         ArgumentError(
             "module `$name` has no `$category` template to copy. " *
@@ -192,11 +192,11 @@ end
 
 # The parts of the template for `key` found before the `DOCSTRING` abbreviation, or after it.
 function template_parts(abbr::Template, key::Symbol)
-    local parts = get_template(abbr.dict, key)
+    parts = get_template(abbr.dict, key)
     return Any[interpolation(parts[index], abbr.expr) for index in included_range(abbr, parts)]
 end
 function template_parts(abbr::Template, override::TemplateOverride)
-    local category = override.category
+    category = override.category
     category === nothing && return Any[]
     haskey(abbr.dict, category) || throw(
         ArgumentError(

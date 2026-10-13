@@ -64,17 +64,17 @@ sig = printmethod(Docs.Binding(Main, :f), f, first(methods(f)))
 ```
 """
 function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method; definition = nothing, returns = false, brackets = false)
-    local env = unionall_env(typevars(method.sig))
+    env = unionall_env(typevars(method.sig))
     typestring(t) = sprint(show, t; context = env)
-    local names = argument_names(method, definition)
-    local args = map(names, argument_types(method, length(names))) do arg, t
+    names = argument_names(method, definition)
+    args = map(names, argument_types(method, length(names))) do arg, t
         arg == "_" && t !== Any ? "::$(typestring(t))" : arg
     end
     method.isva && (args[end] *= "...")
-    local kws = string.(keywords(func, method))
+    kws = string.(keywords(func, method))
     args, kws = append_defaults(args, kws, kws, method, definition; brackets = brackets)
-    local name = callable_name(binding, constructor_parameters(method), typestring)
-    local return_type = return_annotation(returns, func, method, argsig(method))
+    name = callable_name(binding, constructor_parameters(method), typestring)
+    return_type = return_annotation(returns, func, method, argsig(method))
     return printmethod_format(buffer, name, args, kws; return_type = return_type)
 end
 
@@ -85,7 +85,7 @@ The positional argument names of `method`, with each destructured argument writt
 appears in `definition`.
 """
 function argument_names(method::Method, definition)
-    local args = string.(arguments(method))
+    args = string.(arguments(method))
     matches_definition(method, definition) || return args
     return map(enumerate(args)) do (i, arg)
         name, _ = definition.positional[i]
@@ -101,7 +101,7 @@ them.
 """
 matches_definition(::Method, ::Nothing) = false
 function matches_definition(method::Method, definition::DefinitionArguments)
-    local names = string.(arguments(method))
+    names = string.(arguments(method))
     length(names) <= length(definition.positional) || return false
     # `_` stands for an argument whose name one side does not know, such as `@nospecialize(x)`.
     return all(zip(names, definition.positional)) do (name, (expected, _))
@@ -150,17 +150,17 @@ sig = printmethod(Docs.Binding(Main, :f), f, first(methods(f)))
 """
 function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method, typesig; returns = true, definition = nothing, brackets = false)
     # TODO: print qualified?
-    local args = argument_names(method, definition)
-    local kwnames = string.(keywords(func, method))
+    args = argument_names(method, definition)
+    kwnames = string.(keywords(func, method))
 
-    local body = Base.unwrap_unionall(typesig)
+    body = Base.unwrap_unionall(typesig)
     body isa DataType && body <: Tuple ||
         error("Expected `typeof($body)` to be `Tuple` or `UnionAll` but found `$(typeof(body))`")
-    local params = constructor_parameters(method)
-    local vars = params === nothing ? typevars(typesig) : [typevars(method.sig); typevars(self_type(method))]
-    local kwtypes, kwvars = keyword_types(method, kwnames, vars)
+    params = constructor_parameters(method)
+    vars = params === nothing ? typevars(typesig) : [typevars(method.sig); typevars(self_type(method))]
+    kwtypes, kwvars = keyword_types(method, kwnames, vars)
     # Innermost first: a type parameter used only in a later parameter's bound is still used.
-    local used = Any[]
+    used = Any[]
     for v in reverse([vars; kwvars])
         if Base.has_typevar(body, v) || params !== nothing && any(p -> Base.has_typevar(p, v), params) ||
                 any(t -> Base.has_typevar(t, v), values(kwtypes)) ||
@@ -168,12 +168,12 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
             pushfirst!(used, v)
         end
     end
-    local env = unionall_env(used)
+    env = unionall_env(used)
     typestring(t) = sprint(show, t; context = env)
 
     argtypes = collect(body.types)
     if expanded_vararg(method)
-        local n = length(argtypes) - length(args) + 1
+        n = length(argtypes) - length(args) + 1
         # `Vararg{T,0}` leaves no `T` in the signature.
         argtypes = Any[argtypes[1:(end - n)]..., Vararg{n > 0 ? argtypes[end] : Any, n}]
     end
@@ -182,12 +182,12 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         type = ""
         suffix = ""
         if Base.isvarargtype(t)
-            local n = vararg_length(t)
+            len = vararg_length(t)
             t = Base.unwrapva(t)
-            if n === nothing
+            if len === nothing
                 suffix = "..."
             else
-                type = "::Vararg{$(typestring(t)), $n}"
+                type = "::Vararg{$(typestring(t)), $len}"
             end
         end
         if t !== Any && isempty(type)
@@ -200,8 +200,8 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
 
         "$arg$type$suffix"
     end
-    local kws = map(kwnames) do kw
-        local t = get(kwtypes, kw, Any)
+    kws = map(kwnames) do kw
+        t = get(kwtypes, kw, Any)
         t === Any ? kw : "$kw::$(typestring(t))"
     end
     args, kws = append_defaults(args, kws, kwnames, method, definition; brackets = brackets)
@@ -226,7 +226,7 @@ return_annotation(returns::String, func, method::Method, typesig) = " -> $return
 
 function return_annotation(returns::Bool, func, method::Method, typesig)
     returns || return ""
-    local rt = method_return_type(func, method, typesig)
+    rt = method_return_type(func, method, typesig)
     return isempty(rt) || rt[1] === Nothing || rt[1] === Union{} ? "" : " -> $(rt[1])"
 end
 

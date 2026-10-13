@@ -61,13 +61,13 @@ julia> @doc area
 const SIGNATURES = MethodSignatures()
 
 function format(abbr::MethodSignatures, buf, doc)
-    local binding = doc.data[:binding]
-    local func = Base.invokelatest(Docs.resolve, binding)
-    local groups = signature_groups(abbr, func, doc)
-    local defaults = abbr.defaults === false ? nothing : abbr.definition
+    binding = doc.data[:binding]
+    func = Base.invokelatest(Docs.resolve, binding)
+    groups = signature_groups(abbr, func, doc)
+    defaults = abbr.defaults === false ? nothing : abbr.definition
 
     return if !isempty(groups)
-        local lines = String[]
+        lines = String[]
         for group in groups, method in collapse_defaults(group, defaults)
             push!(
                 lines, sprint(
@@ -148,9 +148,9 @@ const TYPEDSIGNATURES = TypedMethodSignatures()
 # The methods a signature abbreviation prints: the constructors of a documented struct, or the
 # documented method's group.
 function signature_groups(abbr::Union{MethodSignatures, TypedMethodSignatures}, func, doc)
-    local modname = doc.data[:module]
+    modname = doc.data[:module]
     if abbr.type_definition !== nothing
-        local constructors = struct_constructors(func, abbr.type_definition, modname)
+        constructors = struct_constructors(func, abbr.type_definition, modname)
         return isempty(constructors) ? Vector{Method}[] : [constructors]
     end
     return documented_groups(methodgroups(func, doc.data[:typesig], modname), doc)
@@ -164,20 +164,20 @@ the method that takes every argument of `definition`.
 """
 collapse_defaults(group, ::Nothing) = group
 function collapse_defaults(group, definition::DefinitionArguments)
-    local matching = filter(m -> matches_definition(m, definition), group)
+    matching = filter(m -> matches_definition(m, definition), group)
     isempty(matching) && return group
-    local longest = maximum(m -> length(arguments(m)), matching)
+    longest = maximum(m -> length(arguments(m)), matching)
     return filter(group) do m
         !matches_definition(m, definition) || length(arguments(m)) == longest
     end
 end
 
 function format(tms::TypedMethodSignatures, buf, doc)
-    local binding = doc.data[:binding]
-    local typesig = doc.data[:typesig]
-    local func = Base.invokelatest(Docs.resolve, binding)
-    local groups = signature_groups(tms, func, doc)
-    local defaults = tms.defaults === false ? nothing : tms.definition
+    binding = doc.data[:binding]
+    typesig = doc.data[:typesig]
+    func = Base.invokelatest(Docs.resolve, binding)
+    groups = signature_groups(tms, func, doc)
+    defaults = tms.defaults === false ? nothing : tms.definition
     return if !isempty(groups)
         group = groups[end]
         println(buf)

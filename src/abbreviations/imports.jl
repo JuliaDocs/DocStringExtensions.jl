@@ -29,9 +29,9 @@ julia> @doc Plots
 const IMPORTS = ModuleImports()
 
 function format(::ModuleImports, buf, doc)
-    local binding = doc.data[:binding]
-    local object = Base.invokelatest(Docs.resolve, binding)
-    local imports = unique(ccall(:jl_module_usings, Any, (Any,), object))
+    binding = doc.data[:binding]
+    object = Base.invokelatest(Docs.resolve, binding)
+    imports = unique(ccall(:jl_module_usings, Any, (Any,), object))
     return if !isempty(imports)
         println(buf)
         for mod in sort(imports, by = string)

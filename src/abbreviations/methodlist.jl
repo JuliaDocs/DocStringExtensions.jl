@@ -90,11 +90,11 @@ printlisted(buf, abbr::TypedMethodList, binding, func, method) =
     printmethod(buf, binding, func, method, argsig(method); returns = abbr.returns)
 
 function format(abbr::Union{MethodList, TypedMethodList}, buf, doc)
-    local binding = doc.data[:binding]
-    local typesig = doc.data[:typesig]
-    local modname = doc.data[:module]
-    local func = Base.invokelatest(Docs.resolve, binding)
-    local groups = methodgroups(func, typesig, modname; exact = false)
+    binding = doc.data[:binding]
+    typesig = doc.data[:typesig]
+    modname = doc.data[:module]
+    func = Base.invokelatest(Docs.resolve, binding)
+    groups = methodgroups(func, typesig, modname; exact = false)
     if !isempty(groups)
         println(buf)
         for group in groups
@@ -105,11 +105,11 @@ function format(abbr::Union{MethodList, TypedMethodList}, buf, doc)
             end
             println(buf, "```\n")
             if !isempty(group)
-                local method = group[1]
-                local file = string(method.file)
-                local line = method.line
-                local path = sourcepath(file, modname)
-                local URL = url(method)
+                method = group[1]
+                file = string(method.file)
+                line = method.line
+                path = sourcepath(file, modname)
+                URL = url(method)
                 isempty(URL) || println(buf, "defined at [`$path:$line`]($URL).")
             end
             println(buf)
@@ -140,9 +140,9 @@ separators. Falls back to [`cleanpath`](@ref) when `mod` is not part of a packag
 is outside it.
 """
 function sourcepath(file::AbstractString, mod::Module)
-    local entry = pathof(Base.moduleroot(mod))
+    entry = pathof(Base.moduleroot(mod))
     if entry !== nothing
-        local root = joinpath(dirname(dirname(entry)), "")
+        root = joinpath(dirname(dirname(entry)), "")
         startswith(file, root) && return replace(relpath(file, root), '\\' => '/')
     end
     return cleanpath(file)

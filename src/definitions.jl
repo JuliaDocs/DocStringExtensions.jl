@@ -20,10 +20,10 @@ Find the arguments of the method definition `expr`, with their default values wh
 arguments would not change what a signature prints.
 """
 function definition_arguments(expr::Expr, show_defaults::Bool)
-    local call = definition_call(expr)
+    call = definition_call(expr)
     call === nothing && return nothing
-    local positional = Tuple{String, Union{String, Nothing}}[]
-    local keywords = Dict{String, String}()
+    positional = Tuple{String, Union{String, Nothing}}[]
+    keywords = Dict{String, String}()
     for arg in call.args[2:end]
         if Meta.isexpr(arg, :parameters)
             show_defaults || continue
@@ -41,7 +41,7 @@ function definition_arguments(expr::Expr, show_defaults::Bool)
 end
 
 function definition_call(expr::Expr)
-    local definition = method_definition(expr)
+    definition = method_definition(expr)
     return definition === nothing ? nothing : signature_call(definition.args[1])
 end
 
@@ -53,11 +53,11 @@ Returns `nothing` when `expr` does not define a method or the body is empty.
 """
 function definition_body(expr::Expr)
     definition_call(expr) === nothing && return nothing
-    local body = without_linenums(method_definition(expr).args[2])
+    body = without_linenums(method_definition(expr).args[2])
     isempty(body.args) && return nothing
     # Base prints the block as `begin`, the statements indented by four spaces, then `end`.
     # Printing each statement alone mangles nested quotes.
-    local lines = split(sprint(print, body), '\n')[2:(end - 1)]
+    lines = split(sprint(print, body), '\n')[2:(end - 1)]
     return join([startswith(line, "    ") ? line[5:end] : line for line in lines], "\n")
 end
 
@@ -113,9 +113,9 @@ text and keyed by field name. Defaults are written as `field = value` inside a m
 default.
 """
 function field_defaults(expr::Expr)
-    local definition = struct_definition(expr)
+    definition = struct_definition(expr)
     definition === nothing && return nothing
-    local defaults = add_field_defaults!(Dict{Symbol, String}(), definition.args[3])
+    defaults = add_field_defaults!(Dict{Symbol, String}(), definition.args[3])
     return isempty(defaults) ? nothing : defaults
 end
 
@@ -140,7 +140,7 @@ struct_definition(@nospecialize(other)) = nothing
 function field_default(@nospecialize(field))
     Meta.isexpr(field, :const, 1) && return field_default(field.args[1])
     Meta.isexpr(field, :(=), 2) || return (nothing, nothing)
-    local name = field_name(field.args[1])
+    name = field_name(field.args[1])
     name === nothing && return (nothing, nothing)
     return (name, source_text(without_tags(field.args[2])))
 end
@@ -181,10 +181,10 @@ The [`StructDefinition`](@ref) of the struct that `expr` defines, or `nothing` w
 does not define a struct or carries no line numbers.
 """
 function struct_extent(expr::Expr)
-    local definition = struct_definition(expr)
+    definition = struct_definition(expr)
     definition === nothing && return nothing
     # The docstring's own path is empty for `Base.@kwdef` on Julia 1.0.
-    local lines = line_numbers!(LineNumberNode[], definition)
+    lines = line_numbers!(LineNumberNode[], definition)
     isempty(lines) && return nothing
     return StructDefinition(string(first(lines).file), maximum(l -> l.line, lines), definition !== expr)
 end

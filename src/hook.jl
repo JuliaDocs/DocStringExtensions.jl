@@ -21,7 +21,7 @@ _process_interpolation(@nospecialize(expr), quoted::QuoteNode) = Expr(:call, int
 # Runs in place of `Core.atdoc`, so it calls the default expander itself.
 function template_hook(source::LineNumberNode, mod::Module, docstr, expr::Expr, define...)
     hooked(docstr) || (docstr = hook_docstring(mod, docstr, expr))
-    local out = expander(source, mod, docstr, expr, define...)
+    out = expander(source, mod, docstr, expr, define...)
     return isdefined(mod, TEMP_SYM) ? forward_doc_calls(out) : out
 end
 # On Julia 1.6 and later, the `@doc` calls that `@__doc__` leaves carry two leading arguments
@@ -53,9 +53,9 @@ end
 # Only the expressions leading to such a call are copied, so a large definition is not.
 forward_doc_calls(@nospecialize(other)) = other
 function forward_doc_calls(ex::Expr)
-    local args = ex.args
+    args = ex.args
     for (index, arg) in enumerate(ex.args)
-        local forwarded = forward_doc_calls(arg)
+        forwarded = forward_doc_calls(arg)
         forwarded === arg && continue
         args === ex.args && (args = copy(ex.args))
         args[index] = forwarded
@@ -76,8 +76,8 @@ end
 
 # A new `DocStr`, since bindings documented together share one and each needs its own template.
 function resolve_templates(str::Docs.DocStr, key::Symbol)
-    local text = Any[]
-    local selector = template_selector(str.text, key)
+    text = Any[]
+    selector = template_selector(str.text, key)
     for part in str.text
         part isa Template ? append!(text, template_parts(part, selector)) : push!(text, part)
     end

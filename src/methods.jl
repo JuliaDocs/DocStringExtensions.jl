@@ -7,11 +7,11 @@ line; a constructor cannot exist before its type. When a macro wraps the definit
 include any constructor the macro may generate in another file.
 """
 function struct_constructors(func, definition::StructDefinition, modname)
-    local candidates = getmethods(func, Union{})
+    candidates = getmethods(func, Union{})
     if func isa UnionAll
         candidates = unique([candidates; constructor_methods(func, Tuple{Vararg{Any}})])
     end
-    local found = filter(candidates) do m
+    found = filter(candidates) do m
         m.module == modname || return false
         String(m.file) == definition.file && return m.line <= definition.last_line
         return definition.wrapped && generated_constructor(func, m)
@@ -22,7 +22,7 @@ end
 # The keyword constructor `Base.@kwdef` and similar macros generate, and the positional one
 # taking every field untyped. Julia 1.0 gives the `@kwdef` keyword constructor no location.
 function generated_constructor(func, m::Method)
-    local fields = fieldnames(Base.unwrap_unionall(func))
+    fields = fieldnames(Base.unwrap_unionall(func))
     if isempty(arguments(m))
         return !isempty(fields) && Set(keywords(func, m)) == Set(fields)
     end
@@ -42,19 +42,19 @@ groups = methodgroups(f, Union{Tuple{Any}, Tuple{Any, Integer}}, Main; exact = f
 ```
 """
 function methodgroups(func, typesig, modname; exact = true)
-    local methods = getmethods(func, typesig)
+    methods = getmethods(func, typesig)
     # A docstring on a constructor written as `T{P}(...)` documents a method of `Type{T{P}}`.
     if func isa UnionAll && typesig != Union{}
         methods = unique([methods; constructor_methods(func, typesig)])
     end
     # Group methods by file and line number.
-    local groups = groupby(Tuple{Symbol, Int}, Vector{Method}, methods) do m
+    groups = groupby(Tuple{Symbol, Int}, Vector{Method}, methods) do m
         (m.file, m.line), m
     end
 
     # Filter out methods from other modules and with non-matching signatures.
-    local typesigs = alltypesigs(typesig)
-    local results = Vector{Method}[]
+    typesigs = alltypesigs(typesig)
+    results = Vector{Method}[]
     for (key, group) in groups
         filter!(m -> m.module == modname, group)
         if exact
@@ -62,7 +62,7 @@ function methodgroups(func, typesig, modname; exact = true)
             # into a single type, such as `Union{Tuple{}, Tuple{Any, Vararg{Any}}} == Tuple`.
             # When no method matches a component, keep the group if `typesig` covers it.
             # Subtyping cannot always prove the converse, as for `where T` outside a union.
-            local matching = filter(m -> argsig(m) in typesigs, group)
+            matching = filter(m -> argsig(m) in typesigs, group)
             if !isempty(matching) || !all(m -> argsig(m) <: typesig, group)
                 group = matching
             end
@@ -85,10 +85,10 @@ which can match a method of another definition. All of `groups` when `doc` recor
 no group follows it.
 """
 function documented_groups(groups, doc)
-    local path = get(doc.data, :path, nothing)
-    local line = get(doc.data, :linenumber, nothing)
+    path = get(doc.data, :path, nothing)
+    line = get(doc.data, :linenumber, nothing)
     (path === nothing || line === nothing) && return groups
-    local after = filter(g -> String(first(g).file) == path && first(g).line >= line, groups)
+    after = filter(g -> String(first(g).file) == path && first(g).line >= line, groups)
     isempty(after) && return groups
     return [after[argmin(map(g -> first(g).line, after))]]
 end
@@ -104,15 +104,15 @@ argument's element type in place of its `Vararg`. A vararg with a count, such as
 `xs::Vararg{Int,2}`, gets `Any`.
 """
 function argument_types(method::Method, n::Integer)
-    local types = Any[Base.unwrap_unionall(method.sig).parameters[2:end]...]
+    types = Any[Base.unwrap_unionall(method.sig).parameters[2:end]...]
     method.isva || return types[1:n]
-    local vararg = expanded_vararg(method) ? Any : Base.unwrapva(types[end])
+    vararg = expanded_vararg(method) ? Any : Base.unwrapva(types[end])
     return Any[types[1:(n - 1)]; vararg]
 end
 
 # The type parameters `t` declares, outermost first.
 function typevars(t)
-    local vars = TypeVar[]
+    vars = TypeVar[]
     while t isa UnionAll
         push!(vars, t.var)
         t = t.body
@@ -128,14 +128,14 @@ or `nothing` when `method` is not a constructor written with parameters. Julia s
 method under `Type{Point{T}}`, so `methods(Point)` leaves it out.
 """
 function constructor_parameters(method::Method)
-    local f = Base.unwrap_unionall(self_type(method))
+    f = Base.unwrap_unionall(self_type(method))
     istypeoftype(f) || return nothing
-    local t = type_parameter(f)
-    local body = Base.unwrap_unionall(t)
+    t = type_parameter(f)
+    body = Base.unwrap_unionall(t)
     body isa DataType || return nothing
     # `Point{T}` for a type with more parameters leaves the trailing ones free.
-    local params = collect(body.parameters)
-    local free = typevars(t)
+    params = collect(body.parameters)
+    free = typevars(t)
     while !isempty(params) && last(params) in free
         pop!(params)
     end
@@ -171,7 +171,7 @@ The `n` of a `Vararg{T,n}` type, an `Int` or a method's type parameter, or `noth
 the vararg has no count.
 """
 function vararg_length(t)
-    local n = @static if VERSION > v"1.7-"
+    n = @static if VERSION > v"1.7-"
         isdefined(t, :N) ? t.N : nothing
     else
         # Before Julia 1.7, `xs::T...` is `Vararg{T,N} where N`, binding its own `N`.
@@ -189,8 +189,8 @@ every method that matches, so a more specific method whose signature overlaps `m
 skipped by its position in `methods(func, typesig)`.
 """
 function method_return_type(func, method::Method, typesig)
-    local matching = collect(Base.invokelatest(methods, func, typesig))
-    local idx = findfirst(m -> m === method, matching)
+    matching = collect(Base.invokelatest(methods, func, typesig))
+    idx = findfirst(m -> m === method, matching)
     idx === nothing && return []
     # Inference cannot run a generator on abstract argument types: Julia 1.0 throws and 1.10
     # hits a `BoundsError` in Base. Other versions infer `Any` for a generated method itself.
@@ -264,11 +264,11 @@ The methods of `Type{T}`, for `T` any instance of the parametric type `func`, wh
 arguments match `typesig`. These are the constructors written as `T{P}(...)`.
 """
 function constructor_methods(func::UnionAll, typesig)
-    local self = Type{Base.unwrap_unionall(func)}
-    local results = Method[]
+    self = Type{Base.unwrap_unionall(func)}
+    results = Method[]
     for each in alltypesigs(typesig)
-        local args = Base.unwrap_unionall(each).parameters
-        local tt = Base.rewrap_unionall(Base.rewrap_unionall(Tuple{self, args...}, each), func)
+        args = Base.unwrap_unionall(each).parameters
+        tt = Base.rewrap_unionall(Base.rewrap_unionall(Tuple{self, args...}, each), func)
         append!(results, matched_methods(tt))
     end
     return results
@@ -281,7 +281,7 @@ The methods matching the full call signature `tt`, a `Tuple` type of the callabl
 the argument types.
 """
 function matched_methods(tt)
-    local world = ccall(:jl_get_world_counter, UInt, ())
+    world = ccall(:jl_get_world_counter, UInt, ())
     # Julia 1.0 gives each match as an `svec` holding the method third.
     return Method[m isa Core.SimpleVector ? m[3] : m.method for m in Base._methods_by_ftype(tt, -1, world)]
 end
@@ -413,10 +413,10 @@ it cannot be found. Julia lowers `f(x; a::Int = 1)` to a method of `f` that fill
 keyword defaults and ends by calling a hidden body method, `#f#1(a::Int, ::typeof(f), x)`.
 """
 function keyword_body(method::Method)
-    local code = get_method_source(method).code
+    code = get_method_source(method).code
     length(code) >= 2 && Meta.isexpr(code[end - 1], :call) || return nothing
-    local call = code[end - 1]
-    local callee = ssa_value(code, call.args[1])
+    call = code[end - 1]
+    callee = ssa_value(code, call.args[1])
     # A positional vararg is splatted through `Core._apply`, or `Core._apply_iterate` from Julia 1.4.
     if callee == GlobalRef(Core, :_apply)
         callee = ssa_value(code, call.args[2])
@@ -424,7 +424,7 @@ function keyword_body(method::Method)
         callee = ssa_value(code, call.args[3])
     end
     callee isa GlobalRef || return nothing
-    local found = Base.invokelatest(methods, Base.invokelatest(getfield, callee.mod, callee.name))
+    found = Base.invokelatest(methods, Base.invokelatest(getfield, callee.mod, callee.name))
     return length(found) == 1 ? first(found) : nothing
 end
 
@@ -439,13 +439,13 @@ parameters that only keyword types use. A keyword type refers to the parameter i
 the same name, so it shares the signature's `where` clause.
 """
 function keyword_types(method::Method, kws, vars)
-    local types = Dict{String, Any}()
-    local body = isempty(kws) ? nothing : keyword_body(method)
+    types = Dict{String, Any}()
+    body = isempty(kws) ? nothing : keyword_body(method)
     body === nothing && return types, TypeVar[]
-    local own = typevars(body.sig)
-    local shared = Dict(v.name => v for v in vars)
-    local sig = isempty(own) ? body.sig : body.sig{[get(shared, v.name, v) for v in own]...}
-    local names = get_method_source(body).slotnames[2:nargs(body)]
+    own = typevars(body.sig)
+    shared = Dict(v.name => v for v in vars)
+    sig = isempty(own) ? body.sig : body.sig{[get(shared, v.name, v) for v in own]...}
+    names = get_method_source(body).slotnames[2:nargs(body)]
     for (name, type) in zip(names, sig.parameters[2:end])
         types[string(name)] = type
     end
@@ -466,18 +466,18 @@ args = arguments(first(methods(f)))
 ```
 """
 function arguments(m::Method)
-    local argnames = nothing
+    argnames = nothing
     if isdefined(m, :generator)
         # Generated function.
         argnames = m.generator.argnames
     else
-        local template = get_method_source(m)
+        template = get_method_source(m)
         if isdefined(template, :slotnames)
             argnames = template.slotnames
         end
     end
     if argnames !== nothing
-        local args = map(argnames[1:nargs(m)]) do arg
+        args = map(argnames[1:nargs(m)]) do arg
             isself(arg) ? arg : isunnamed(arg) ? "_" : arg
         end
         return filter(!isself, args)

@@ -83,16 +83,16 @@ julia> @doc Point
 const TYPEDFIELDS = TypeFields(true)
 
 function format(abbrv::TypeFields, buf, doc)
-    local docs = get(doc.data, :fields, Dict())
-    local binding = doc.data[:binding]
-    local object = Base.invokelatest(Docs.resolve, binding)
-    local fields = isabstracttype(object) ? Symbol[] : fieldnames(object)
+    docs = get(doc.data, :fields, Dict())
+    binding = doc.data[:binding]
+    object = Base.invokelatest(Docs.resolve, binding)
+    fields = isabstracttype(object) ? Symbol[] : fieldnames(object)
     if !isempty(fields)
         println(buf)
         for field in fields
-            local text = string(field)
+            text = string(field)
             abbrv.types && (text *= string("::", fieldtype(object, field)))
-            local default = abbrv.defaults === nothing ? nothing : get(abbrv.defaults, field, nothing)
+            default = abbrv.defaults === nothing ? nothing : get(abbrv.defaults, field, nothing)
             default === nothing || (text *= " = " * first_line(default))
             print(buf, "  - ", code_span(text))
             # Print the field docs if they exist and aren't a `doc"..."` docstring.
@@ -119,8 +119,8 @@ first_line(text) = occursin('\n', text) ? string(first(split(text, '\n')), " …
 # Julia's Markdown reads an even run of backticks as LaTeX, so the fence is the shortest odd
 # run longer than any in `text`. A space keeps a backtick at either end out of the fence.
 function code_span(text)
-    local longest = reduce(max, [length(m.match) for m in eachmatch(r"`+", text)]; init = 0)
-    local fence = "`"^(isodd(longest) ? longest + 2 : longest + 1)
-    local padding = startswith(text, '`') || endswith(text, '`') ? " " : ""
+    longest = reduce(max, [length(m.match) for m in eachmatch(r"`+", text)]; init = 0)
+    fence = "`"^(isodd(longest) ? longest + 2 : longest + 1)
+    padding = startswith(text, '`') || endswith(text, '`') ? " " : ""
     return string(fence, padding, text, padding, fence)
 end
