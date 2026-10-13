@@ -289,7 +289,35 @@ end
 """
 $(:SIGNATURES)
 
-Returns a `Vector` of the `Tuple` types contained in `sig`.
+The `Tuple` types in `sig`, the signature a docstring is paired with. A docstring that
+documents several methods at once, such as those that positional default values define, is
+paired with the union of their signatures. Returns an empty vector for `Union{}`.
+
+```jldoctest; setup = :(using DocStringExtensions)
+julia> DocStringExtensions.alltypesigs(Tuple{String,Number,Int})
+1-element Vector{Any}:
+ Tuple{String, Number, Int64}
+
+julia> DocStringExtensions.alltypesigs(Tuple{T} where T <: Integer)
+1-element Vector{Any}:
+ Tuple{T} where T<:Integer
+
+julia> s = Union{
+         Tuple{Int64},
+         Tuple{U},
+         Tuple{T},
+         Tuple{Int64,T},
+         Tuple{Int64,T,U}
+       } where U where T;
+
+julia> DocStringExtensions.alltypesigs(s)
+5-element Vector{Any}:
+ Tuple{Int64}
+ Tuple{U} where U
+ Tuple{T} where T
+ Tuple{Int64, T} where T
+ Tuple{Int64, T, U} where {T, U}
+```
 """
 function alltypesigs(sig)::Vector{Any}
     if sig == Union{}
@@ -334,53 +362,6 @@ end
 ```
 """
 groupby(f, K, V, data) = groupby!(f, Dict{K, V}(), data)
-
-"""
-$(:SIGNATURES)
-
-Converts a method signature (or a union of several signatures) in a vector of (single)
-signatures.
-
-This is used for decoding the method signature that a docstring is paired with. In the case
-when the docstring applies to multiple methods (e.g. when default positional argument values
-are used and define multiple methods at once), they are combined together as union of `Tuple`
-types.
-
-```jldoctest; setup = :(using DocStringExtensions)
-julia> DocStringExtensions.find_tuples(Tuple{String,Number,Int})
-1-element Vector{DataType}:
- Tuple{String, Number, Int64}
-
-julia> DocStringExtensions.find_tuples(Tuple{T} where T <: Integer)
-1-element Vector{UnionAll}:
- Tuple{T} where T<:Integer
-
-julia> s = Union{
-         Tuple{Int64},
-         Tuple{U},
-         Tuple{T},
-         Tuple{Int64,T},
-         Tuple{Int64,T,U}
-       } where U where T;
-
-julia> DocStringExtensions.find_tuples(s)
-5-element Vector{Type}:
- Tuple{Int64}
- Tuple{U} where U
- Tuple{T} where T
- Tuple{Int64, T} where T
- Tuple{Int64, T, U} where {T, U}
-```
-"""
-function find_tuples(typesig)
-    if typesig isa UnionAll
-        return [UnionAll(typesig.var, x) for x in find_tuples(typesig.body)]
-    elseif typesig isa Union
-        return [typesig.a, find_tuples(typesig.b)...]
-    else
-        return [typesig,]
-    end
-end
 
 get_method_source(m::Method) = Base.uncompressed_ast(m)
 nargs(m::Method) = m.nargs

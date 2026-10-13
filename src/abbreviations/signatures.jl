@@ -182,8 +182,7 @@ function format(tms::TypedMethodSignatures, buf, doc)
         println(buf, "```julia")
         for method in collapse_defaults(group, defaults)
             N = length(arguments(method))
-            # return a list of tuples that represent type signatures
-            tuples = find_tuples(typesig)
+            tuples = alltypesigs(typesig)
             # Without a tuple equal to the method's signature, take one with as many arguments.
             function f(t)
                 if t isa DataType
