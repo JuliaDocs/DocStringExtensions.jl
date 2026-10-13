@@ -4,19 +4,22 @@ The type for [`SIGNATURES`](@ref) abbreviations.
 $(:FIELDS)
 """
 struct MethodSignatures <: Abbreviation
-    returns::Union{Bool,String}
-    defaults::Union{Bool,Symbol}
-    definition::Union{DefinitionArguments,Nothing}
-    type_definition::Union{StructDefinition,Nothing}
+    returns::Union{Bool, String}
+    defaults::Union{Bool, Symbol}
+    definition::Union{DefinitionArguments, Nothing}
+    type_definition::Union{StructDefinition, Nothing}
 end
 
-function check_defaults(defaults::Union{Bool,Symbol})
-    defaults isa Bool || defaults === :brackets || throw(ArgumentError(
-        "`defaults` must be `true`, `false`, or `:brackets`, got `$(repr(defaults))`."))
+function check_defaults(defaults::Union{Bool, Symbol})
+    defaults isa Bool || defaults === :brackets || throw(
+        ArgumentError(
+            "`defaults` must be `true`, `false`, or `:brackets`, got `$(repr(defaults))`."
+        )
+    )
     return defaults
 end
 
-MethodSignatures(; returns::Union{Bool,String} = false, defaults::Union{Bool,Symbol} = false) =
+MethodSignatures(; returns::Union{Bool, String} = false, defaults::Union{Bool, Symbol} = false) =
     MethodSignatures(returns, check_defaults(defaults), nothing, nothing)
 
 """
@@ -63,12 +66,18 @@ function format(abbr::MethodSignatures, buf, doc)
     local groups = signature_groups(abbr, func, doc)
     local defaults = abbr.defaults === false ? nothing : abbr.definition
 
-    if !isempty(groups)
+    return if !isempty(groups)
         local lines = String[]
         for group in groups, method in collapse_defaults(group, defaults)
-            push!(lines, sprint(io -> printmethod(io, binding, func, method;
-                definition = abbr.definition, returns = abbr.returns,
-                brackets = abbr.defaults === :brackets)))
+            push!(
+                lines, sprint(
+                    io -> printmethod(
+                        io, binding, func, method;
+                        definition = abbr.definition, returns = abbr.returns,
+                        brackets = abbr.defaults === :brackets
+                    )
+                )
+            )
         end
         println(buf)
         println(buf, "```julia")
@@ -84,16 +93,16 @@ The type for [`TYPEDSIGNATURES`](@ref) abbreviations.
 $(:FIELDS)
 """
 struct TypedMethodSignatures <: Abbreviation
-    returns::Union{Bool,String}
-    defaults::Union{Bool,Symbol}
-    definition::Union{DefinitionArguments,Nothing}
-    type_definition::Union{StructDefinition,Nothing}
+    returns::Union{Bool, String}
+    defaults::Union{Bool, Symbol}
+    definition::Union{DefinitionArguments, Nothing}
+    type_definition::Union{StructDefinition, Nothing}
 end
 
-TypedMethodSignatures(; returns::Union{Bool,String} = true, defaults::Union{Bool,Symbol} = false) =
+TypedMethodSignatures(; returns::Union{Bool, String} = true, defaults::Union{Bool, Symbol} = false) =
     TypedMethodSignatures(returns, check_defaults(defaults), nothing, nothing)
 
-interpolation(abbr::T, expr::Expr) where {T<:Union{MethodSignatures,TypedMethodSignatures}} = T(
+interpolation(abbr::T, expr::Expr) where {T <: Union{MethodSignatures, TypedMethodSignatures}} = T(
     abbr.returns,
     abbr.defaults,
     definition_arguments(expr, abbr.defaults !== false),
@@ -138,7 +147,7 @@ const TYPEDSIGNATURES = TypedMethodSignatures()
 
 # The methods a signature abbreviation prints: the constructors of a documented struct, or the
 # documented method's group.
-function signature_groups(abbr::Union{MethodSignatures,TypedMethodSignatures}, func, doc)
+function signature_groups(abbr::Union{MethodSignatures, TypedMethodSignatures}, func, doc)
     local modname = doc.data[:module]
     if abbr.type_definition !== nothing
         local constructors = struct_constructors(func, abbr.type_definition, modname)
@@ -169,7 +178,7 @@ function format(tms::TypedMethodSignatures, buf, doc)
     local func = Base.invokelatest(Docs.resolve, binding)
     local groups = signature_groups(tms, func, doc)
     local defaults = tms.defaults === false ? nothing : tms.definition
-    if !isempty(groups)
+    return if !isempty(groups)
         group = groups[end]
         println(buf)
         println(buf, "```julia")
@@ -195,9 +204,11 @@ function format(tms::TypedMethodSignatures, buf, doc)
             # A parametric constructor's name needs the type parameters of its own signature.
             t = idx === nothing || expanded_vararg(method) || constructor_parameters(method) !== nothing ?
                 argsig(method) : tuples[idx]
-            printmethod(buf, binding, func, method, t;
+            printmethod(
+                buf, binding, func, method, t;
                 returns = tms.returns, definition = tms.definition,
-                brackets = tms.defaults === :brackets)
+                brackets = tms.defaults === :brackets
+            )
             println(buf)
         end
         println(buf, "```\n")

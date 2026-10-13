@@ -92,8 +92,8 @@ is_hook_part(part) = isa(part, Template) || Meta.isexpr(part, :call) && part.arg
 # Every templated package calls these, so compiling them here saves each one doing it.
 const PRECOMPILED = (
     (template_hook, (LineNumberNode, Module, String, Expr)),
-    (Template{:before}, (Dict{Symbol,Vector}, Expr)),
-    (Template{:after}, (Dict{Symbol,Vector}, Expr)),
+    (Template{:before}, (Dict{Symbol, Vector}, Expr)),
+    (Template{:after}, (Dict{Symbol, Vector}, Expr)),
     (template_parts, (Template{:before}, Symbol)),
     (template_parts, (Template{:after}, Symbol)),
     (forward_doc!, (Module, Docs.Binding, Docs.DocStr, Any)),

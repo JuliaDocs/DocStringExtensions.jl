@@ -4,7 +4,7 @@ The type for [`BODY`](@ref) abbreviations.
 $(:FIELDS)
 """
 struct FunctionBody <: Abbreviation
-    body::Union{String,Nothing}
+    body::Union{String, Nothing}
 end
 
 interpolation(::FunctionBody, expr::Expr) = FunctionBody(definition_body(expr))
@@ -37,5 +37,5 @@ function format(abbr::FunctionBody, buf, doc)
     println(buf)
     println(buf, "```julia")
     println(buf, abbr.body)
-    println(buf, "```\n")
+    return println(buf, "```\n")
 end

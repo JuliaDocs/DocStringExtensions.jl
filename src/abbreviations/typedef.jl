@@ -35,11 +35,11 @@ const TYPEDEF = TypeDefinition()
 
 function print_supertype(buf, object)
     super = supertype(object)
-    super != Any && print(buf, " <: ", super)
+    return super != Any && print(buf, " <: ", super)
 end
 
 function print_params(buf, object)
-    if !isempty(object.parameters)
+    return if !isempty(object.parameters)
         print(buf, "{")
         join(buf, object.parameters, ", ")
         print(buf, "}")
@@ -50,14 +50,14 @@ function print_primitive_type(buf, object)
     print(buf, "primitive type ", object.name.name)
     print_supertype(buf, object)
     print(buf, " ", sizeof(object) * 8)
-    println(buf)
+    return println(buf)
 end
 
 function print_abstract_type(buf, object)
     print(buf, "abstract type ", object.name.name)
     print_params(buf, object)
     print_supertype(buf, object)
-    println(buf)
+    return println(buf)
 end
 
 # This is compat to make sure that we have ismutabletype available pre-1.7.
@@ -75,7 +75,7 @@ function print_mutable_struct_or_struct(buf, object)
     print(buf, "struct ", object.name.name)
     print_params(buf, object)
     print_supertype(buf, object)
-    println(buf)
+    return println(buf)
 end
 
 gettype(T::UnionAll) = gettype(T.body)
@@ -84,7 +84,7 @@ gettype(other) = other
 function format(::TypeDefinition, buf, doc)
     local binding = doc.data[:binding]
     local object = gettype(Base.invokelatest(Docs.resolve, binding))
-    if isa(object, DataType)
+    return if isa(object, DataType)
         println(buf, "\n```julia")
         if isprimitivetype(object)
             print_primitive_type(buf, object)

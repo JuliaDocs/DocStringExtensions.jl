@@ -96,14 +96,14 @@ end
     `ABSTRACTTYPES`, `MODULES`, and `CONSTANTS`.
 """
 macro template(ex)
-    template(__source__, __module__, ex)
+    return template(__source__, __module__, ex)
 end
 
 const TEMP_SYM = gensym("templates")
 
 function template(src::LineNumberNode, mod::Module, ex::Expr)
     Meta.isexpr(ex, :(=), 2) || error("invalid `@template` syntax.")
-    template(src, mod, ex.args[1], ex.args[2])
+    return template(src, mod, ex.args[1], ex.args[2])
 end
 
 function template(source::LineNumberNode, mod::Module, tuple::Expr, docstr::Union{String, Symbol, Expr})
@@ -123,15 +123,17 @@ function template(source::LineNumberNode, mod::Module, tuple::Expr, docstr::Unio
 end
 
 function template(src::LineNumberNode, mod::Module, sym::Symbol, docstr::Union{String, Symbol, Expr})
-    template(src, mod, Expr(:tuple, sym), docstr)
+    return template(src, mod, Expr(:tuple, sym), docstr)
 end
 
 const TEMPLATE_CATEGORIES = (:DEFAULT, :FUNCTIONS, :METHODS, :MACROS, :TYPES, :ABSTRACTTYPES, :MODULES, :CONSTANTS)
 
 function checked_category(category)
-    category in TEMPLATE_CATEGORIES || throw(ArgumentError(
-        "`@template` category `$category` is not one of $(join(TEMPLATE_CATEGORIES, ", "))."
-    ))
+    category in TEMPLATE_CATEGORIES || throw(
+        ArgumentError(
+            "`@template` category `$category` is not one of $(join(TEMPLATE_CATEGORIES, ", "))."
+        )
+    )
     return category
 end
 
@@ -145,10 +147,12 @@ function copied_template(source::Module, category::Symbol)
     isdefined(source, TEMP_SYM) && haskey(getfield(source, TEMP_SYM), category) &&
         return getfield(source, TEMP_SYM)[category]
     local name = nameof(source)
-    throw(ArgumentError(
-        "module `$name` has no `$category` template to copy. " *
-        "Define one with `@template $category = \"...\"` in `$name` before copying it."
-    ))
+    throw(
+        ArgumentError(
+            "module `$name` has no `$category` template to copy. " *
+                "Define one with `@template $category = \"...\"` in `$name` before copying it."
+        )
+    )
 end
 
 get_template(t::Dict, k::Symbol) =
@@ -172,7 +176,7 @@ reference to a module's templates. `expr` is the documented expression, which is
 passed to [`interpolation`](@ref) for each part of the template.
 """
 struct Template{Location} <: Abbreviation
-    dict::Dict{Symbol,Vector{Any}}
+    dict::Dict{Symbol, Vector{Any}}
     expr::Expr
 end
 
@@ -183,6 +187,7 @@ function format(abbr::Template, buf, doc)
         # abbreviations.
         Docs.formatdoc(buf, doc, part)
     end
+    return
 end
 
 # The parts of the template for `key` found before the `DOCSTRING` abbreviation, or after it.
@@ -193,10 +198,12 @@ end
 function template_parts(abbr::Template, override::TemplateOverride)
     local category = override.category
     category === nothing && return Any[]
-    haskey(abbr.dict, category) || throw(ArgumentError(
-        "`TemplateOverride` category `$category` has no template. " *
-        "Define one with `@template $category = \"...\"` before the docstring."
-    ))
+    haskey(abbr.dict, category) || throw(
+        ArgumentError(
+            "`TemplateOverride` category `$category` has no template. " *
+                "Define one with `@template $category = \"...\"` before the docstring."
+        )
+    )
     return template_parts(abbr, category)
 end
 
@@ -216,17 +223,17 @@ end
 function template_key(binding::Docs.Binding, @nospecialize(typesig))
     # Local helper methods for extracting the template key from a docstring.
     ismacro(b::Docs.Binding) = startswith(string(b.var), '@')
-    objname(@nospecialize(obj::Union{Function,Module,DataType,Core.IntrinsicFunction}), b::Docs.Binding) = nameof(obj)
+    objname(@nospecialize(obj::Union{Function, Module, DataType, Core.IntrinsicFunction}), b::Docs.Binding) = nameof(obj)
     objname(@nospecialize(obj::UnionAll), b::Docs.Binding) = objname(Base.unwrap_unionall(obj), b)
     objname(@nospecialize(obj), b::Docs.Binding) = Symbol("") # Empty to force resolving to `:CONSTANTS` below.
     # Select the key returned based on input argument types.
-    _key(@nospecialize(::Module), @nospecialize(sig), binding)   = :MODULES
-    _key(@nospecialize(::Function), ::typeof(Union{}), binding)  = ismacro(binding) ? :MACROS : :FUNCTIONS
+    _key(@nospecialize(::Module), @nospecialize(sig), binding) = :MODULES
+    _key(@nospecialize(::Function), ::typeof(Union{}), binding) = ismacro(binding) ? :MACROS : :FUNCTIONS
     _key(@nospecialize(::Function), @nospecialize(sig), binding) = ismacro(binding) ? :MACROS : :METHODS
-    _key(@nospecialize(T::Union{DataType,UnionAll}), ::typeof(Union{}), binding) =
+    _key(@nospecialize(T::Union{DataType, UnionAll}), ::typeof(Union{}), binding) =
         Base.isabstracttype(T) ? :ABSTRACTTYPES : :TYPES
-    _key(@nospecialize(_::Union{DataType,UnionAll}), @nospecialize(sig), binding) = :METHODS
-    _key(@nospecialize(other), @nospecialize(sig), binding)      = :DEFAULT
+    _key(@nospecialize(_::Union{DataType, UnionAll}), @nospecialize(sig), binding) = :METHODS
+    _key(@nospecialize(other), @nospecialize(sig), binding) = :DEFAULT
 
     obj = Base.invokelatest(Docs.resolve, binding)
     name = objname(obj, binding)

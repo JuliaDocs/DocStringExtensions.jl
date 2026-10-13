@@ -9,7 +9,7 @@ template for it before the docstring.
 $(:FIELDS)
 """
 struct TemplateOverride <: Abbreviation
-    category::Union{Symbol,Nothing}
+    category::Union{Symbol, Nothing}
     TemplateOverride(category::Symbol) = new(checked_category(category))
     TemplateOverride(::Nothing) = new(nothing)
 end

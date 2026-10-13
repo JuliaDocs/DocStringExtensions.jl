@@ -89,7 +89,7 @@ printlisted(buf, abbr::MethodList, binding, func, method) =
 printlisted(buf, abbr::TypedMethodList, binding, func, method) =
     printmethod(buf, binding, func, method, argsig(method); returns = abbr.returns)
 
-function format(abbr::Union{MethodList,TypedMethodList}, buf, doc)
+function format(abbr::Union{MethodList, TypedMethodList}, buf, doc)
     local binding = doc.data[:binding]
     local typesig = doc.data[:typesig]
     local modname = doc.data[:module]
@@ -127,7 +127,7 @@ Remove the depot prefix from a file `path` inside a depot, such as an installed 
 function cleanpath(path::AbstractString)
     for depot in DEPOT_PATH
         pkgdir = joinpath(depot, "")
-        startswith(path, pkgdir) && return first(split(path, pkgdir, keepempty=false))
+        startswith(path, pkgdir) && return first(split(path, pkgdir, keepempty = false))
     end
     return path
 end

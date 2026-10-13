@@ -45,4 +45,5 @@ function parsedocs(mod::Module)
             Docs.parsedoc(docstr)
         end
     end
+    return
 end

@@ -13,14 +13,15 @@ function printmethod_format(buffer::IOBuffer, binding::String, args::Vector{Stri
 
     if method_length_over_limit(
             length(binding) +
-            1 +
-            sum(length.(args)) +
-            sum(length.(kws)) +
-            2*max(0, length(args)-1) +
-            2*length(kws) +
-            1 +
-            length(where_clause) +
-            length(return_type))
+                1 +
+                sum(length.(args)) +
+                sum(length.(kws)) +
+                2 * max(0, length(args) - 1) +
+                2 * length(kws) +
+                1 +
+                length(where_clause) +
+                length(return_type)
+        )
 
         sep_delim = "\n"
         paren_delim = "\n"
@@ -29,10 +30,10 @@ function printmethod_format(buffer::IOBuffer, binding::String, args::Vector{Stri
 
     print(buffer, binding)
     print(buffer, "($paren_delim")
-    join(buffer, Ref(indent).*args, ",$sep_delim")
+    join(buffer, Ref(indent) .* args, ",$sep_delim")
     if !isempty(kws)
         print(buffer, ";$sep_delim")
-        join(buffer, Ref(indent).*kws, ",$sep_delim")
+        join(buffer, Ref(indent) .* kws, ",$sep_delim")
     end
     print(buffer, "$paren_delim)")
     print(buffer, where_clause)
@@ -147,7 +148,7 @@ f(x::Int; a = 1, b...) = x
 sig = printmethod(Docs.Binding(Main, :f), f, first(methods(f)))
 ```
 """
-function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method, typesig; returns=true, definition=nothing, brackets=false)
+function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method, typesig; returns = true, definition = nothing, brackets = false)
     # TODO: print qualified?
     local args = argument_names(method, definition)
     local kwnames = string.(keywords(func, method))
@@ -174,10 +175,10 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     if expanded_vararg(method)
         local n = length(argtypes) - length(args) + 1
         # `Vararg{T,0}` leaves no `T` in the signature.
-        argtypes = Any[argtypes[1:end-n]..., Vararg{n > 0 ? argtypes[end] : Any, n}]
+        argtypes = Any[argtypes[1:(end - n)]..., Vararg{n > 0 ? argtypes[end] : Any, n}]
     end
 
-    args = map(args, argtypes) do arg,t
+    args = map(args, argtypes) do arg, t
         type = ""
         suffix = ""
         if Base.isvarargtype(t)
@@ -189,7 +190,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
                 type = "::Vararg{$(typestring(t)), $n}"
             end
         end
-        if t!==Any && isempty(type)
+        if t !== Any && isempty(type)
             type = "::$(typestring(t))"
         end
         # An unnamed argument with a type prints as `::T`.
@@ -210,8 +211,8 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         callable_name(binding, params, typestring),
         args,
         kws;
-        where_clause=where_clause(used),
-        return_type=return_annotation(returns, func, method, typesig)
+        where_clause = where_clause(used),
+        return_type = return_annotation(returns, func, method, typesig)
     )
 end
 

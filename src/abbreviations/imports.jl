@@ -32,7 +32,7 @@ function format(::ModuleImports, buf, doc)
     local binding = doc.data[:binding]
     local object = Base.invokelatest(Docs.resolve, binding)
     local imports = unique(ccall(:jl_module_usings, Any, (Any,), object))
-    if !isempty(imports)
+    return if !isempty(imports)
         println(buf)
         for mod in sort(imports, by = string)
             println(buf, "  - `", mod, "`")

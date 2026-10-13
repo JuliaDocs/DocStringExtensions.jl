@@ -32,12 +32,12 @@ part of a package.
 """
 const LICENSE = License()
 
-function format(::T, buf, doc) where T <: Union{Readme,License}
+function format(::T, buf, doc) where {T <: Union{Readme, License}}
     m = get(doc.data, :module, nothing)
     m === nothing && return
     path = pathof(m)
     path === nothing && return
-    try # wrap in try/catch since we shouldn't error in case some IO operation goes wrong
+    return try # wrap in try/catch since we shouldn't error in case some IO operation goes wrong
         r = T === Readme ? r"(?i)readme(?-i)" : r"(?i)license(?-i)"
         # assume README/LICENSE is located in the root of the repo
         root = normpath(joinpath(path, "..", ".."))

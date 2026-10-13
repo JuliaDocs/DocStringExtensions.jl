@@ -8,8 +8,8 @@ the argument's name, the destructuring of a destructured argument such as `"(a, 
 `keywords` maps the name of each keyword argument with a default to that default.
 """
 struct DefinitionArguments
-    positional::Vector{Tuple{String,Union{String,Nothing}}}
-    keywords::Dict{String,String}
+    positional::Vector{Tuple{String, Union{String, Nothing}}}
+    keywords::Dict{String, String}
 end
 
 """
@@ -22,8 +22,8 @@ arguments would not change what a signature prints.
 function definition_arguments(expr::Expr, show_defaults::Bool)
     local call = definition_call(expr)
     call === nothing && return nothing
-    local positional = Tuple{String,Union{String,Nothing}}[]
-    local keywords = Dict{String,String}()
+    local positional = Tuple{String, Union{String, Nothing}}[]
+    local keywords = Dict{String, String}()
     for arg in call.args[2:end]
         if Meta.isexpr(arg, :parameters)
             show_defaults || continue
@@ -57,7 +57,7 @@ function definition_body(expr::Expr)
     isempty(body.args) && return nothing
     # Base prints the block as `begin`, the statements indented by four spaces, then `end`.
     # Printing each statement alone mangles nested quotes.
-    local lines = split(sprint(print, body), '\n')[2:end-1]
+    local lines = split(sprint(print, body), '\n')[2:(end - 1)]
     return join([startswith(line, "    ") ? line[5:end] : line for line in lines], "\n")
 end
 
@@ -115,7 +115,7 @@ default.
 function field_defaults(expr::Expr)
     local definition = struct_definition(expr)
     definition === nothing && return nothing
-    local defaults = add_field_defaults!(Dict{Symbol,String}(), definition.args[3])
+    local defaults = add_field_defaults!(Dict{Symbol, String}(), definition.args[3])
     return isempty(defaults) ? nothing : defaults
 end
 

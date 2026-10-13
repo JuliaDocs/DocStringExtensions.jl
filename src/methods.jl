@@ -107,7 +107,7 @@ function argument_types(method::Method, n::Integer)
     local types = Any[Base.unwrap_unionall(method.sig).parameters[2:end]...]
     method.isva || return types[1:n]
     local vararg = expanded_vararg(method) ? Any : Base.unwrapva(types[end])
-    return Any[types[1:n-1]; vararg]
+    return Any[types[1:(n - 1)]; vararg]
 end
 
 # The type parameters `t` declares, outermost first.
@@ -177,7 +177,7 @@ function vararg_length(t)
         # Before Julia 1.7, `xs::T...` is `Vararg{T,N} where N`, binding its own `N`.
         t isa UnionAll ? nothing : t.parameters[2]
     end
-    return n isa Union{Int,TypeVar} ? n : nothing
+    return n isa Union{Int, TypeVar} ? n : nothing
 end
 
 """
@@ -211,7 +211,7 @@ Compare methods `a` and `b` by file and line number.
 """
 function comparemethods(a::Method, b::Method)
     comp = a.file < b.file ? -1 : a.file > b.file ? 1 : 0
-    comp == 0 ? a.line < b.line : comp < 0
+    return comp == 0 ? a.line < b.line : comp < 0
 end
 
 if isdefined(Base, :UnionAll)
@@ -320,13 +320,15 @@ julia> DocStringExtensions.alltypesigs(s)
 ```
 """
 function alltypesigs(sig)::Vector{Any}
-    if sig == Union{}
+    return if sig == Union{}
         Any[]
     elseif isa(sig, Union)
         uniontypes(sig)
     elseif isa(sig, UnionAll)
-        Any[Base.rewrap_unionall(usig, sig) for
-            usig in uniontypes(Base.unwrap_unionall(sig))]
+        Any[
+            Base.rewrap_unionall(usig, sig) for
+                usig in uniontypes(Base.unwrap_unionall(sig))
+        ]
     else
         Any[sig]
     end
@@ -412,8 +414,8 @@ keyword defaults and ends by calling a hidden body method, `#f#1(a::Int, ::typeo
 """
 function keyword_body(method::Method)
     local code = get_method_source(method).code
-    length(code) >= 2 && Meta.isexpr(code[end-1], :call) || return nothing
-    local call = code[end-1]
+    length(code) >= 2 && Meta.isexpr(code[end - 1], :call) || return nothing
+    local call = code[end - 1]
     local callee = ssa_value(code, call.args[1])
     # A positional vararg is splatted through `Core._apply`, or `Core._apply_iterate` from Julia 1.4.
     if callee == GlobalRef(Core, :_apply)
@@ -437,7 +439,7 @@ parameters that only keyword types use. A keyword type refers to the parameter i
 the same name, so it shares the signature's `where` clause.
 """
 function keyword_types(method::Method, kws, vars)
-    local types = Dict{String,Any}()
+    local types = Dict{String, Any}()
     local body = isempty(kws) ? nothing : keyword_body(method)
     body === nothing && return types, TypeVar[]
     local own = typevars(body.sig)

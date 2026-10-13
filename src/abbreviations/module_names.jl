@@ -38,7 +38,7 @@ const EXPORTS = ModuleExports()
 function format(::ModuleExports, buf, doc)
     local object = Base.invokelatest(Docs.resolve, doc.data[:binding])
     # `names` also returns `public` names on Julia 1.11 and later.
-    print_name_list(buf, object, filter(sym -> Base.isexported(object, sym), names(object)))
+    return print_name_list(buf, object, filter(sym -> Base.isexported(object, sym), names(object)))
 end
 
 function print_name_list(buf, object::Module, syms)
@@ -100,5 +100,5 @@ const PUBLIC = ModulePublic()
 
 function format(::ModulePublic, buf, doc)
     local object = Base.invokelatest(Docs.resolve, doc.data[:binding])
-    print_name_list(buf, object, names(object))
+    return print_name_list(buf, object, names(object))
 end

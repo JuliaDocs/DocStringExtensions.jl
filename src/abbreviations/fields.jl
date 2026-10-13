@@ -6,7 +6,7 @@ $(:FIELDS)
 struct TypeFields <: Abbreviation
     types::Bool
     show_defaults::Bool
-    defaults::Union{Dict{Symbol,String},Nothing}
+    defaults::Union{Dict{Symbol, String}, Nothing}
 end
 
 TypeFields(types::Bool; defaults::Bool = true) = TypeFields(types, defaults, nothing)
