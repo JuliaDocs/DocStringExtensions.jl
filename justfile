@@ -1,5 +1,5 @@
 fmt:
-    runic --inplace src
+    runic --inplace src test
 
 fmt-check:
-    runic --check src
+    runic --check src test

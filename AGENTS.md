@@ -37,7 +37,7 @@ EOF
 
 ## Formatting
 
-Runic formats `src/`. The CI `Format` job runs the check and fails on any unformatted file.
+Runic formats `src/` and `test/`. The CI `Format` job runs the check and fails on any unformatted file.
 
 ```bash
 just fmt        # Format in place
