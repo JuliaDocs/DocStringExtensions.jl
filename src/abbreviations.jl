@@ -126,15 +126,13 @@ function format(abbrv::TypeFields, buf, doc)
     local object = Base.invokelatest(Docs.resolve, binding)
     local fields = isabstracttype(object) ? Symbol[] : fieldnames(object)
     if !isempty(fields)
+            local text = string(field)
+            abbrv.types && (text *= string("::", fieldtype(object, field)))
         println(buf)
         for field in fields
             local default = abbrv.defaults === nothing ? nothing : get(abbrv.defaults, field, nothing)
-            # A backtick or a line break would end the code span, so such a default gets a code block.
-            local inline = default !== nothing && !occursin('`', default) && !occursin('\n', default)
-            print(buf, "  - `", field)
-            abbrv.types && print(buf, "::", fieldtype(object, field))
-            inline && print(buf, " = ", default)
-            print(buf, "`")
+            default === nothing || (text *= " = " * first_line(default))
+            print(buf, "  - ", code_span(text))
             # Print the field docs if they exist and aren't a `doc"..."` docstring.
             if haskey(docs, field) && isa(docs[field], AbstractString)
                 print(buf, ": ")
@@ -145,11 +143,6 @@ function format(abbrv::TypeFields, buf, doc)
                 end
             else
                 println(buf)
-            end
-            if default !== nothing && !inline
-                println(buf, "\n    ```julia")
-                foreach(line -> println(buf, "    ", line), split(default, '\n'))
-                println(buf, "    ```")
             end
             println(buf)
         end

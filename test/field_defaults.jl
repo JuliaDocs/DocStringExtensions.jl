@@ -31,6 +31,7 @@ Base.@kwdef struct Verbatim
     total::Float64 = begin
         1.0 + 2.0
     end
+    fence::String = "```"
 end
 
 """

@@ -5,18 +5,9 @@
   * `level::Float64 = 1.0`
   * `label::String = "default"`: Shown in the title bar.
 
-  * `greeting`: Shown on start.
-
-    ```julia
-    "run `make`"
-    ```
-  * `total`
-
-    ```julia
-    begin
-        1.0 + 2.0
-    end
-    ```
+  * ```greeting = "run `make`"```: Shown on start.
+  * `total = begin …`
+  * `````fence = "```"`````
 
   * `a`
 

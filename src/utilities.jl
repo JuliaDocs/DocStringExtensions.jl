@@ -208,6 +208,18 @@ function without_tags(@nospecialize(value))
     return is_tagged ? value.args[2] : value
 end
 
+# A list item stays on one line, so a multi-line default shows only its first.
+first_line(text) = occursin('\n', text) ? string(first(split(text, '\n')), " …") : text
+
+# Julia's Markdown reads an even run of backticks as LaTeX, so the fence is the shortest odd
+# run longer than any in `text`. A space keeps a backtick at either end out of the fence.
+function code_span(text)
+    local longest = reduce(max, [length(m.match) for m in eachmatch(r"`+", text)]; init = 0)
+    local fence = "`"^(isodd(longest) ? longest + 2 : longest + 1)
+    local padding = startswith(text, '`') || endswith(text, '`') ? " " : ""
+    return string(fence, padding, text, padding, fence)
+end
+
 #
 # Struct constructors.
 #

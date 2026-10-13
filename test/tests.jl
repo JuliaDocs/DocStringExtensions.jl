@@ -1284,6 +1284,13 @@ typed_signatures_h_reference() =
             @test DSE.field_defaults(:(@enum Color red blue)) === nothing
             @test DSE.field_defaults(:(f(x = 1) = x)) === nothing
         end
+        @testset "code_span" begin
+            @test DSE.code_span("a = 1") == "`a = 1`"
+            @test DSE.code_span("a = \"`b`\"") == "```a = \"`b`\"```"
+            @test DSE.code_span("a = ``") == "``` a = `` ```"
+            @test DSE.code_span("a = \"```\"") == "`````a = \"```\"`````"
+            @test DSE.first_line("begin\n    x\nend") == "begin …"
+        end
         @testset "append_defaults" begin
             let d = definition_arguments_with_defaults(:(g(x = 1, y = 2, z = 3; kwargs...) = x)),
                 m = which(M.g, Tuple{Any})
