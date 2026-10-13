@@ -85,7 +85,7 @@ The positional argument names of `method`, with each destructured argument writt
 appears in `definition`.
 """
 function argument_names(method::Method, definition)
-    args = string.(arguments(method))
+    args = arguments(method)
     matches_definition(method, definition) || return args
     return map(enumerate(args)) do (i, arg)
         name, _ = definition.positional[i]
@@ -101,7 +101,7 @@ them.
 """
 matches_definition(::Method, ::Nothing) = false
 function matches_definition(method::Method, definition::DefinitionArguments)
-    names = string.(arguments(method))
+    names = arguments(method)
     length(names) <= length(definition.positional) || return false
     # `_` stands for an argument whose name one side does not know, such as `@nospecialize(x)`.
     return all(zip(names, definition.positional)) do (name, (expected, _))

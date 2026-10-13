@@ -36,7 +36,7 @@ julia> @doc Shape
 const SUBTYPES = TypeSubtypes()
 
 function format(::TypeSubtypes, buf, doc)
-    names = Base.invokelatest(subtype_names ∘ Docs.resolve, doc.data[:binding])
+    names = Base.invokelatest(subtype_names ∘ Docs.resolve, doc_binding(doc))::Vector{String}
     if !isempty(names)
         println(buf)
         for name in names

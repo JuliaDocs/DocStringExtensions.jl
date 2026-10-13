@@ -19,6 +19,10 @@ format(abbr, buf, doc) = error("`format` not implemented for `$(typeof(abbr))`."
 # `format` function instead to keep things decoupled from `Base` as much as possible.
 Docs.formatdoc(buf::IOBuffer, doc::Docs.DocStr, part::Abbreviation) = format(part, buf, doc)
 
+# `doc.data` holds `Any`, so these assert the types `Docs` stores.
+doc_binding(doc::Docs.DocStr) = doc.data[:binding]::Docs.Binding
+doc_module(doc::Docs.DocStr) = doc.data[:module]::Module
+
 """
     interpolation(object::T, captured::Expr) -> new_object
 

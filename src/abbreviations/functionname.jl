@@ -23,4 +23,4 @@ julia> @doc logdensity
 """
 const FUNCTIONNAME = FunctionName()
 
-format(::FunctionName, buf, doc) = print(buf, doc.data[:binding].var)
+format(::FunctionName, buf, doc) = print(buf, doc_binding(doc).var)

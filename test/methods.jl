@@ -44,29 +44,35 @@
     end
 
     @testset "arguments" begin
-        @test DSE.arguments(first(methods(M.T))) == [:a, :b, :c]
-        @test DSE.arguments(first(methods(M.K))) == Symbol[]
-        @test DSE.arguments(first(methods(M.f))) == [:x]
+        @test @inferred(DSE.arguments(first(methods(M.T)))) == ["a", "b", "c"]
+        @test DSE.arguments(first(methods(M.K))) == String[]
+        @test DSE.arguments(first(methods(M.f))) == ["x"]
         let m = first(methods(() -> ()))
-            @test DSE.arguments(m) == Symbol[]
+            @test DSE.arguments(m) == String[]
         end
         let m = first(methods((a) -> ()))
-            @test DSE.arguments(m) == [:a]
+            @test DSE.arguments(m) == ["a"]
         end
         let m = first(methods((; a = 1) -> ()))
-            @test DSE.arguments(m) == Symbol[]
+            @test DSE.arguments(m) == String[]
         end
         let m = first(methods((x; a = 1, b = 2) -> ()))
-            @test DSE.arguments(m) == Symbol[:x]
+            @test DSE.arguments(m) == ["x"]
         end
         let m = first(methods((; a...) -> ()))
-            @test DSE.arguments(m) == Symbol[]
+            @test DSE.arguments(m) == String[]
         end
         # Methods generated for positional defaults name unnamed arguments differently.
         @test DSE.arguments(which(M.k_4, Tuple{String})) == ["_"]
         let m = first(methods(((a, b), c) -> c))
-            @test DSE.arguments(m) == ["_", :c]
+            @test DSE.arguments(m) == ["_", "c"]
         end
+    end
+
+    @testset "tuple_parameters" begin
+        @test collect(@inferred(DSE.tuple_parameters(Tuple{Int, String}))) == [Int, String]
+        @test DSE.tuple_parameters(Tuple{T, Int} where {T})[2] == Int
+        @test_throws TypeError DSE.tuple_parameters(Union{Tuple{Int}, Tuple{String}})
     end
 
     @testset "getmethods" begin

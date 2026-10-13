@@ -90,9 +90,9 @@ printlisted(buf, abbr::TypedMethodList, binding, func, method) =
     printmethod(buf, binding, func, method, argsig(method); returns = abbr.returns)
 
 function format(abbr::Union{MethodList, TypedMethodList}, buf, doc)
-    binding = doc.data[:binding]
+    binding = doc_binding(doc)
     typesig = doc.data[:typesig]
-    modname = doc.data[:module]
+    modname = doc_module(doc)
     func = Base.invokelatest(Docs.resolve, binding)
     groups = methodgroups(func, typesig, modname; exact = false)
     if !isempty(groups)

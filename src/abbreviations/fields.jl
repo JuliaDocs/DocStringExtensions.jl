@@ -84,9 +84,9 @@ const TYPEDFIELDS = TypeFields(true)
 
 function format(abbrv::TypeFields, buf, doc)
     docs = get(doc.data, :fields, Dict())
-    binding = doc.data[:binding]
-    object = Base.invokelatest(Docs.resolve, binding)
-    fields = isabstracttype(object) ? Symbol[] : fieldnames(object)
+    binding = doc_binding(doc)
+    object = Base.invokelatest(Docs.resolve, binding)::Type
+    fields = isabstracttype(object) ? Symbol[] : Symbol[fieldnames(object)...]
     if !isempty(fields)
         println(buf)
         for field in fields

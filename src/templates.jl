@@ -101,6 +101,9 @@ end
 
 const TEMP_SYM = gensym("templates")
 
+# The templates `@template` stores in `mod`, by category.
+module_templates(mod::Module) = getfield(mod, TEMP_SYM)::Dict{Symbol, Vector}
+
 function template(src::LineNumberNode, mod::Module, ex::Expr)
     Meta.isexpr(ex, :(=), 2) || error("invalid `@template` syntax.")
     return template(src, mod, ex.args[1], ex.args[2])
@@ -144,8 +147,8 @@ function checked_template(parts::Vector)
 end
 
 function copied_template(source::Module, category::Symbol)
-    isdefined(source, TEMP_SYM) && haskey(getfield(source, TEMP_SYM), category) &&
-        return getfield(source, TEMP_SYM)[category]
+    isdefined(source, TEMP_SYM) && haskey(module_templates(source), category) &&
+        return module_templates(source)[category]
     name = nameof(source)
     throw(
         ArgumentError(
@@ -221,23 +224,22 @@ end
 # Runs as each templated docstring is registered. Specialising on the documented object would
 # compile, and cache in the documenting package's image, an instance for every function.
 function template_key(binding::Docs.Binding, @nospecialize(typesig))
-    # Local helper methods for extracting the template key from a docstring.
-    ismacro(b::Docs.Binding) = startswith(string(b.var), '@')
-    objname(@nospecialize(obj::Union{Function, Module, DataType, Core.IntrinsicFunction}), b::Docs.Binding) = nameof(obj)
-    objname(@nospecialize(obj::UnionAll), b::Docs.Binding) = objname(Base.unwrap_unionall(obj), b)
-    objname(@nospecialize(obj), b::Docs.Binding) = Symbol("") # Empty to force resolving to `:CONSTANTS` below.
-    # Select the key returned based on input argument types.
-    _key(@nospecialize(::Module), @nospecialize(sig), binding) = :MODULES
-    _key(@nospecialize(::Function), ::typeof(Union{}), binding) = ismacro(binding) ? :MACROS : :FUNCTIONS
-    _key(@nospecialize(::Function), @nospecialize(sig), binding) = ismacro(binding) ? :MACROS : :METHODS
-    _key(@nospecialize(T::Union{DataType, UnionAll}), ::typeof(Union{}), binding) =
-        Base.isabstracttype(T) ? :ABSTRACTTYPES : :TYPES
-    _key(@nospecialize(_::Union{DataType, UnionAll}), @nospecialize(sig), binding) = :METHODS
-    _key(@nospecialize(other), @nospecialize(sig), binding) = :DEFAULT
-
     obj = Base.invokelatest(Docs.resolve, binding)
-    name = objname(obj, binding)
-    key = name === binding.var ? _key(obj, typesig, binding) : :CONSTANTS
-    return key
+    return objname(obj)::Symbol === binding.var ? template_category(obj, typesig, binding)::Symbol : :CONSTANTS
 end
-template_key(doc::Docs.DocStr) = template_key(doc.data[:binding], doc.data[:typesig])
+template_key(doc::Docs.DocStr) = template_key(doc_binding(doc), doc.data[:typesig])
+
+ismacro(b::Docs.Binding) = startswith(string(b.var), '@')
+
+objname(@nospecialize(obj::Union{Function, Module, DataType, Core.IntrinsicFunction})) = nameof(obj)
+objname(@nospecialize(obj::UnionAll)) = objname(Base.unwrap_unionall(obj))
+# Empty, so that `template_key` resolves to `:CONSTANTS`.
+objname(@nospecialize(obj)) = Symbol("")
+
+template_category(@nospecialize(::Module), @nospecialize(sig), binding) = :MODULES
+template_category(@nospecialize(::Function), ::typeof(Union{}), binding) = ismacro(binding) ? :MACROS : :FUNCTIONS
+template_category(@nospecialize(::Function), @nospecialize(sig), binding) = ismacro(binding) ? :MACROS : :METHODS
+template_category(@nospecialize(T::Union{DataType, UnionAll}), ::typeof(Union{}), binding) =
+    Base.isabstracttype(T) ? :ABSTRACTTYPES : :TYPES
+template_category(@nospecialize(_::Union{DataType, UnionAll}), @nospecialize(sig), binding) = :METHODS
+template_category(@nospecialize(other), @nospecialize(sig), binding) = :DEFAULT
