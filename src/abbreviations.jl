@@ -53,8 +53,8 @@ interpolation(abbr::TypeFields, expr::Expr) =
 """
 An [`Abbreviation`](@ref) that lists the fields of a type, with the docstring of each field
 that has one. A field given a default value in a struct definition written with a macro such
-as `Base.@kwdef` shows that default, unless the default spans several lines or contains a
-backtick.
+as `Base.@kwdef` shows that default. A default that spans several lines or contains a backtick
+prints in a code block below the field.
 
 # Examples
 
@@ -128,9 +128,12 @@ function format(abbrv::TypeFields, buf, doc)
     if !isempty(fields)
         println(buf)
         for field in fields
+            local default = abbrv.defaults === nothing ? nothing : get(abbrv.defaults, field, nothing)
+            # A backtick or a line break would end the code span, so such a default gets a code block.
+            local inline = default !== nothing && !occursin('`', default) && !occursin('\n', default)
             print(buf, "  - `", field)
             abbrv.types && print(buf, "::", fieldtype(object, field))
-            abbrv.defaults !== nothing && haskey(abbrv.defaults, field) && print(buf, " = ", abbrv.defaults[field])
+            inline && print(buf, " = ", default)
             print(buf, "`")
             # Print the field docs if they exist and aren't a `doc"..."` docstring.
             if haskey(docs, field) && isa(docs[field], AbstractString)
@@ -142,6 +145,11 @@ function format(abbrv::TypeFields, buf, doc)
                 end
             else
                 println(buf)
+            end
+            if default !== nothing && !inline
+                println(buf, "\n    ```julia")
+                foreach(line -> println(buf, "    ", line), split(default, '\n'))
+                println(buf, "    ```")
             end
             println(buf)
         end

@@ -23,6 +23,17 @@ Base.@kwdef mutable struct Settings
 end
 
 """
+$(FIELDS)
+"""
+Base.@kwdef struct Verbatim
+    "Shown on start."
+    greeting::String = "run `make`"
+    total::Float64 = begin
+        1.0 + 2.0
+    end
+end
+
+"""
 $(TypeFields(false; defaults = false))
 """
 Base.@kwdef struct Hidden

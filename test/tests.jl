@@ -970,7 +970,7 @@ typed_signatures_h_reference() =
     end
     @testset "field defaults" begin
         let fmt = expr -> Markdown.plain(eval(:(@doc $expr)))
-            names = [:Options, :Settings, :Hidden, :Plain]
+            names = [:Options, :Settings, :Verbatim, :Hidden, :Plain]
             str = join([fmt(:(FieldDefaultsTestModule.$name)) for name in names], "\n")
             @test_reference ro_path("field_defaults.txt") str
             @test fmt(:(FieldDefaultsTestModule.Templated.Config)) ==
@@ -1274,13 +1274,12 @@ typed_signatures_h_reference() =
 
                 @test DSE.field_defaults(Expr(:struct, true, :S, body)) == Dict(:a => "1", :b => "2")
             end
-            # A backtick or a line break would end the Markdown code span the default prints in.
             @test DSE.field_defaults(:(Base.@kwdef struct S
                 a = "use `f` here"
-                b = function (x)
+                b = begin
                     x + 1
                 end
-            end)) === nothing
+            end)) == Dict(:a => "\"use `f` here\"", :b => "begin\n    x + 1\nend")
             @test DSE.field_defaults(:(struct S a::Int end)) === nothing
             @test DSE.field_defaults(:(@enum Color red blue)) === nothing
             @test DSE.field_defaults(:(f(x = 1) = x)) === nothing

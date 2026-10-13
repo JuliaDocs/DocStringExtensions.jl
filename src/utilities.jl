@@ -191,9 +191,7 @@ function field_default(@nospecialize(field))
     Meta.isexpr(field, :(=), 2) || return (nothing, nothing)
     local name = field_name(field.args[1])
     name === nothing && return (nothing, nothing)
-    local text = source_text(without_tags(field.args[2]))
-    # `FIELDS` prints the default in a Markdown code span, which these characters would end.
-    return occursin('`', text) || occursin('\n', text) ? (nothing, nothing) : (name, text)
+    return (name, source_text(without_tags(field.args[2])))
 end
 
 # An inner constructor's left-hand side is a call or a `where`, which has no field name.
