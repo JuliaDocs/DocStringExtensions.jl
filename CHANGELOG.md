@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fix `SUBTYPES` listing a subtype once more for each `const` that names its module ([#270](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/270))
 - Fix `EXPORTS` listing no names on Julia 1.12 and later when a docstring renders in a world older than its module ([#282](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/282))
 - Fix `@template` throwing a `MethodError` for a docstring on a parametric `Union` alias, such as `const Maybe{T} = Union{T,Nothing}`. The alias gets the `CONSTANTS` template ([#242](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/242))
 - Fix `defaults = true` signatures printing the source file and line before a default value that contains a macro call ([#238](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/238))

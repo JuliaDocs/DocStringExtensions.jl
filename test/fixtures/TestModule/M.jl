@@ -89,6 +89,7 @@ module Solids
     import ..Shape
     struct Sphere <: Shape end
 end
+const Solid = Solids
 
 abstract type Container{T} end
 struct Box{T} <: Container{T} end
