@@ -79,6 +79,15 @@ module TemplateTests
     early(x)
     early(x) = x
 
+    const aliased = f
+    "method `f` defined through the alias `aliased`"
+    aliased(x::Int) = x
+
+    struct Point{N} end
+    const Point2 = Point{2}
+    "constructor `Point{2}` defined through the alias `Point2`"
+    Point2(x::Int) = Point{2}()
+
     struct Inner
         x
         @doc "inner constructor `Inner`" Inner(x::Int) = new(x)

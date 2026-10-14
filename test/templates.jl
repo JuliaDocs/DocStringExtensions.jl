@@ -14,6 +14,9 @@
     @test occursin("(METHODS, MACROS)", rendered(:(TemplateTests.@m)))
     @test occursin("(METHODS, MACROS)", rendered(:(TemplateTests.r)))
     @test occursin("(METHODS, MACROS)", rendered(:(TemplateTests.early)))
+    # A method defined through a `const` alias is still a method.
+    @test occursin("(METHODS, MACROS)", rendered(:(TemplateTests.aliased)))
+    @test occursin("(METHODS, MACROS)", rendered(:(TemplateTests.Point2)))
     @test occursin("(METHODS, MACROS)", rendered(:(TemplateTests.Inner)))
     @test occursin("(METHODS, MACROS)", rendered(:(TemplateTests.InnerParametric)))
     # `@doc` returns the binding before Julia 1.13 and the documented value from 1.13.

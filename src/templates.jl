@@ -235,7 +235,10 @@ end
 # compile, and cache in the documenting package's image, an instance for every function.
 function template_key(binding::Docs.Binding, @nospecialize(typesig))
     obj = Base.invokelatest(Docs.resolve, binding)
-    return objname(obj)::Symbol === binding.var ? template_category(obj, typesig, binding)::Symbol : :CONSTANTS
+    name = objname(obj)::Symbol
+    # A method defined through a `const` alias documents the method, not the alias.
+    defines_object = name === binding.var || typesig !== Union{} && name !== Symbol("")
+    return defines_object ? template_category(obj, typesig, binding)::Symbol : :CONSTANTS
 end
 template_key(doc::Docs.DocStr) = template_key(doc_binding(doc), doc.data[:typesig])
 
