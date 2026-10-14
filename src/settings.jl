@@ -1,5 +1,5 @@
 # Rendering settings that a reader picks in their own environment. They apply to the docstrings
-# of every package alike, and are read each time a docstring renders.
+# of every package alike, and are read when a docstring is first shown.
 
 """
 $(:SIGNATURES)

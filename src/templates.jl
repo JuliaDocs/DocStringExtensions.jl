@@ -1,5 +1,7 @@
 """
-$(:SIGNATURES)
+    @template CATEGORY = "template"
+    @template (CATEGORY, ...) = "template"
+    @template CATEGORY = Module
 
 Defines a docstring template for a category, or a tuple of categories, of documented
 bindings in the current module.

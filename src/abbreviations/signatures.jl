@@ -24,8 +24,9 @@ MethodSignatures(; returns::Union{Bool, String} = false, defaults::Union{Bool, S
 
 """
 An [`Abbreviation`](@ref) that prints the signatures of the documented method, with argument
-names and keywords but no types. See [`printmethod`](@ref) for the simplifications it
-applies.
+names and keywords but no types or default values. An unnamed argument prints as `::T` when
+it declares a type `T`, and as `_` otherwise. A destructured argument prints as written, such
+as `(a, b)`.
 
 In the docstring of a struct, it prints the constructors that the struct definition creates.
 A callable method of a type's instances, such as `(e::E)(x)`, prints as it is defined.
@@ -116,7 +117,8 @@ interpolation(abbr::T, expr::Expr) where {T <: Union{MethodSignatures, TypedMeth
 """
 An [`Abbreviation`](@ref) that prints the signatures of the documented method like
 [`SIGNATURES`](@ref), with the types of positional and keyword arguments and the inferred
-return type. See [`printmethod`](@ref) for the simplifications it applies. In the docstring
+return type. Type parameters keep their names, declared in a `where` clause after the
+arguments, and default values are left out as in [`SIGNATURES`](@ref). In the docstring
 of a struct, it prints the constructors that [`SIGNATURES`](@ref) lists. A callable such as
 `(e::E)(x::Int)` prints as `(e::Main.E)(x::Int64)` when `E` is defined in `Main`. Before
 Julia 1.6, a callable and a constructor written `T{P}(...)` print without a return type. A macro
