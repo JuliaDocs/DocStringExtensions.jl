@@ -1,0 +1,42 @@
+```julia
+struct Bounded{T<:Ref{<:Real}} <: Main.AnonymousTypeVarsTestModule.Container{Ref{<:Real}}
+```
+
+  * `x::Ref{<:Real}`
+
+type `Bounded`
+
+```julia
+abstract type Tagged{Ref{<:Real}, 1}
+```
+
+instance `Instance`
+
+```julia
+struct Leap{T<:Main.AnonymousTypeVarsTestModule.ScalarOrRef{<:AbstractFloat}} <: Main.AnonymousTypeVarsTestModule.AbstractLeap{T}
+```
+
+  * `step::Main.AnonymousTypeVarsTestModule.ScalarOrRef{<:AbstractFloat}`
+
+type `Leap`
+
+```julia
+struct Extended{T3<:Number, T<:Ref{T3}}
+```
+
+type `Extended`
+
+```julia
+struct Jittered{FT<:AbstractFloat, T<:Union{Ref{FT}, FT}}
+```
+
+type `Jittered`
+
+```julia
+struct Leaf{T<:Main.AnonymousTypeVarsTestModule.ScalarOrRef{<:AbstractFloat}}
+```
+
+  * `step::Main.AnonymousTypeVarsTestModule.ScalarOrRef{<:AbstractFloat}`
+  * `pair::Main.AnonymousTypeVarsTestModule.Lib.PairOf{<:Real}`
+
+type `Leaf`

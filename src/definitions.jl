@@ -41,7 +41,8 @@ function definition_arguments(expr::Expr, show_defaults::Bool)
 end
 
 function definition_call(expr::Expr)
-    definition = method_definition(expr)
+    # A macro's arguments read as a function's do.
+    definition = Meta.isexpr(expr, :macro) ? expr : method_definition(expr)
     return definition === nothing ? nothing : signature_call(definition.args[1])
 end
 
@@ -52,8 +53,9 @@ Render the body of the method definition `expr` as source text, one statement pe
 Returns `nothing` when `expr` does not define a method or the body is empty.
 """
 function definition_body(expr::Expr)
-    definition_call(expr) === nothing && return nothing
-    body = without_linenums(method_definition(expr).args[2])
+    definition = method_definition(expr)
+    (definition === nothing || definition_call(expr) === nothing) && return nothing
+    body = without_linenums(definition.args[2])
     isempty(body.args) && return nothing
     # Base prints the block as `begin`, the statements indented by four spaces, then `end`.
     # Printing each statement alone mangles nested quotes.

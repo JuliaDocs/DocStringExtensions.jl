@@ -43,9 +43,13 @@ groups = methodgroups(f, Union{Tuple{Any}, Tuple{Any, Integer}}, Main; exact = f
 """
 function methodgroups(func, typesig, modname; exact = true)
     methods = getmethods(func, typesig)
-    # A docstring on a constructor written as `T{P}(...)` documents a method of `Type{T{P}}`.
-    if func isa UnionAll && typesig != Union{}
-        methods = unique([methods; constructor_methods(func, typesig)])
+    # A docstring on a constructor written as `T{P}(...)` documents a method of `Type{T{P}}`,
+    # and one on `(e::T)(x)` a method of `T`'s instances. A list of `T`'s methods leaves out
+    # the callables.
+    if func isa Type && typesig != Union{}
+        func isa UnionAll && append!(methods, constructor_methods(func, typesig))
+        exact && append!(methods, callable_methods(func, typesig))
+        unique!(methods)
     end
     # Group methods by file and line number.
     groups = groupby(Tuple{Symbol, Int}, Vector{Method}, methods) do m
@@ -60,10 +64,10 @@ function methodgroups(func, typesig, modname; exact = true)
         if exact
             # Julia 1.12 and later can normalise the union of a definition's signatures
             # into a single type, such as `Union{Tuple{}, Tuple{Any, Vararg{Any}}} == Tuple`.
-            # When no method matches a component, keep the group if `typesig` covers it.
-            # Subtyping cannot always prove the converse, as for `where T` outside a union.
+            # When no method matches a component, keep the group if its signatures together
+            # equal `typesig`.
             matching = filter(m -> argsig(m) in typesigs, group)
-            if !isempty(matching) || !all(m -> argsig(m) <: typesig, group)
+            if !isempty(matching) || !signatures_equal(group, typesig)
                 group = matching
             end
         end
@@ -93,8 +97,46 @@ function documented_groups(groups, doc)
     return [after[argmin(map(g -> first(g).line, after))]]
 end
 
-# The argument types of `m`, without the function's own type.
-argsig(m::Method) = Base.rewrap_unionall(Base.tuple_type_tail(m.sig), m.sig)::Type
+# The argument types of `m`, without the function's own type or a macro's hidden arguments.
+function argsig(m::Method)
+    params = tuple_parameters(Base.tuple_type_tail(m.sig))
+    return Base.rewrap_unionall(Tuple{params[(1 + hidden_arguments(m)):end]...}, m.sig)::Type
+end
+
+# A macro method takes `__source__` and `__module__` before the arguments its caller writes.
+hidden_arguments(m::Method) = ismacro(m) ? 2 : 0
+
+# A function named `var"@f"` is not a macro, so the name alone does not decide.
+function ismacro(m::Method)
+    params = tuple_parameters(m.sig)
+    return startswith(String(m.name), "@") && length(params) >= 3 &&
+        params[2] === LineNumberNode && params[3] === Module
+end
+ismacro(@nospecialize(f::Function)) = any(ismacro, Base.invokelatest(methods, f)::Base.MethodList)
+
+# The argument types `f` is called with for those in `sig`, which a macro's docstring gives as
+# its caller writes them.
+call_signature(f, sig) =
+    f isa Function && ismacro(f) ?
+    Base.rewrap_unionall(Tuple{LineNumberNode, Module, tuple_parameters(sig)...}, sig) : sig
+
+"""
+$(:SIGNATURES)
+
+Whether the methods of `group` together have the signature `typesig`. Subtyping cannot prove
+that for a vararg tuple split across methods, such as `Tuple{Vararg{T}} where T` and the two
+methods of `f(x::T = 1, xs::T...) where {T}`. So the types are compared at each number of
+arguments, up to one past the most parameters any tuple declares. Larger counts only meet
+varargs and compare the same.
+"""
+function signatures_equal(group, typesig)
+    sigs = map(argsig, group)
+    combined = Union{sigs...}
+    longest = mapreduce(t -> length(tuple_parameters(t)), max, [alltypesigs(typesig); sigs]; init = 0)
+    return all(0:(longest + 1)) do n
+        typeintersect(typesig, NTuple{n, Any}) == typeintersect(combined, NTuple{n, Any})
+    end
+end
 
 """
 $(:SIGNATURES)
@@ -104,7 +146,7 @@ argument's element type in place of its `Vararg`. A vararg with a count, such as
 `xs::Vararg{Int,2}`, gets `Any`.
 """
 function argument_types(method::Method, n::Integer)
-    types = Any[tuple_parameters(method.sig)[2:end]...]
+    types = Any[tuple_parameters(argsig(method))...]
     method.isva || return types[1:n]
     vararg = expanded_vararg(method) ? Any : Base.unwrapva(types[end])
     return push!(types[1:(n - 1)], vararg)
@@ -124,17 +166,20 @@ end
 $(:SIGNATURES)
 
 The type parameters written in a constructor call, such as `[T]` for `Point{T}(x) where {T}`,
-or `nothing` when `method` is not a constructor written with parameters. Julia stores such a
-method under `Type{Point{T}}`, so `methods(Point)` leaves it out.
+or `nothing` when `method` is not a constructor of `func` written with parameters. Julia stores
+such a method under `Type{Point{T}}`, so `methods(Point)` leaves it out.
 """
-function constructor_parameters(method::Method)
+function constructor_parameters(func, method::Method)
     f = Base.unwrap_unionall(self_type(method))
     istypeoftype(f) || return nothing
     t = type_parameter(f)
     body = Base.unwrap_unionall(t)
     body isa DataType || return nothing
+    # A call through an alias writes the alias's parameters: `Mat{Int}(a)` for
+    # `const Mat{T,B} = Arr{T,2,B}` is `Arr{Int,2,B}`.
+    vars = typevars(func)
+    params = match_parameters!(Any[vars...], vars, Base.unwrap_unionall(func), body)
     # `Point{T}` for a type with more parameters leaves the trailing ones free.
-    params = collect(body.parameters)
     free = typevars(t)
     while !isempty(params) && last(params) in free
         pop!(params)
@@ -142,9 +187,28 @@ function constructor_parameters(method::Method)
     return isempty(params) ? nothing : params
 end
 
+# Sets `params[i]` to the part of `t` in the place of `vars[i]` within `pattern`.
+function match_parameters!(params, vars, pattern, t)
+    if pattern isa TypeVar
+        i = findfirst(v -> v === pattern, vars)
+        i === nothing || (params[i] = t)
+    elseif pattern isa DataType && t isa DataType && pattern.name === t.name
+        foreach((p, q) -> match_parameters!(params, vars, p, q), pattern.parameters, t.parameters)
+    end
+    return params
+end
+
 # The type of the callable a method belongs to. Julia 1.10 stores the default constructor of
 # `Point{T}` under `Type{Point{T}} where T`, which declares its own type parameters.
 self_type(method::Method) = tuple_parameters(method.sig)[1]
+
+# The type of the instance that `method` is called on when it is a method of the instances of
+# `func`, such as `E` for `(e::E)(σ)` or `E{NF}` for `(e::E{NF})(σ) where {NF}`, or `nothing`.
+function instance_type(func, method::Method)
+    func isa Type || return nothing
+    self = self_type(method)
+    return Base.rewrap_unionall(self, method.sig) <: func ? self : nothing
+end
 
 # The parameters of the `Tuple` type `sig`, inside any `where`.
 tuple_parameters(@nospecialize(sig)) = (Base.unwrap_unionall(sig)::DataType).parameters
@@ -244,7 +308,7 @@ function getmethods!(results, f, sig)
         # Each signature keeps its `where` bounds: Julia 1.14 matches no method against a
         # type variable left free with a bound.
         for each in alltypesigs(sig)
-            append!(results, Base.invokelatest(methods, f, each)::Base.MethodList)
+            append!(results, Base.invokelatest(methods, f, call_signature(f, each))::Base.MethodList)
         end
     end
     return results
@@ -264,14 +328,37 @@ getmethods(f, sig) = unique(getmethods!(Method[], f, sig))
 $(:SIGNATURES)
 
 The methods of `Type{T}`, for `T` any instance of the parametric type `func`, whose
-arguments match `typesig`. These are the constructors written as `T{P}(...)`.
+arguments match `typesig`. These are the constructors written as `T{P}(...)`. Julia stores
+`D{T}(g)` for `struct D{T,MM}` under `Type{D{T}}`, with `MM` free inside the invariant `Type`,
+so each leading run of `func`'s parameters is searched.
 """
 function constructor_methods(func::UnionAll, typesig)
-    self = Type{Base.unwrap_unionall(func)}
+    vars = typevars(func)
+    results = Method[]
+    for n in 1:length(vars)
+        append!(results, self_methods(t -> Base.rewrap_unionall(t, func), Type{func{vars[1:n]...}}, typesig))
+    end
+    return results
+end
+
+"""
+$(:SIGNATURES)
+
+The methods of the instances of the type `func` whose arguments match `typesig`. These are
+the callables written as `(e::T)(...)`, which `methods(T)` leaves out.
+"""
+function callable_methods(func::Type, typesig)
+    self = TypeVar(:Self, func)
+    found = self_methods(t -> UnionAll(self, t), self, typesig)
+    return filter(m -> instance_type(func, m) !== nothing, found)
+end
+
+# The methods of the callable type `self` whose arguments match `typesig`. `wrap` declares
+# the type parameters that `self` uses.
+function self_methods(wrap, self, typesig)
     results = Method[]
     for each in alltypesigs(typesig)
-        args = tuple_parameters(each)
-        tt = Base.rewrap_unionall(Base.rewrap_unionall(Tuple{self, args...}, each), func)::Type
+        tt = wrap(Base.rewrap_unionall(Tuple{self, tuple_parameters(each)...}, each))::Type
         append!(results, matched_methods(tt))
     end
     return results
@@ -385,7 +472,10 @@ kws = keywords(f, first(methods(f)))
 """
 function keywords(func, m::Method)
     kwargs = @static if VERSION < v"1.4.0-DEV.215"
-        table::Core.MethodTable = methods(func).mt
+        # A callable of a type's instances sits in the table of its self type, not the
+        # constructor table that `methods` returns for the type.
+        table::Core.MethodTable = instance_type(func, m) === nothing ? methods(func).mt :
+            Base.unwrap_unionall(self_type(m)).name.mt
         # For some reason, the :kwsorter field is not always defined.
         # An undefined kwsorter seems to imply that there are no methods
         # in the MethodTable with keyword arguments.
@@ -470,6 +560,11 @@ args = arguments(first(methods(f)))
 ```
 """
 function arguments(m::Method)
+    return String[isunnamed(arg) ? "_" : string(arg) for arg in slot_names(m)[(2 + hidden_arguments(m)):end]]
+end
+
+# The names of the argument slots of `m`, the callable itself first. Empty when `m` records none.
+function slot_names(m::Method)
     argnames = nothing
     if isdefined(m, :generator)
         # Generated function.
@@ -480,13 +575,10 @@ function arguments(m::Method)
             argnames = template.slotnames
         end
     end
-    argnames === nothing && return String[]
+    argnames === nothing && return Symbol[]
     # The container type of `argnames` varies across Julia versions; its elements are `Symbol`s.
-    args = Symbol[argnames[1:nargs(m)]...]
-    return String[isunnamed(arg) ? "_" : string(arg) for arg in args if !isself(arg)]
+    return Symbol[argnames[1:nargs(m)]...]
 end
-
-isself(arg) = arg === Symbol("#self#") || arg === Symbol("#ctor-self#")
 
 # Unnamed and destructured arguments get compiler names such as `#unused#`, `#temp#`
 # or an empty symbol.

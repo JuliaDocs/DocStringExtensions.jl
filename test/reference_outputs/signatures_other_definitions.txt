@@ -1,0 +1,32 @@
+```julia
+D{T}(g, m)
+```
+
+```julia
+D{T}(
+    g::Main.OtherDefinitionsTestModule.G,
+    m::MM
+) where {T, MM}
+```
+
+constructor `D`
+
+```julia
+(e::E)(σ)
+```
+
+```julia
+(e::Main.OtherDefinitionsTestModule.E)(σ)
+```
+
+callable `E`
+
+```julia
+@mac xs...
+```
+
+```julia
+@mac xs...
+```
+
+macro `@mac`

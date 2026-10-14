@@ -1,0 +1,65 @@
+```julia
+(s::Scale)(x)
+```
+
+```julia
+(s::Main.CallablesTestModule.Scale)(x::Real)
+```
+
+callable `Scale`
+
+```julia
+(::Zero)(σ)
+```
+
+```julia
+(::Main.CallablesTestModule.Zero)(σ)
+```
+
+callable `Zero`
+
+```julia
+(e::Entrainment)(σ)
+```
+
+```julia
+(e::Main.CallablesTestModule.Entrainment)(σ)
+```
+
+callable `Entrainment`
+
+```julia
+(e::Entrainment)(σ, τ)
+```
+
+```julia
+(e::Main.CallablesTestModule.Entrainment{NF})(
+    σ,
+    τ::NF
+) where NF
+```
+
+callable `Entrainment{NF}`
+
+```julia
+(rip::Reconstruct)(srcvalp, dstvalp)
+```
+
+```julia
+(rip::Main.CallablesTestModule.Reconstruct)(
+    srcvalp,
+    dstvalp
+)
+```
+
+callable `Reconstruct`
+
+```julia
+(w::Weighted)(x; weight)
+```
+
+```julia
+(w::Main.CallablesTestModule.Weighted)(x; weight::Int64)
+```
+
+callable `Weighted`

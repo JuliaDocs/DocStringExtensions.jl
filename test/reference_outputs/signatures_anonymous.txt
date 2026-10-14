@@ -1,0 +1,114 @@
+```julia
+grids(xs...)
+```
+
+```julia
+grids(xs::Type{<:Main.AnonymousTypeVarsTestModule.Grid}...)
+```
+
+method `grids`
+
+```julia
+unnamed(::Type{<:Main.AnonymousTypeVarsTestModule.Grid}...)
+```
+
+```julia
+unnamed(::Type{<:Main.AnonymousTypeVarsTestModule.Grid}...)
+```
+
+method `unnamed`
+
+```julia
+anys(x, ::Ref)
+```
+
+```julia
+anys(x::Ref, ::Ref)
+```
+
+method `anys`
+
+```julia
+bounded(x)
+```
+
+```julia
+bounded(x::T) where T<:Ref{<:Real}
+```
+
+method `bounded`
+
+```julia
+scaled(x, y)
+```
+
+```julia
+scaled(
+    x::Main.AnonymousTypeVarsTestModule.ScalarOrRef{<:AbstractFloat},
+    y::T
+) where T
+```
+
+method `scaled`
+
+```julia
+scalar(
+    x::Main.AnonymousTypeVarsTestModule.ScalarOrRef{<:AbstractFloat}
+) -> Main.AnonymousTypeVarsTestModule.ScalarOrRef{<:AbstractFloat}
+```
+
+method `scalar`
+
+```julia
+small(
+    x::Main.AnonymousTypeVarsTestModule.SmallV{<:Union{Int8, String}}
+) -> Main.AnonymousTypeVarsTestModule.SmallV{<:Union{Int8, String}}
+```
+
+method `small`
+
+```julia
+deep(
+    x::Main.AnonymousTypeVarsTestModule.RefRef{<:Real}
+) -> Main.AnonymousTypeVarsTestModule.RefRef{<:Real}
+```
+
+method `deep`
+
+```julia
+keyed(
+    x::Main.AnonymousTypeVarsTestModule.Keyed{Symbol, <:Real}
+) -> Main.AnonymousTypeVarsTestModule.Keyed{Symbol, <:Real}
+```
+
+method `keyed`
+
+```julia
+boxed(
+    x::Ref{Main.AnonymousTypeVarsTestModule.ScalarOrRef{<:AbstractFloat}}
+) -> Ref{Main.AnonymousTypeVarsTestModule.ScalarOrRef{<:AbstractFloat}}
+```
+
+method `boxed`
+
+```julia
+kind(
+    x::Type{Main.AnonymousTypeVarsTestModule.ScalarOrRef{<:AbstractFloat}}
+) -> Type{Main.AnonymousTypeVarsTestModule.ScalarOrRef{<:AbstractFloat}}
+```
+
+method `kind`
+
+```julia
+held(h::Main.AnonymousTypeVarsTestModule.Holder)
+```
+
+method `held`
+
+```julia
+leaf(
+    x::Main.AnonymousTypeVarsTestModule.ScalarOrRef{<:AbstractFloat}
+) -> Main.AnonymousTypeVarsTestModule.ScalarOrRef{<:AbstractFloat}
+```
+
+method `leaf`

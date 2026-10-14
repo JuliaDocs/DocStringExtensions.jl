@@ -152,6 +152,9 @@ module TemplateTests
         "constant `K`"
         const K = 1
 
+        # A function named like a macro is not one. `var"@f"` does not parse on Julia 1.0.
+        @eval @doc "function `@notmacro`" $(Symbol("@notmacro"))(a) = a
+
         """
         mutable struct `T`
 

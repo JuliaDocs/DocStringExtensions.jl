@@ -23,6 +23,12 @@
             "  * `a::Float64 = 1.0`\n\ntype `Config`\n"
     end
 
+    # A field type written with `<:T` prints as written, not as the type variable Julia generates.
+    @testset "anonymous type parameters" begin
+        str = rendered(:(AnonymousTypeVarsTestModule.Fields))
+        @test_reference ro_path("typed_fields_anonymous.txt") str
+    end
+
     @testset "code_span" begin
         @test DSE.code_span("a = 1") == "`a = 1`"
         @test DSE.code_span("a = \"`b`\"") == "```a = \"`b`\"```"

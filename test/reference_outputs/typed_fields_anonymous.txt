@@ -1,0 +1,14 @@
+  * `real::Ref{<:Real}`
+  * `grid::Type{<:Main.AnonymousTypeVarsTestModule.Grid}`
+  * `above::Union{Nothing, Ref{>:Integer}}`
+  * `nested::Ref{Ref{<:Real}}`
+  * `any::Ref`
+  * `shared::Main.AnonymousTypeVarsTestModule.ScalarOrRef{<:AbstractFloat}`
+  * `deep::Main.AnonymousTypeVarsTestModule.RefRef{<:Real}`
+  * `small::Main.AnonymousTypeVarsTestModule.SmallV{<:Union{Int8, String}}`
+  * `keyed::Main.AnonymousTypeVarsTestModule.Keyed{Symbol, <:Real}`
+  * `boxed::Ref{Main.AnonymousTypeVarsTestModule.ScalarOrRef{<:AbstractFloat}}`
+  * `kind::Type{Main.AnonymousTypeVarsTestModule.ScalarOrRef{<:AbstractFloat}}`
+  * `named::Union{Ref{T}, T} where T<:Real`
+
+type `Fields`

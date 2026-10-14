@@ -83,6 +83,22 @@
         @test_throws TypeError DSE.tuple_parameters(Union{Tuple{Int}, Tuple{String}})
     end
 
+    # The documented callable tells a constructor written with parameters from one called
+    # through an alias. `Curve{Linear}(x)` and `LinearCurve(x)` define the same method.
+    @testset "constructor_parameters" begin
+        A = AliasesTestModule
+        explicit = which(A.Arr{Int, 2}, (Tuple,))
+        @test string.(DSE.constructor_parameters(A.Arr, explicit)) == ["T", "2"]
+        @test DSE.constructor_parameters(A.Mat, which(A.Mat, (Matrix{Int},))) === nothing
+        @test DSE.constructor_parameters(A.LTM, which(A.LTM, (Ref{Int},))) === nothing
+        # Parameters written through an alias are the alias's own, not the type's.
+        @test DSE.constructor_parameters(A.Mat, which(A.Mat{Int}, (Matrix{Int},))) == [Int]
+        @test DSE.constructor_parameters(A.IMat, which(A.IMat, (Ref{Int},))) === nothing
+        curve = which(A.Curve{A.Linear}, (Real,))
+        @test DSE.constructor_parameters(A.Curve, curve) == [A.Linear]
+        @test DSE.constructor_parameters(A.LinearCurve, curve) === nothing
+    end
+
     @testset "getmethods" begin
         @test length(DSE.getmethods(M.f, Union{})) == 1
         @test length(DSE.getmethods(M.f, Tuple{})) == 0
@@ -114,6 +130,16 @@
         end
         # Both `k_14` methods share a line, and `Union{Tuple{Any},Tuple{Int}} == Tuple{Any}`.
         @test length(DSE.methodgroups(M.k_14, Tuple{Any}, M)[1]) == 1
+    end
+
+    @testset "signatures_equal" begin
+        defaults = (x = 1, y = 2, zs...) -> x
+        @test DSE.signatures_equal(collect(methods(defaults)), Tuple)
+        @test !DSE.signatures_equal(collect(methods((x::Integer) -> x)), Tuple{Any})
+        # A vararg typesig takes more arguments than any fixed method.
+        fixed = collect(methods((x = 1, y = 2) -> x))
+        @test !DSE.signatures_equal(fixed, Tuple)
+        @test DSE.signatures_equal(fixed, Union{Tuple{}, Tuple{Any}, Tuple{Any, Any}})
     end
 
     @testset "alltypesigs" begin

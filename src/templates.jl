@@ -229,16 +229,14 @@ function template_key(binding::Docs.Binding, @nospecialize(typesig))
 end
 template_key(doc::Docs.DocStr) = template_key(doc_binding(doc), doc.data[:typesig])
 
-ismacro(b::Docs.Binding) = startswith(string(b.var), '@')
-
 objname(@nospecialize(obj::Union{Function, Module, DataType, Core.IntrinsicFunction})) = nameof(obj)
 objname(@nospecialize(obj::UnionAll)) = objname(Base.unwrap_unionall(obj))
 # Empty, so that `template_key` resolves to `:CONSTANTS`.
 objname(@nospecialize(obj)) = Symbol("")
 
 template_category(@nospecialize(::Module), @nospecialize(sig), binding) = :MODULES
-template_category(@nospecialize(::Function), ::typeof(Union{}), binding) = ismacro(binding) ? :MACROS : :FUNCTIONS
-template_category(@nospecialize(::Function), @nospecialize(sig), binding) = ismacro(binding) ? :MACROS : :METHODS
+template_category(@nospecialize(f::Function), ::typeof(Union{}), binding) = ismacro(f) ? :MACROS : :FUNCTIONS
+template_category(@nospecialize(f::Function), @nospecialize(sig), binding) = ismacro(f) ? :MACROS : :METHODS
 template_category(@nospecialize(T::Union{DataType, UnionAll}), ::typeof(Union{}), binding) =
     Base.isabstracttype(T) ? :ABSTRACTTYPES : :TYPES
 template_category(@nospecialize(_::Union{DataType, UnionAll}), @nospecialize(sig), binding) = :METHODS

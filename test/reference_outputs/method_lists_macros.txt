@@ -1,0 +1,9 @@
+```julia
+@listed ex xs...
+```
+
+```julia
+@listed ex::Expr xs...
+```
+
+listed `@listed`

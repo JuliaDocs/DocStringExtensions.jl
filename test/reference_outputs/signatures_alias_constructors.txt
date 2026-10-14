@@ -1,0 +1,49 @@
+```julia
+Mat(a)
+```
+
+```julia
+Mat(a::AbstractArray)
+```
+
+alias `Mat`
+
+```julia
+Mat{Int64}(a)
+```
+
+```julia
+Mat{Int64}(a::AbstractArray)
+```
+
+alias `Mat{Int}`
+
+```julia
+IMat(r)
+```
+
+```julia
+IMat(r::Ref)
+```
+
+alias of an alias `IMat`
+
+```julia
+LTM(r)
+```
+
+```julia
+LTM(r::Ref{T}) where T
+```
+
+alias `LTM`
+
+```julia
+Curve{Main.AliasesTestModule.Linear}(x)
+```
+
+```julia
+Curve{Main.AliasesTestModule.Linear}(x::Real)
+```
+
+constructor `Curve{Linear}`

@@ -1,0 +1,11 @@
+```julia
+Listed(x, y)
+```
+
+callable `Listed`
+
+```julia
+Listed(x, y)
+```
+
+constructor `Listed`

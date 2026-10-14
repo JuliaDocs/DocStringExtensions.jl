@@ -159,6 +159,63 @@
         @test data[:linenumber] < ctor.line
     end
 
+    # A constructor written with fewer parameters than its type, `D{T}(g)` for `D{T,MM}`, is
+    # a method of `Type{D{T}}` with `MM` free inside `Type`, which `Type{D{T,MM}}` misses.
+    #
+    # Used in src/methods.jl by constructor_methods().
+    let P = PartialParametersTestModule,
+            ctor = which(P.D{Int}, (P.G,)),
+            T = TypeVar(:T),
+            MM = TypeVar(:MM)
+
+        @test DSE.matched_methods(UnionAll(T, Tuple{Type{P.D{T}}, P.G})) == [ctor]
+        @test isempty(DSE.matched_methods(UnionAll(T, UnionAll(MM, Tuple{Type{P.D{T, MM}}, P.G}))))
+    end
+
+    # A constructor called through an alias is a method of `Type{A}` for the alias's own
+    # type `A`, egal to the binding's value.
+    #
+    # Used in src/methods.jl by constructor_parameters().
+    let self(m) = Base.unwrap_unionall(Base.unwrap_unionall(m.sig).parameters[1]).parameters[1],
+            A = AliasesTestModule
+
+        @test self(which(A.Mat, (Matrix{Int},))) === A.Mat
+        @test self(which(A.LTM, (Ref{Int},))) === A.LTM
+        @test self(which(A.Arr{Int, 2}, (Tuple,))) !== A.Arr
+    end
+
+    # A callable `(e::E)(σ)` is a method of `E`'s instances, which `methods(E)` leaves out. Its
+    # signature starts with the instance type, and its first slot holds the instance's name.
+    #
+    # Used in src/methods.jl by callable_methods(), instance_type() and slot_names().
+    let C = CallablesTestModule,
+            callable = which(C.Entrainment(0.5), (Any,)),
+            Self = TypeVar(:Self, C.Entrainment)
+
+        @test callable ∉ collect(methods(C.Entrainment, Tuple{Any}))
+        @test DSE.matched_methods(UnionAll(Self, Tuple{Self, Any})) == [callable]
+        @test DSE.self_type(callable) === C.Entrainment
+        @test DSE.self_type(which(C.Entrainment(0.5), (Any, Float64))) isa DataType
+        @test DSE.slot_names(callable)[1] === :e
+        @test DSE.slot_names(which(C.Zero(), (Any,)))[1] === Symbol("#self#")
+    end
+
+    # A macro's method is named `@name` and takes `__source__::LineNumberNode` and
+    # `__module__::Module` before the arguments its caller writes. Its docstring is filed
+    # under the caller's argument types.
+    #
+    # Used in src/methods.jl by ismacro(), argsig(), hidden_arguments(), call_signature() and
+    # arguments().
+    let mac = getfield(MacrosTestModule, Symbol("@pair")),
+            m = first(methods(mac)),
+            multidoc = Docs.meta(MacrosTestModule)[Docs.Binding(MacrosTestModule, Symbol("@pair"))]
+
+        @test m.name === nameof(mac) === Symbol("@pair")
+        @test Base.tuple_type_tail(m.sig) == Tuple{LineNumberNode, Module, Any, Any}
+        @test DSE.slot_names(m)[2:3] == [:__source__, :__module__]
+        @test multidoc.order == [Tuple{Any, Any}]
+    end
+
     # Printing a type parameter by name inside a method's `where` clause.
     #
     # Used in src/printmethod.jl for the typed printmethod() method.
@@ -167,6 +224,53 @@
         @test !Base.has_typevar(Tuple{String}, T)
         @test sprint(show, Union{Nothing, T}; context = :unionall_env => T) == "Union{Nothing, T}"
         @test sprint(show, T) == "T<:Number"
+    end
+
+    # A parameter written `<:T` is a type variable with a generated name that starts with `#`,
+    # and applying its `UnionAll` to another type variable puts that one in its place.
+    #
+    # Used in src/printmethod.jl by isanonymous() and name_anonymous!().
+    let t = Base.unwrap_unionall(first(methods((x::Ref{<:Real}) -> x)).sig).parameters[2],
+            S = TypeVar(:S, Real)
+
+        @test t isa UnionAll && startswith(string(t.var.name), "#")
+        @test t{S} == Ref{S}
+    end
+
+    # Applying an alias to `<:T` substitutes the generated variable into the alias's body,
+    # keeping the order of a `Union`'s components, and a deprecated binding can be told apart
+    # before it is read.
+    #
+    # Used in src/printmethod.jl by match_alias!(), which reads the alias's body and the
+    # type in parallel, and by isalias().
+    let T = TypeVar(:T, Real),
+            body = Union{T, Ref{T}},
+            t = UnionAll(T, body){<:AbstractFloat},
+            v = t.var
+
+        @test t.body.a == (body.a === T ? v : Ref{v})
+        @test t.body.b == (body.b === T ? v : Ref{v})
+    end
+    let mod = Module()
+        Core.eval(mod, :(Base.@deprecate_binding Old Int))
+        @test Base.invokelatest(Base.isdeprecated, mod, :Old)
+        @test !Base.isdeprecated(Base, :Vector)
+    end
+    # `names` lists a name that a module imports with `import`, and `which` gives the module
+    # that defines it.
+    #
+    # Used in src/printmethod.jl by module_aliases() and alias_text().
+    let mod = Module()
+        Core.eval(
+            mod, :(
+                module Lib
+                const PairOf{T} = Pair{T, Ref{T}}
+                end
+            )
+        )
+        Core.eval(mod, :(import .Lib: PairOf))
+        @test :PairOf in Base.invokelatest(names, mod; all = true, imported = true)
+        @test Base.invokelatest(which, mod, :PairOf) === Base.invokelatest(getfield, mod, :Lib)
     end
 
     # Rendering default values as source text.

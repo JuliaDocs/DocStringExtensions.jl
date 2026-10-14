@@ -28,6 +28,9 @@ names and keywords but no types. See [`printmethod`](@ref) for the simplificatio
 applies.
 
 In the docstring of a struct, it prints the constructors that the struct definition creates.
+A callable method of a type's instances, such as `(e::E)(x)`, prints as it is defined.
+In the docstring of a macro, it prints the macro as its caller writes it, such as `@m a b`,
+without the `__source__` and `__module__` arguments.
 
 # Examples
 
@@ -113,7 +116,11 @@ interpolation(abbr::T, expr::Expr) where {T <: Union{MethodSignatures, TypedMeth
 An [`Abbreviation`](@ref) that prints the signatures of the documented method like
 [`SIGNATURES`](@ref), with the types of positional and keyword arguments and the inferred
 return type. See [`printmethod`](@ref) for the simplifications it applies. In the docstring
-of a struct, it prints the constructors that [`SIGNATURES`](@ref) lists.
+of a struct, it prints the constructors that [`SIGNATURES`](@ref) lists. A callable such as
+`(e::E)(x::Int)` prints as `(e::Main.E)(x::Int64)` when `E` is defined in `Main`. A macro
+prints as [`SIGNATURES`](@ref) prints it, with argument types such as `@m ex::Expr` and no
+inferred return type. An inferred return type that Julia would print with a name it generated,
+as for a parameter written `<:T` that no `const` alias gives, is left out.
 
 # Examples
 
@@ -185,7 +192,7 @@ function format(tms::TypedMethodSignatures, buf, doc)
         println(buf, "```julia")
         for method in collapse_defaults(group, defaults)
             printmethod(
-                buf, binding, func, method, printed_typesig(method, tuples);
+                buf, binding, func, method, printed_typesig(func, method, tuples);
                 returns = tms.returns, definition = tms.definition,
                 brackets = tms.defaults === :brackets
             )
@@ -197,11 +204,15 @@ end
 
 # The signature `TYPEDSIGNATURES` prints for `method`: the tuple of `tuples` equal to the
 # method's signature, or else one with as many arguments.
-function printed_typesig(method::Method, tuples)
+function printed_typesig(func, method::Method, tuples)
     sig = argsig(method)
     # An expanded vararg has no tuple with as many arguments, and can match a wrong one.
-    # A parametric constructor's name needs the type parameters of its own signature.
-    (expanded_vararg(method) || constructor_parameters(method) !== nothing) && return sig
+    # A parametric constructor's name and a callable's instance type need the type parameters
+    # of the method's own signature.
+    (
+        expanded_vararg(method) || constructor_parameters(func, method) !== nothing ||
+            instance_type(func, method) !== nothing
+    ) && return sig
     idx = findfirst(t -> t == sig, tuples)
     if idx === nothing
         n = length(arguments(method))

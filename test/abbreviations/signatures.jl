@@ -408,6 +408,63 @@
             "```julia\nPoint(x)\n```\n\ntype `Point`\n"
     end
 
+    # A method of another definition whose signature only falls inside the typesig is left out.
+    @testset "other definitions" begin
+        names = [:D, :E, Symbol("@mac")]
+        str = join([rendered(:(OtherDefinitionsTestModule.$name)) for name in names], "\n")
+        @test_reference ro_path("signatures_other_definitions.txt") str
+    end
+
+    # A macro prints as its caller writes it, on one line, without `__source__` and
+    # `__module__`, and with no inferred return type.
+    @testset "macro signatures" begin
+        names = [:vararg, :pair, :two, :typed, :default, :typeddefault, :typedvararg, :destructured, :returns, :none, :long, :notmacro]
+        str = join([rendered(:(MacrosTestModule.$(Symbol("@", name)))) for name in names], "\n")
+        @test_reference ro_path("signatures_macros.txt") str
+    end
+
+    # A constructor called through an alias prints as the alias, without the parameters the
+    # alias fixes. One written with its parameters keeps them.
+    @testset "alias constructors" begin
+        names = [:Mat, :IMat, :LTM, :Curve]
+        str = join([rendered(:(AliasesTestModule.$name)) for name in names], "\n")
+        @test_reference ro_path("signatures_alias_constructors.txt") str
+    end
+
+    # `D{T}(g)` for a type with more parameters than the call writes leaves the rest free.
+    @testset "partial parameter constructors" begin
+        names = [:D, :F]
+        str = join([rendered(:(PartialParametersTestModule.$name)) for name in names], "\n")
+        @test_reference ro_path("signatures_partial_parameter_constructors.txt") str
+    end
+
+    # A callable method of a type's instances prints as the call on an instance, and not as a
+    # constructor of the type that takes as many arguments.
+    @testset "callable signatures" begin
+        names = [:Scale, :Zero, :Entrainment, :Reconstruct, :Weighted]
+        str = join([rendered(:(CallablesTestModule.$name)) for name in names], "\n")
+        # Before Julia 1.9 the docsystem files `(e::Entrainment{NF})(σ, τ::NF)` under `e`.
+        if VERSION >= v"1.9"
+            @test_reference ro_path("signatures_callables_19_and_later.txt") str
+        else
+            @test_reference ro_path("signatures_callables_pre_19.txt") str
+        end
+    end
+
+    # A parameter written `<:T` prints as written, and `Ref{<:Any}` as `Ref`, on every version.
+    @testset "anonymous type parameter signatures" begin
+        names = [:grids, :unnamed, :anys, :bounded, :scaled, :scalar, :small, :deep, :keyed, :boxed, :kind, :held]
+        str = join([[rendered(:(AnonymousTypeVarsTestModule.$name)) for name in names]; rendered(:(AnonymousTypeVarsTestModule.Nested.leaf))], "\n")
+        @test_reference ro_path("signatures_anonymous.txt") str
+    end
+
+    # A callable on `Type{<:T}` is filed under `Type`, so it prints the instance type.
+    @testset "Type callable signatures" begin
+        multidoc = Docs.meta(CallablesTestModule)[Docs.Binding(Core, :Type)]
+        str = join([Markdown.plain(Docs.parsedoc(multidoc.docs[sig])) for sig in multidoc.order], "\n")
+        @test_reference ro_path("signatures_type_callables.txt") str
+    end
+
     @testset "signature destructuring" begin
         names = [:pair, :typed, :nested, :unshowable]
         str = join([rendered(:(DestructuringTestModule.$name)) for name in names], "\n")
@@ -417,16 +474,18 @@
     end
 
     @testset "printed_typesig" begin
-        m = first(methods((x::Integer, y) -> x))
-        @test DSE.printed_typesig(m, Any[Tuple{Int}, Tuple{Integer, Any}]) == Tuple{Integer, Any}
-        @test DSE.printed_typesig(m, Any[Tuple{Int}, Tuple{Int, Int}]) == Tuple{Int, Int}
-        @test DSE.printed_typesig(m, Any[Tuple{T, T} where {T}]) == (Tuple{T, T} where {T})
-        @test DSE.printed_typesig(m, Any[Tuple{Int}]) == Tuple{Integer, Any}
+        f = (x::Integer, y) -> x
+        m = first(methods(f))
+        @test DSE.printed_typesig(f, m, Any[Tuple{Int}, Tuple{Integer, Any}]) == Tuple{Integer, Any}
+        @test DSE.printed_typesig(f, m, Any[Tuple{Int}, Tuple{Int, Int}]) == Tuple{Int, Int}
+        @test DSE.printed_typesig(f, m, Any[Tuple{T, T} where {T}]) == (Tuple{T, T} where {T})
+        @test DSE.printed_typesig(f, m, Any[Tuple{Int}]) == Tuple{Integer, Any}
         # An expanded vararg and a parametric constructor keep their own signature.
-        expanded = first(methods((xs::Vararg{Int, 2}) -> xs))
-        @test DSE.printed_typesig(expanded, Any[Tuple{Any, Any}]) == Tuple{Int, Int}
+        g = (xs::Vararg{Int, 2}) -> xs
+        expanded = first(methods(g))
+        @test DSE.printed_typesig(g, expanded, Any[Tuple{Any, Any}]) == Tuple{Int, Int}
         constructor = first(methods(M.Param2{Int}, Tuple{Any}))
-        @test DSE.printed_typesig(constructor, Any[Tuple{Any}]) == DSE.argsig(constructor)
+        @test DSE.printed_typesig(M.Param2, constructor, Any[Tuple{Any}]) == DSE.argsig(constructor)
     end
 
     @testset "has_arity" begin
