@@ -193,6 +193,16 @@ function format(abbr::Template, buf, doc)
     return
 end
 
+# A new `DocStr`, since bindings documented together share one and each needs its own template.
+function resolve_templates(str::Docs.DocStr, key::Symbol)
+    text = Any[]
+    selector = template_selector(str.text, key)
+    for part in str.text
+        part isa Template ? append!(text, template_parts(part, selector)) : push!(text, part)
+    end
+    return Docs.DocStr(Core.svec(text...), str.object, copy(str.data))
+end
+
 # The parts of the template for `key` found before the `DOCSTRING` abbreviation, or after it.
 function template_parts(abbr::Template, key::Symbol)
     parts = get_template(abbr.dict, key)
