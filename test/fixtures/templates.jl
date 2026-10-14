@@ -193,6 +193,23 @@ module TemplateTests
         after(x) = x
     end
 
+    module BlockTemplate
+
+        using DocStringExtensions
+
+        begin
+            @template DEFAULT =
+            """
+            (BLOCK)
+
+            $(DOCSTRING)
+            """
+
+            "method `inside`"
+            inside(x) = x
+        end
+    end
+
     module OtherModule
 
         import ..TemplateTests

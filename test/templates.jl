@@ -21,6 +21,8 @@
     @test doc_value(TemplateTests.DOC_VALUE) == doc_value(Untemplated.DOC_VALUE)
     @test rendered(:(TemplateTests.LateTemplate.before)) == "method `before`\n"
     @test rendered(:(TemplateTests.LateTemplate.after)) == "(LATE)\n\nmethod `after`\n"
+    # A template applies to a docstring expanded in the same block, before the template is set.
+    @test rendered(:(TemplateTests.BlockTemplate.inside)) == "(BLOCK)\n\nmethod `inside`\n"
     # Bindings documented together each get the template for their own category.
     @test occursin("(DEFAULT)", rendered(:(TemplateTests.paired)))
     @test occursin("(TYPES)", rendered(:(TemplateTests.Paired)))

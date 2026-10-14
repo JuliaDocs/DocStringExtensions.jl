@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fix `@template` not applying to a docstring in the same `begin` block as the `@template` ([#273](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/273))
 - Fix `IMPORTS` crashing or hanging Julia in the docstring of anything but a module. It throws a `TypeError` instead, as `EXPORTS` does ([#283](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/283))
 - Fix `TYPEDEF` leaving out the parameters of a parametric primitive type, and printing a `Symbol` or `Char` parameter unquoted, such as `Val{a}` for `Val{:a}` ([#271](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/271), [#272](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/272))
 - Fix `SUBTYPES` listing a subtype once more for each `const` that names its module ([#270](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/270))

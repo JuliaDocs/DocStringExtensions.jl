@@ -179,7 +179,7 @@ reference to a module's templates. `expr` is the documented expression, which is
 passed to [`interpolation`](@ref) for each part of the template.
 """
 struct Template{Location} <: Abbreviation
-    dict::Dict{Symbol, Vector{Any}}
+    dict::Dict{Symbol, Vector}
     expr::Expr
 end
 
