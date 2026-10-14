@@ -15,3 +15,12 @@ BODY
 METHODLIST
 TYPEDMETHODLIST
 ```
+
+## Options
+
+```@docs
+MethodSignatures
+TypedMethodSignatures
+MethodList
+TypedMethodList
+```

@@ -1,8 +1,3 @@
-"""
-The type for [`SIGNATURES`](@ref) abbreviations.
-
-$(:FIELDS)
-"""
 struct MethodSignatures <: Abbreviation
     returns::Union{Bool, String}
     defaults::Union{Bool, Symbol}
@@ -19,6 +14,14 @@ function check_defaults(defaults::Union{Bool, Symbol})
     return defaults
 end
 
+"""
+$(:SIGNATURES)
+
+The abbreviation behind [`SIGNATURES`](@ref). `returns = true` follows each signature with its
+inferred return type, and a string such as `"success::Bool"` prints in its place.
+`defaults = true` shows default values. `defaults = :brackets` marks each optional positional
+argument in brackets. By default `returns = false` and `defaults = false`, as in `SIGNATURES`.
+"""
 MethodSignatures(; returns::Union{Bool, String} = false, defaults::Union{Bool, Symbol} = false) =
     MethodSignatures(returns, check_defaults(defaults), nothing, nothing)
 
@@ -92,11 +95,6 @@ function format(abbr::MethodSignatures, buf, doc)
     end
 end
 
-"""
-The type for [`TYPEDSIGNATURES`](@ref) abbreviations.
-
-$(:FIELDS)
-"""
 struct TypedMethodSignatures <: Abbreviation
     returns::Union{Bool, String}
     defaults::Union{Bool, Symbol}
@@ -104,6 +102,14 @@ struct TypedMethodSignatures <: Abbreviation
     type_definition::Union{StructDefinition, Nothing}
 end
 
+"""
+$(:SIGNATURES)
+
+The abbreviation behind [`TYPEDSIGNATURES`](@ref). `returns = false` leaves out the return
+types, and a string such as `"success::Bool"` prints in their place. `defaults` takes the
+values that [`MethodSignatures`](@ref) takes. By default `returns = true` and
+`defaults = false`, as in `TYPEDSIGNATURES`.
+"""
 TypedMethodSignatures(; returns::Union{Bool, String} = true, defaults::Union{Bool, Symbol} = false) =
     TypedMethodSignatures(returns, check_defaults(defaults), nothing, nothing)
 

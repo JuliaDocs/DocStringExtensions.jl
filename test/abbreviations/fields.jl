@@ -38,6 +38,13 @@
         @test_reference ro_path("typed_fields_anonymous.txt") str
     end
 
+    @testset "constructors" begin
+        @test DSE.TypeFields() === FIELDS
+        @test DSE.TypeFields(types = true) === TYPEDFIELDS
+        @test DSE.TypeFields(types = true, defaults = false) === DSE.TypeFields(true, false, nothing)
+        @test (@test_deprecated DSE.TypeFields(true; defaults = false)) === DSE.TypeFields(true, false, nothing)
+    end
+
     @testset "code_span" begin
         @test DSE.code_span("a = 1") == "`a = 1`"
         @test DSE.code_span("a = \"`b`\"") == "```a = \"`b`\"```"

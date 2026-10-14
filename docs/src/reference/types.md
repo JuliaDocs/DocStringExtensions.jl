@@ -13,3 +13,9 @@ FIELDS
 TYPEDFIELDS
 SUBTYPES
 ```
+
+## Options
+
+```@docs
+TypeFields
+```

@@ -1,15 +1,22 @@
-"""
-The type for [`FIELDS`](@ref) abbreviations.
-
-$(:FIELDS)
-"""
 struct TypeFields <: Abbreviation
     types::Bool
     show_defaults::Bool
     defaults::Union{Dict{Symbol, String}, Nothing}
 end
 
-TypeFields(types::Bool; defaults::Bool = true) = TypeFields(types, defaults, nothing)
+"""
+$(:SIGNATURES)
+
+The abbreviation behind [`FIELDS`](@ref) and [`TYPEDFIELDS`](@ref). `types = true` prints the
+type of each field, as `TYPEDFIELDS` does. `defaults = false` leaves out the default values.
+By default `types = false` and `defaults = true`, as in `FIELDS`.
+"""
+TypeFields(; types::Bool = false, defaults::Bool = true) = TypeFields(types, defaults, nothing)
+
+function TypeFields(types::Bool; defaults::Bool = true)
+    Base.depwarn("`TypeFields(types; defaults)` is deprecated, use `TypeFields(; types, defaults)` instead.", :TypeFields)
+    return TypeFields(; types = types, defaults = defaults)
+end
 
 interpolation(abbr::TypeFields, expr::Expr) =
     TypeFields(abbr.types, abbr.show_defaults, abbr.show_defaults ? field_defaults(expr) : nothing)
@@ -44,9 +51,9 @@ julia> @doc Point
 ```
 
 !!! tip "Hiding Default Values"
-    To leave out default values, use `\$(DocStringExtensions.TypeFields(false; defaults = false))`.
+    To leave out default values, use `\$(DocStringExtensions.TypeFields(defaults = false))`.
 """
-const FIELDS = TypeFields(false)
+const FIELDS = TypeFields()
 
 """
 An [`Abbreviation`](@ref) that lists the fields of a type like [`FIELDS`](@ref), with the
@@ -78,9 +85,9 @@ julia> @doc Point
 ```
 
 !!! tip "Hiding Default Values"
-    To leave out default values, use `\$(DocStringExtensions.TypeFields(true; defaults = false))`.
+    To leave out default values, use `\$(DocStringExtensions.TypeFields(types = true, defaults = false))`.
 """
-const TYPEDFIELDS = TypeFields(true)
+const TYPEDFIELDS = TypeFields(types = true)
 
 function format(abbrv::TypeFields, buf, doc)
     binding = doc_binding(doc)

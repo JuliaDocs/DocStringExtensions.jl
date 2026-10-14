@@ -12,3 +12,9 @@ they render from.
 DOCSTRING
 NOTEMPLATE
 ```
+
+## Options
+
+```@docs
+TemplateOverride
+```

@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add the `ABSTRACTTYPES` template category for abstract types. A module without one documents abstract types with its `TYPES` template, as before ([#147](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/147), [#241](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/241))
 - `SIGNATURES` and `TYPEDSIGNATURES` in the docstring of a macro print it as its caller writes it, such as `@m a b`. The `__source__` and `__module__` arguments and the inferred return type are left out. They printed nothing before. `METHODLIST` and `TYPEDMETHODLIST` list a macro the same way. For a vararg macro they printed its hidden arguments, and for any other macro nothing ([#262](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/262))
 - `SIGNATURES` and `TYPEDSIGNATURES` in the docstring of a struct list the constructors its definition creates. They printed nothing before ([#71](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/71), [#245](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/245))
+- Declare the interface for writing an abbreviation public on Julia 1.11 and later: `Abbreviation`, `format` and `interpolation`. A new guide covers it ([#86](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/86), [#303](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/303))
+- Declare the types that take abbreviation options public on Julia 1.11 and later, such as `MethodSignatures` and `TypeFields`. Each one appears on its topic's reference page ([#303](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/303))
+- Add `TypeFields(; types, defaults)`, whose keywords match the other option types ([#303](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/303))
 
 ### Changed
 
@@ -30,8 +33,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The manual splits into Examples and Reference sections with one page per topic. Each example page prints its source above the rendered docstrings, and new pages cover `PUBLIC`, `INSTANCES`, and `@template` with `DOCSTRING`. The package docstring is rewritten. A Setup page covers adding the package, templates, and Documenter. The docstrings of the package, `@template` and every abbreviation except `README` and `LICENSE` carry examples as doctests, which the docs build checks against the real output. They replace hand-written samples that had drifted from it ([#122](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/122), [#215](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/215))
 - `SIGNATURES` prints an unnamed argument with a declared type as `::T`, as `TYPEDSIGNATURES` does, so `foo(::Val{N})` no longer prints as `foo(_)`. An untyped unnamed argument still prints as `_` ([#161](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/161), [#235](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/235))
 - `TYPEDSIGNATURES` and `TYPEDMETHODLIST` print the declared type of each keyword argument, such as `f(x; n::Int64)`. An untyped keyword and a `kwargs...` keyword print without one ([#97](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/97), [#244](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/244))
-- `FIELDS` and `TYPEDFIELDS` print each field's default value, such as `retries::Int64 = 3`, for structs defined with `Base.@kwdef` or a macro that uses the same syntax. `TypeFields(types; defaults = false)` hides them ([#182](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/182), [#245](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/245))
+- `FIELDS` and `TYPEDFIELDS` print each field's default value, such as `retries::Int64 = 3`, for structs defined with `Base.@kwdef` or a macro that uses the same syntax. `TypeFields(defaults = false)` hides them ([#182](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/182), [#245](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/245))
 - `@template` applies a template when its docstring is defined, not when it is displayed, so a templated docstring no longer stores the documented expression in the package image. A docstring for a binding that does not exist yet keeps its template until display. Bindings documented together, such as `@doc "..." (f, T)`, each get the template for their own category, where they all used the last binding's ([#210](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/210))
+
+### Deprecated
+
+- `TypeFields(types::Bool)` is deprecated in favour of `TypeFields(types = ...)` ([#303](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/303))
 
 ### Fixed
 
@@ -94,7 +101,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Add the exported `interpolation(object, expr)` hook, so an object interpolated into a docstring can see the expression being documented ([#133](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/133))
+- Add the `interpolation(object, expr)` hook, so an object interpolated into a docstring can see the expression being documented ([#133](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/133))
 
 ### Changed
 
