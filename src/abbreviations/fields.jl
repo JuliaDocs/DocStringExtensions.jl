@@ -91,11 +91,10 @@ function format(abbrv::TypeFields, buf, doc)
     if !isempty(fields)
         println(buf)
         for field in fields
-            text = string(field)
-            abbrv.types && (text *= "::" * type_text(fieldtype(object, field), io))
+            type = abbrv.types ? "::$(type_text(fieldtype(object, field), io))" : ""
             default = abbrv.defaults === nothing ? nothing : get(abbrv.defaults, field, nothing)
-            default === nothing || (text *= " = " * first_line(default))
-            print(buf, "  - ", code_span(text))
+            value = default === nothing ? "" : " = $(first_line(default))"
+            print(buf, "  - ", code_span("$field$type$value"))
             # Print the field docs if they exist and aren't a `doc"..."` docstring.
             if haskey(docs, field) && isa(docs[field], AbstractString)
                 print(buf, ": ")
@@ -115,7 +114,7 @@ function format(abbrv::TypeFields, buf, doc)
 end
 
 # A list item stays on one line, so a multi-line default shows only its first.
-first_line(text) = occursin('\n', text) ? string(first(split(text, '\n')), " …") : text
+first_line(text) = occursin('\n', text) ? "$(first(split(text, '\n'))) …" : text
 
 # Julia's Markdown reads an even run of backticks as LaTeX, so the fence is the shortest odd
 # run longer than any in `text`. A space keeps a backtick at either end out of the fence.
@@ -123,5 +122,5 @@ function code_span(text)
     longest = reduce(max, [length(m.match) for m in eachmatch(r"`+", text)]; init = 0)
     fence = "`"^(isodd(longest) ? longest + 2 : longest + 1)
     padding = startswith(text, '`') || endswith(text, '`') ? " " : ""
-    return string(fence, padding, text, padding, fence)
+    return "$fence$padding$text$padding$fence"
 end

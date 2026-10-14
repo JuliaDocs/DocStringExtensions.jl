@@ -60,13 +60,13 @@ function subtype_names!(found, typename, mod::Module, prefix)
         obj = getfield(mod, sym)
         if obj isa Module
             obj !== mod && parentmodule(obj) === mod &&
-                subtype_names!(found, typename, obj, string(prefix, sym, "."))
+                subtype_names!(found, typename, obj, "$prefix$sym.")
         elseif obj isa Type
             body = Base.unwrap_unionall(obj)
             # Skipping aliases and types defined elsewhere lists each subtype once, by its own name.
             body isa DataType && nameof(body) === sym && parentmodule(body) === mod &&
                 Base.unwrap_unionall(supertype(body)).name === typename &&
-                push!(found, string(prefix, sym))
+                push!(found, "$prefix$sym")
         end
     end
     return found
