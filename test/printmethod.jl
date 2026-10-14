@@ -10,6 +10,18 @@
             m = first(methods(f))
 
         @test DSE.printmethod(b, f, m) == "K(; a)"
+        withenv("DOCSTRINGEXTENSIONS_SIGNATURE_WIDTH" => "4") do
+            @test DSE.printmethod(b, f, m) == "K(;\n    a\n)"
+        end
+    end
+    let b = Docs.Binding(Main, :f),
+            f = () -> 1,
+            m = first(methods(f))
+
+        # A call without arguments has nothing to wrap.
+        withenv("DOCSTRINGEXTENSIONS_SIGNATURE_WIDTH" => "1") do
+            @test DSE.printmethod(b, f, m) == "f()"
+        end
     end
     let b = Docs.Binding(Main, :f),
             f = (x, ::String) -> x,

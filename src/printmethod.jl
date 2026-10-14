@@ -16,8 +16,12 @@ end
 
 # `binding(args; kws)` on one line, or with each argument on its own line when `multiline`.
 function print_call(io::IO, binding, args, kws, multiline::Bool)
-    newline, sep, indent = multiline ? ("\n", "\n", "    ") : ("", " ", "")
-    print(io, binding, "(", newline)
+    # A call without arguments stays `f()`, however long what follows it.
+    wrap = multiline && !(isempty(args) && isempty(kws))
+    newline, sep, indent = wrap ? ("\n", "\n", "    ") : ("", " ", "")
+    print(io, binding, "(")
+    # A keyword-only call keeps `;` on the first line, as in `f(;`.
+    isempty(args) || print(io, newline)
     print_arguments(io, args, sep, indent)
     if !isempty(kws)
         print(io, ";", sep)

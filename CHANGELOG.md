@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fix a wrapped signature with only keyword arguments printing `;` alone on its own line. It prints `f(;` on the first line. A signature without arguments no longer wraps, so a long return type follows `f()` ([#281](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/281))
 - Fix `METHODLIST` and `TYPEDMETHODLIST` in a parametric type's docstring leaving out the constructors written `T{P}(...)` ([#280](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/280))
 - Fix signatures printing a `where` bound that names another type parameter with `Array{T, 1}` where the source writes `Vector{T}`, such as `S<:Vector{T}` ([#278](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/278))
 - Fix a world-age warning on Julia 1.12 and later when `@template` and a docstring expand together from running code, such as in one `macroexpand` call. Under `--depwarn=error` the docstring lost its template ([#277](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/277))
