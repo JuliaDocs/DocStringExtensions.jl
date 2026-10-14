@@ -42,6 +42,16 @@
         typed = DSE.printmethod(IOBuffer(), b, f, m, DSE.argsig(m); returns = false)
         @test String(take!(typed)) == "k_19(x::S) where {T, S<:Ref{T}}"
     end
+    let b = Docs.Binding(M, :k_24),
+            f = M.k_24,
+            m = first(methods(f))
+
+        # A bound that names another type parameter keeps its alias, which `show` writes from
+        # Julia 1.6.
+        typed = DSE.printmethod(IOBuffer(), b, f, m, DSE.argsig(m); returns = false)
+        vector = VERSION < v"1.6" ? "Array{T,1}" : "Vector{T}"
+        @test String(take!(typed)) == "k_24(x::T, y::S) where {T, S<:$vector}"
+    end
     let b = Docs.Binding(M, :Param2),
             f = M.Param2,
             m = first(methods(M.Param2{Int}, Tuple{Any}))

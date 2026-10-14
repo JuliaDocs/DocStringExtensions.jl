@@ -79,9 +79,9 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         # The binding `Type` does not say which types the callable takes, so print them as
         # their module names them, with any type parameter they use.
         used = used_typevars(typevars(method.sig), [instance])
-        context = :module => method.module
-        vars = String[typevar_text(v, IOContext(aliases, context)) for v in used]
-        instance_call(method, type_text(instance, IOContext(unionall_env(used, aliases), context)))
+        env = IOContext(unionall_env(used, aliases), :module => method.module)
+        vars = String[typevar_text(v, env) for v in used]
+        instance_call(method, type_text(instance, env))
     else
         instance_call(method, string(binding.var))
     end
@@ -201,7 +201,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         instance === nothing ? callable_name(binding, params, typestring) : instance_call(method, typestring(instance)),
         args,
         kws;
-        where_clause = where_clause([typevar_text(v, aliases) for v in used]),
+        where_clause = where_clause([typevar_text(v, env) for v in used]),
         return_type = return_annotation(returns, func, method, typesig),
         macrocall = ismacro(method)
     )

@@ -123,4 +123,6 @@ primitive type BitParam{T} <: Real 64 end
 struct Tag{A, B} end
 const SymbolChar = Tag{:a, 'c'}
 
+k_24(x::T, y::S) where {T, S <: Vector{T}} = 1
+
 end

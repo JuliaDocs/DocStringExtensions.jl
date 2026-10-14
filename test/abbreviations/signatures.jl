@@ -458,11 +458,12 @@
         @test_reference ro_path("signatures_anonymous.txt") str
     end
 
-    # A callable on `Type{<:T}` is filed under `Type`, so it prints the instance type.
+    # A callable on `Type{<:T}` is filed under `Type`, so it prints the instance type. Before
+    # Julia 1.6 `show` writes `Vector{T}` as `Array{T,1}`.
     @testset "Type callable signatures" begin
         multidoc = Docs.meta(CallablesTestModule)[Docs.Binding(Core, :Type)]
         str = join([Markdown.plain(Docs.parsedoc(multidoc.docs[sig])) for sig in multidoc.order], "\n")
-        @test_reference ro_path("signatures_type_callables.txt") str
+        @test_reference ro_path(VERSION < v"1.6" ? "signatures_type_callables_pre_16.txt" : "signatures_type_callables.txt") str
     end
 
     @testset "signature destructuring" begin

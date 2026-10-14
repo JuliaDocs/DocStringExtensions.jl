@@ -90,6 +90,15 @@ callable `Type{T}`
 """
 (::Type{T})(x::Symbol) where {T <: Arr} = T(1)
 
+struct Wrap{T} end
+
+"""
+$(SIGNATURES)
+$(TypedMethodSignatures(returns = false))
+callable `Type{V}` with a bound that names `T`
+"""
+(::Type{V})(x::Symbol) where {T, V <: Wrap{Vector{T}}} = V()
+
 struct Listed{NF}
     r::NF
 end

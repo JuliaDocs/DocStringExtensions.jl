@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fix signatures printing a `where` bound that names another type parameter with `Array{T, 1}` where the source writes `Vector{T}`, such as `S<:Vector{T}` ([#278](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/278))
 - Fix a world-age warning on Julia 1.12 and later when `@template` and a docstring expand together from running code, such as in one `macroexpand` call. Under `--depwarn=error` the docstring lost its template ([#277](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/277))
 - Fix `@template` skipping a docstring on a bare existing name, such as `"..." f` after `function f end`. The dotted form `"..." M.f` already got its template ([#276](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/276))
 - Fix a templated docstring on a name that is never defined throwing an `UndefVarError` when it renders. It gets the `DEFAULT` template ([#275](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/275))
