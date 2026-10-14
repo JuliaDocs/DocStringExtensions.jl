@@ -59,7 +59,8 @@ julia> @doc area
     To follow each signature with its inferred return type, use
     `\$(DocStringExtensions.MethodSignatures(returns = true))`. To describe the return
     value yourself, pass a string: `MethodSignatures(returns = "success::Bool")` prints
-    `-> success::Bool` after each signature.
+    `-> success::Bool` after each signature. A reader can change the arrow with a
+    [rendering setting](@ref setup-rendering).
 """
 const SIGNATURES = MethodSignatures()
 

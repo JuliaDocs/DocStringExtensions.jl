@@ -38,6 +38,7 @@ import Nested
     include("interface.jl")
     include("definitions.jl")
     include("methods.jl")
+    include("settings.jl")
     include("type_text.jl")
     include("printmethod.jl")
     include("abbreviations/fields.jl")

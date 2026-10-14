@@ -95,6 +95,26 @@ needs no extra setup.
 Documenter fails the build when a link has no target, so every listed name needs its
 docstring included somewhere in the manual.
 
+## [Rendering settings](@id setup-rendering)
+
+Two environment variables change how signatures render. They suit a reader's own startup
+file or shell profile, since they apply to the docstrings of every package alike. A package
+sets neither. A Documenter build renders with the values in the environment that runs
+`docs/make.jl`.
+
+| Variable                              | Default | Effect                                                   |
+|:------------------------------------- |:------- |:-------------------------------------------------------- |
+| `DOCSTRINGEXTENSIONS_RETURN_ARROW`    | `->`    | The arrow before a return type, such as `→`.             |
+| `DOCSTRINGEXTENSIONS_SIGNATURE_WIDTH` | `60`    | The longest one-line signature, in characters. A longer one prints one argument per line. |
+
+```julia
+ENV["DOCSTRINGEXTENSIONS_RETURN_ARROW"] = "→"
+ENV["DOCSTRINGEXTENSIONS_SIGNATURE_WIDTH"] = "92"
+```
+
+Each docstring reads them as it renders, so a change shows the next time a docstring is
+displayed.
+
 ## Function arguments
 
 No abbreviation documents the arguments of a function. [`FIELDS`](@ref) and
