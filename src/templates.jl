@@ -234,6 +234,7 @@ end
 # Runs as each templated docstring is registered. Specialising on the documented object would
 # compile, and cache in the documenting package's image, an instance for every function.
 function template_key(binding::Docs.Binding, @nospecialize(typesig))
+    Base.invokelatest(isdefined, binding.mod, binding.var)::Bool || return :DEFAULT
     obj = Base.invokelatest(Docs.resolve, binding)
     name = objname(obj)::Symbol
     # A method defined through a `const` alias documents the method, not the alias.

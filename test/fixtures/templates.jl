@@ -79,6 +79,9 @@ module TemplateTests
     early(x)
     early(x) = x
 
+    "name `never_defined` documented but never defined"
+    TemplateTests.never_defined
+
     const aliased = f
     "method `f` defined through the alias `aliased`"
     aliased(x::Int) = x

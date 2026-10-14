@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fix a templated docstring on a name that is never defined throwing an `UndefVarError` when it renders. It gets the `DEFAULT` template ([#275](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/275))
 - Fix `@template` giving a method defined through a `const` alias, such as `const Point2 = Point{2}` then `Point2(x) = ...`, the `CONSTANTS` template where it should get `METHODS` ([#274](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/274))
 - Fix `@template` not applying to a docstring in the same `begin` block as the `@template` ([#273](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/273))
 - Fix `IMPORTS` crashing or hanging Julia in the docstring of anything but a module. It throws a `TypeError` instead, as `EXPORTS` does ([#283](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/283))
