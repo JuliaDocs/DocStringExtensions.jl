@@ -9,42 +9,37 @@ function printmethod_format(buffer::IOBuffer, binding::String, args::Vector{Stri
     # A macro call separates its arguments with spaces and stays on one line, as in `@time ex`.
     if macrocall
         join(buffer, [binding; args], " ")
-        print(buffer, where_clause, return_type)
-        return buffer
+    else
+        call = sprint(print_call, binding, args, kws, false)
+        if method_length_over_limit(length(call) + length(where_clause) + length(return_type))
+            print_call(buffer, binding, args, kws, true)
+        else
+            print(buffer, call)
+        end
     end
-
-    sep_delim = " "
-    paren_delim = ""
-    indent = ""
-
-    if method_length_over_limit(
-            length(binding) +
-                1 +
-                sum(length.(args)) +
-                sum(length.(kws)) +
-                2 * max(0, length(args) - 1) +
-                2 * length(kws) +
-                1 +
-                length(where_clause) +
-                length(return_type)
-        )
-
-        sep_delim = "\n"
-        paren_delim = "\n"
-        indent = "    "
-    end
-
-    print(buffer, binding)
-    print(buffer, "($paren_delim")
-    join(buffer, Ref(indent) .* args, ",$sep_delim")
-    if !isempty(kws)
-        print(buffer, ";$sep_delim")
-        join(buffer, Ref(indent) .* kws, ",$sep_delim")
-    end
-    print(buffer, "$paren_delim)")
-    print(buffer, where_clause)
-    print(buffer, return_type)
+    print(buffer, where_clause, return_type)
     return buffer
+end
+
+# `binding(args; kws)` on one line, or with each argument on its own line when `multiline`.
+function print_call(io::IO, binding, args, kws, multiline::Bool)
+    newline, sep, indent = multiline ? ("\n", "\n", "    ") : ("", " ", "")
+    print(io, binding, "(", newline)
+    print_arguments(io, args, sep, indent)
+    if !isempty(kws)
+        print(io, ";", sep)
+        print_arguments(io, kws, sep, indent)
+    end
+    print(io, newline, ")")
+    return nothing
+end
+
+function print_arguments(io::IO, args, sep, indent)
+    for (i, arg) in enumerate(args)
+        i > 1 && print(io, ",", sep)
+        print(io, indent, arg)
+    end
+    return nothing
 end
 
 """
@@ -80,7 +75,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     args = map(names, argument_types(method, length(names))) do arg, t
         arg == "_" && t !== Any ? "::$(typestring(t))" : arg
     end
-    method.isva && (args[end] *= "...")
+    method.isva && (args[end] = "$(args[end])...")
     kws = string.(keywords(func, method))
     args, kws = append_defaults(args, kws, kws, method, definition; brackets = brackets)
     instance = instance_type(func, method)
@@ -252,16 +247,16 @@ function typevar_text(v::TypeVar, io::IO)
     lb = v.lb === Union{} ? nothing : where_bound(v.lb, io)
     ub = v.ub === Any ? nothing : where_bound(v.ub, io)
     lb === nothing && ub === nothing && return name
-    lb === nothing && return string(name, "<:", ub)
-    ub === nothing && return string(name, ">:", lb)
-    return string(lb, "<:", name, "<:", ub)
+    lb === nothing && return "$name<:$ub"
+    ub === nothing && return "$name>:$lb"
+    return "$lb<:$name<:$ub"
 end
 
 # `bound` as `type_text` prints it, in parentheses only when its own `where` needs them, as in
 # `T<:(Pair{S, S} where S)`. `show` puts every `UnionAll` bound in parentheses.
 function where_bound(@nospecialize(bound), io::IO)
     text = type_text(bound, io)
-    return toplevel_where(text) ? string("(", text, ")") : text
+    return toplevel_where(text) ? "($text)" : text
 end
 
 # Whether `text` has a `where` outside any brackets, as `Pair{S, S} where S` does.
@@ -328,7 +323,7 @@ function name_anonymous!(names, @nospecialize(t), io::IO)
 end
 
 # The anonymous variable `v` written as its bound, `<:Upper` or `>:Lower`.
-bound_text(v::TypeVar, io::IO) = v.lb === Union{} ? "<:" * type_text(v.ub, io) : ">:" * type_text(v.lb, io)
+bound_text(v::TypeVar, io::IO) = v.lb === Union{} ? "<:$(type_text(v.ub, io))" : ">:$(type_text(v.lb, io))"
 
 # Whether the variable of `t` means the same written as its bound, as in `Vector{<:Real}`: it is
 # a parameter of the type that `t` wraps, and appears nowhere else.
@@ -372,7 +367,7 @@ function alias_text(t::UnionAll, io::IO)
         i = findfirst(v -> v === arg, anonymous)
         i === nothing ? type_text(arg, io) : bound_text(anonymous[i], io)
     end
-    return string(alias_name(mod, name, io), "{", join(texts, ", "), "}")
+    return "$(alias_name(mod, name, io)){$(join(texts, ", "))}"
 end
 
 # The modules to look for an alias of `t` in, and how many of them come from `home`: `home` and
@@ -428,7 +423,7 @@ function alias_name(mod::Module, name::Symbol, io::IO)
     from = get(io, :module, Main)
     visible = from isa Module && Base.invokelatest(isdefined, from, name) &&
         Base.invokelatest(getfield, from, name) === Base.invokelatest(getfield, mod, name)
-    return visible ? string(name) : string(mod, ".", name)
+    return visible ? string(name) : "$mod.$name"
 end
 
 # The names of the `const` aliases of `mod`, with those it imports. Not cached: before Julia 1.12
@@ -582,10 +577,11 @@ unionall_env(typevars, io = IOContext(devnull)) = foldl((io, v) -> IOContext(io,
 
 # The name `method` is called by, with the parameters of a constructor written as `T{P}(...)`.
 callable_name(binding, params, typestring) =
-    params === nothing ? string(binding.var) : string(binding.var, "{", join(map(typestring, params), ", "), "}")
+    params === nothing ? string(binding.var) : "$(binding.var){$(join(map(typestring, params), ", "))}"
 
 # The instance a callable method is called on, `(e::T)` or `(::T)`, with `type` printed for `T`.
 function instance_call(method::Method, type)
     name = first(slot_names(method))
-    return string("(", isunnamed(name) ? "" : name, "::", type, ")")
+    instance = isunnamed(name) ? "" : name
+    return "($instance::$type)"
 end

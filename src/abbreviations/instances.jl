@@ -40,7 +40,7 @@ function format(::EnumInstances, buf, doc)
 end
 
 enum_entries(enum::Type{<:Base.Enum}, prefix = "") =
-    [(string(prefix, Symbol(instance)), string(Integer(instance))) for instance in instances(enum)]
+    [("$prefix$(Symbol(instance))", string(Integer(instance))) for instance in instances(enum)]
 # EnumX.jl documents the module that holds its enum type `T`, and callers write `Module.Name`.
-enum_entries(mod::Module) = isdefined(mod, :T) ? enum_entries(mod.T, string(nameof(mod), ".")) : Tuple{String, String}[]
+enum_entries(mod::Module) = isdefined(mod, :T) ? enum_entries(mod.T, "$(nameof(mod)).") : Tuple{String, String}[]
 enum_entries(other, prefix = "") = Tuple{String, String}[]
