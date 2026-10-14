@@ -83,35 +83,37 @@ julia> @doc Point
 const TYPEDFIELDS = TypeFields(true)
 
 function format(abbrv::TypeFields, buf, doc)
-    docs = get(doc.data, :fields, Dict())
     binding = doc_binding(doc)
     object = Base.invokelatest(Docs.resolve, binding)::Union{DataType, UnionAll}
-    fields = isabstracttype(object) ? Symbol[] : Symbol[fieldnames(object)...]
+    isabstracttype(object) && return nothing
+    fields = fieldnames(object)
+    isempty(fields) && return nothing
+    docs = get(doc.data, :fields, Dict())
     io = alias_context(binding.mod)
-    if !isempty(fields)
+    println(buf)
+    for field in fields
+        type = abbrv.types ? "::$(type_text(fieldtype(object, field), io))" : ""
+        default = abbrv.defaults === nothing ? nothing : get(abbrv.defaults, field, nothing)
+        value = default === nothing ? "" : " = $(first_line(default))"
+        print(buf, "  - ", code_span("$field$type$value"))
+        print_field_doc(buf, get(docs, field, nothing))
         println(buf)
-        for field in fields
-            type = abbrv.types ? "::$(type_text(fieldtype(object, field), io))" : ""
-            default = abbrv.defaults === nothing ? nothing : get(abbrv.defaults, field, nothing)
-            value = default === nothing ? "" : " = $(first_line(default))"
-            print(buf, "  - ", code_span("$field$type$value"))
-            # Print the field docs if they exist and aren't a `doc"..."` docstring.
-            if haskey(docs, field) && isa(docs[field], AbstractString)
-                print(buf, ": ")
-                indented = true
-                for line in split(docs[field], "\n")
-                    println(buf, indented || isempty(line) ? "" : "    ", rstrip(line))
-                    indented = false
-                end
-            else
-                println(buf)
-            end
-            println(buf)
-        end
-        println(buf)
+    end
+    println(buf)
+    return nothing
+end
+
+# The rest of a field's list item: its docstring, with each later line indented under the item.
+function print_field_doc(buf, text::AbstractString)
+    lines = split(text, "\n")
+    println(buf, ": ", rstrip(first(lines)))
+    for line in lines[2:end]
+        println(buf, isempty(line) ? "" : "    ", rstrip(line))
     end
     return nothing
 end
+# A field with no docstring, or a `doc"..."` one, ends its item bare.
+print_field_doc(buf, other) = println(buf)
 
 # A list item stays on one line, so a multi-line default shows only its first.
 first_line(text) = occursin('\n', text) ? "$(first(split(text, '\n'))) …" : text

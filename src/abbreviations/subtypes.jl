@@ -61,13 +61,17 @@ function subtype_names!(found, typename, mod::Module, prefix)
         if obj isa Module
             obj !== mod && parentmodule(obj) === mod &&
                 subtype_names!(found, typename, obj, "$prefix$sym.")
-        elseif obj isa Type
-            body = Base.unwrap_unionall(obj)
-            # Skipping aliases and types defined elsewhere lists each subtype once, by its own name.
-            body isa DataType && nameof(body) === sym && parentmodule(body) === mod &&
-                Base.unwrap_unionall(supertype(body)).name === typename &&
-                push!(found, "$prefix$sym")
+        elseif obj isa Type && defines_subtype(mod, sym, obj, typename)
+            push!(found, "$prefix$sym")
         end
     end
     return found
+end
+
+# Whether `mod` defines `obj` under its own name `sym` as a direct subtype of `typename`.
+# Skipping aliases and types defined elsewhere lists each subtype once, by its own name.
+function defines_subtype(mod::Module, sym::Symbol, obj::Type, typename)
+    body = Base.unwrap_unionall(obj)
+    body isa DataType && nameof(body) === sym && parentmodule(body) === mod || return false
+    return Base.unwrap_unionall(supertype(body)).name === typename
 end

@@ -8,6 +8,7 @@ DocStringExtensions adds abbreviations and templates to Julia's docsystem. An ab
 - `src/abbreviations/` holds one file per abbreviation, named after its `const` (`typedef.jl` for `TYPEDEF`). Each defines a subtype of `Abbreviation`, the `const` instance, and a `format(abbr, buf, doc)` method that writes its Markdown to `buf`. A typed variant shares its untyped twin's file, and `module_names.jl` and `package_files.jl` each hold two abbreviations that share a `format`.
 - `src/definitions.jl` reads the documented expression: argument defaults, field defaults, and where a struct definition ends.
 - `src/methods.jl` finds and groups the methods a docstring documents. It also reads what Julia records about each method, such as its keywords and inferred return type.
+- `src/type_text.jl` writes a type as its source writes it, with each `<:T` parameter written as its bound or as the `const` alias that gives it. Signatures, field lists and `TYPEDEF` print types through it.
 - `src/printmethod.jl` renders a method signature for `SIGNATURES`, `TYPEDSIGNATURES` and the method lists.
 - A helper with a single caller, including a compat shim for an older Julia, sits in its caller's file.
 - `src/templates.jl` implements `@template`, which wraps every docstring of a given kind in a module.

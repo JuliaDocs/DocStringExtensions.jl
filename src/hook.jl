@@ -74,16 +74,6 @@ function forward_doc!(mod::Module, binding::Docs.Binding, str::Docs.DocStr, @nos
     return Docs.doc!(mod, binding, str, sig)
 end
 
-# A new `DocStr`, since bindings documented together share one and each needs its own template.
-function resolve_templates(str::Docs.DocStr, key::Symbol)
-    text = Any[]
-    selector = template_selector(str.text, key)
-    for part in str.text
-        part isa Template ? append!(text, template_parts(part, selector)) : push!(text, part)
-    end
-    return Docs.DocStr(Core.svec(text...), str.object, copy(str.data))
-end
-
 # `Docs` documents each definition a macro marks with `@__doc__` by passing the docstring this
 # hook returned back through `@doc`.
 hooked(docstr) = Meta.isexpr(docstr, :string) && any(is_hook_part, docstr.args)

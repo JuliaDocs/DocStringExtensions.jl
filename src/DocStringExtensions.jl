@@ -49,6 +49,7 @@ export README, LICENSE, NOTEMPLATE
 include("interface.jl")
 include("definitions.jl")
 include("methods.jl")
+include("type_text.jl")
 include("printmethod.jl")
 include("abbreviations/fields.jl")
 include("abbreviations/module_names.jl")

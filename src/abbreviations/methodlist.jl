@@ -104,14 +104,10 @@ function format(abbr::Union{MethodList, TypedMethodList}, buf, doc)
                 println(buf)
             end
             println(buf, "```\n")
-            if !isempty(group)
-                method = group[1]
-                file = string(method.file)
-                line = method.line
-                path = sourcepath(file, modname)
-                URL = url(method)
-                isempty(URL) || println(buf, "defined at [`$path:$line`]($URL).")
-            end
+            method = first(group)
+            path = sourcepath(string(method.file), modname)
+            URL = url(method)
+            isempty(URL) || println(buf, "defined at [`$path:$(method.line)`]($URL).")
             println(buf)
         end
         println(buf)
