@@ -112,8 +112,8 @@ ENV["DOCSTRINGEXTENSIONS_RETURN_ARROW"] = "→"
 ENV["DOCSTRINGEXTENSIONS_SIGNATURE_WIDTH"] = "92"
 ```
 
-Each docstring reads them as it renders, so a change shows the next time a docstring is
-displayed.
+A docstring reads them the first time it is shown, and Julia keeps the result for the rest
+of the session. Set them before showing any docstring, so a change reaches every one.
 
 ## Function arguments
 
