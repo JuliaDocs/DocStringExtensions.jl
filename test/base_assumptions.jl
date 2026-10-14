@@ -229,7 +229,7 @@
     # A parameter written `<:T` is a type variable with a generated name that starts with `#`,
     # and applying its `UnionAll` to another type variable puts that one in its place.
     #
-    # Used in src/printmethod.jl by isanonymous() and name_anonymous!().
+    # Used in src/type_text.jl by isanonymous() and name_anonymous!().
     let t = Base.unwrap_unionall(first(methods((x::Ref{<:Real}) -> x)).sig).parameters[2],
             S = TypeVar(:S, Real)
 
@@ -241,7 +241,7 @@
     # keeping the order of a `Union`'s components, and a deprecated binding can be told apart
     # before it is read.
     #
-    # Used in src/printmethod.jl by match_alias!(), which reads the alias's body and the
+    # Used in src/type_text.jl by match_alias!(), which reads the alias's body and the
     # type in parallel, and by isalias().
     let T = TypeVar(:T, Real),
             body = Union{T, Ref{T}},
@@ -259,7 +259,7 @@
     # `names` lists a name that a module imports with `import`, and `which` gives the module
     # that defines it.
     #
-    # Used in src/printmethod.jl by module_aliases() and alias_text().
+    # Used in src/type_text.jl by module_aliases() and alias_text().
     let mod = Module()
         Core.eval(
             mod, :(
