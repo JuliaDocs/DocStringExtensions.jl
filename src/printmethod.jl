@@ -1,17 +1,10 @@
-"""
-$(:SIGNATURES)
-
-Decides whether a length of method is too big to be visually appealing.
-"""
-method_length_over_limit(len::Int) = len > 60
-
 function printmethod_format(buffer::IOBuffer, binding::String, args::Vector{String}, kws::Vector{String}; where_clause = "", return_type = "", macrocall = false)
     # A macro call separates its arguments with spaces and stays on one line, as in `@time ex`.
     if macrocall
         join(buffer, [binding; args], " ")
     else
         call = sprint(print_call, binding, args, kws, false)
-        if method_length_over_limit(length(call) + length(where_clause) + length(return_type))
+        if length(call) + length(where_clause) + length(return_type) > signature_width()
             print_call(buffer, binding, args, kws, true)
         else
             print(buffer, call)
@@ -254,11 +247,12 @@ end
 """
 $(:SIGNATURES)
 
-The ` -> T` that follows a signature. `returns` is `true` for the type that `method` is
-inferred to return for `typesig`, `false` for none, or the text to print as `T`. An inferred
-type that still shows a name Julia generated for a type variable is left out.
+The ` -> T` that follows a signature, with the [`return_arrow`](@ref). `returns` is `true`
+for the type that `method` is inferred to return for `typesig`, `false` for none, or the text
+to print as `T`. An inferred type that still shows a name Julia generated for a type variable
+is left out.
 """
-return_annotation(returns::String, func, method::Method, typesig) = " -> $returns"
+return_annotation(returns::String, func, method::Method, typesig) = " $(return_arrow()) $returns"
 
 function return_annotation(returns::Bool, func, method::Method, typesig)
     # A macro returns the expression it generates, whose type tells the reader nothing.
@@ -267,7 +261,7 @@ function return_annotation(returns::Bool, func, method::Method, typesig)
     (isempty(rt) || rt[1] === Nothing || rt[1] === Union{}) && return ""
     text = type_text(rt[1], alias_context(method.module))
     # Inference leaves no source to write a generated type variable from.
-    return shows_anonymous(rt[1], text) ? "" : " -> $text"
+    return shows_anonymous(rt[1], text) ? "" : return_annotation(text, func, method, typesig)
 end
 
 printmethod(b, f, m) = String(take!(printmethod(IOBuffer(), b, f, m)))
