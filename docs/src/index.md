@@ -4,7 +4,8 @@
 DocStringExtensions
 ```
 
-To start using the package, see [Setup](@ref setup).
+To start using the package, see [Setup](@ref setup). To write an abbreviation of your own,
+see [Custom abbreviations](@ref custom-abbreviations).
 
 ## Abbreviations
 

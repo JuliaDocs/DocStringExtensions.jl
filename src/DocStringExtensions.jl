@@ -42,7 +42,14 @@ module DocStringExtensions
 export @template, FIELDS, TYPEDFIELDS, EXPORTS, PUBLIC, METHODLIST, TYPEDMETHODLIST, IMPORTS
 export SIGNATURES, TYPEDSIGNATURES, TYPEDEF, INSTANCES, SUBTYPES, DOCSTRING, FUNCTIONNAME, BODY
 export README, LICENSE, NOTEMPLATE
-# export interpolation
+
+# `public` is a syntax error before Julia 1.11.
+VERSION >= v"1.11" && eval(
+    Meta.parse(
+        "public Abbreviation, format, interpolation, MethodSignatures, TypedMethodSignatures, " *
+            "MethodList, TypedMethodList, TypeFields, TemplateOverride"
+    )
+)
 
 # Includes. Each file loads after the files defining the types its fields and signatures name.
 

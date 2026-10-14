@@ -1,9 +1,8 @@
 """
-Abbreviation objects are used to automatically generate context-dependent markdown content
-within documentation strings. Objects of this type interpolated into docstrings will be
-expanded automatically before parsing the text to markdown.
-
-$(:FIELDS)
+The supertype of every abbreviation. An `Abbreviation` interpolated into a docstring expands
+through its [`format`](@ref) method the first time the docstring is shown, and Julia keeps
+the result for the rest of the session. To write your own, subtype it and add a `format`
+method.
 """
 abstract type Abbreviation end
 
@@ -11,7 +10,8 @@ abstract type Abbreviation end
 $(:SIGNATURES)
 
 Expand the [`Abbreviation`](@ref) `abbr` in the context of the `DocStr` `doc` and write
-the resulting markdown-formatted text to the `IOBuffer` `buf`.
+the resulting markdown-formatted text to the `IOBuffer` `buf`. `doc.data[:binding]` is the
+documented `Docs.Binding`, and `doc.data[:module]` the module the docstring is in.
 """
 format(abbr, buf, doc) = error("`format` not implemented for `$(typeof(abbr))`.")
 
@@ -24,19 +24,15 @@ doc_binding(doc::Docs.DocStr) = doc.data[:binding]::Docs.Binding
 doc_module(doc::Docs.DocStr) = doc.data[:module]::Module
 
 """
-    interpolation(object::T, captured::Expr) -> new_object
+$(:SIGNATURES)
 
-Interface method for hooking into interpolation within docstrings to change
-the behaviour of the interpolation. `object` is the interpolated object within a
-docstring and `captured` is the raw expression that is documented by the docstring
-in which the interpolated `object` has been included.
-
-To define custom behaviour for your own `object` types implement a method of
-`interpolation(::T, captured)` for type `T` and return a `new_object` to
-be interpolated into the final docstring. Note that you must own the definition
-of type `T`. `new_object` does not need to be of type `T`.
+The object a docstring holds in place of the interpolated `object`, given the expression
+`expr` that the docstring documents. Julia calls it as it defines the docstring, so a method
+for an [`Abbreviation`](@ref) can read code that [`format`](@ref) never sees. The fallback
+returns `object`. It runs for every object interpolated into a docstring, so add methods
+only for types you own.
 """
-interpolation(@nospecialize(object), @nospecialize(_)) = object
+interpolation(@nospecialize(object), @nospecialize(expr)) = object
 
 """
 $(:SIGNATURES)

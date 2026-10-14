@@ -1,12 +1,8 @@
 """
-The type for [`NOTEMPLATE`](@ref) abbreviations.
-
-`TemplateOverride(category)` applies the module's [`@template`](@ref) for `category` to the
-docstring it appears in, in place of the template for the documented object's own category.
-`category` is one of the categories `@template` accepts, and the module must define a
-template for it before the docstring.
-
-$(:FIELDS)
+The abbreviation behind [`NOTEMPLATE`](@ref). `TemplateOverride(category)` applies the module's
+[`@template`](@ref) for `category` to the docstring it appears in, in place of the template
+for the documented object's own category. `category` is one of the categories `@template`
+accepts, and the module must define a template for it before the docstring.
 """
 struct TemplateOverride <: Abbreviation
     category::Union{Symbol, Nothing}

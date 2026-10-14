@@ -14,6 +14,16 @@
         @test @inferred(DSE.doc_module(doc)) === M
     end
 
+    if VERSION >= v"1.11"
+        @testset "public names" begin
+            names = [
+                :Abbreviation, :format, :interpolation, :MethodSignatures, :TypedMethodSignatures,
+                :MethodList, :TypedMethodList, :TypeFields, :TemplateOverride,
+            ]
+            @test filter(name -> !Base.ispublic(DSE, name), names) == Symbol[]
+        end
+    end
+
     @testset "Interpolation" begin
         @test occursin("f(x)", rendered(:(InterpolationTestModule.f)))
         @test occursin("x + 2", rendered(:(InterpolationTestModule.g)))

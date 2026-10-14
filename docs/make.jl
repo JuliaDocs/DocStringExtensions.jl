@@ -22,8 +22,9 @@ makedocs(
     pages = Any[
         "Home" => "index.md",
         "Setup" => "setup.md",
+        "Custom abbreviations" => "custom.md",
         "Examples" => ["examples/$topic.md" for topic in TOPICS],
-        "Reference" => ["reference/$topic.md" for topic in TOPICS],
+        "Reference" => [["reference/$topic.md" for topic in TOPICS]; "reference/interface.md"],
         "Internals" => "internals.md",
     ],
     format = Documenter.HTML(

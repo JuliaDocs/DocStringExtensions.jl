@@ -9,4 +9,5 @@ Pages = ["internals.md"]
 ```@autodocs
 Modules = [DocStringExtensions]
 Order = [:function, :type]
+Filter = object -> !Base.ispublic(DocStringExtensions, nameof(object))
 ```

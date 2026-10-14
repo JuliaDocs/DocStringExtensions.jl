@@ -1,12 +1,13 @@
-"""
-The type for [`METHODLIST`](@ref) abbreviations.
-
-$(:FIELDS)
-"""
 struct MethodList <: Abbreviation
     returns::Bool
 end
 
+"""
+$(:SIGNATURES)
+
+The abbreviation behind [`METHODLIST`](@ref). `returns = true` follows each signature with
+its inferred return type.
+"""
 MethodList(; returns::Bool = false) = MethodList(returns)
 
 """
@@ -43,15 +44,16 @@ julia> @doc scale
 """
 const METHODLIST = MethodList()
 
-"""
-The type for [`TYPEDMETHODLIST`](@ref) abbreviations.
-
-$(:FIELDS)
-"""
 struct TypedMethodList <: Abbreviation
     returns::Bool
 end
 
+"""
+$(:SIGNATURES)
+
+The abbreviation behind [`TYPEDMETHODLIST`](@ref). `returns = false` leaves out the return
+types.
+"""
 TypedMethodList(; returns::Bool = true) = TypedMethodList(returns)
 
 """

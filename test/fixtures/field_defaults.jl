@@ -35,7 +35,7 @@ Base.@kwdef struct Verbatim
 end
 
 """
-$(TypeFields(false; defaults = false))
+$(TypeFields(defaults = false))
 """
 Base.@kwdef struct Hidden
     a::Int = 1
