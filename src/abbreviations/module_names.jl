@@ -38,7 +38,7 @@ const EXPORTS = ModuleExports()
 function format(::ModuleExports, buf, doc)
     object = Base.invokelatest(Docs.resolve, doc_binding(doc))::Module
     # `names` also returns `public` names on Julia 1.11 and later.
-    return print_name_list(buf, object, filter(sym -> Base.isexported(object, sym), names(object)))
+    return print_name_list(buf, object, filter(sym -> Base.invokelatest(Base.isexported, object, sym)::Bool, names(object)))
 end
 
 function print_name_list(buf, object::Module, syms)
