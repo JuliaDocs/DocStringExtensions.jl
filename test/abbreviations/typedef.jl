@@ -40,6 +40,23 @@
         )
         str = formatted(DSE.TYPEDEF, doc)
         @test_reference ro_path("typedef_bittype32.txt") str
+
+        doc.data = Dict(
+            :binding => Docs.Binding(M, :BitParam),
+            :typesig => Union{},
+            :module => M,
+        )
+        str = formatted(DSE.TYPEDEF, doc)
+        @test_reference ro_path("typedef_bitparam.txt") str
+
+        # Symbol and Char parameters print quoted.
+        doc.data = Dict(
+            :binding => Docs.Binding(M, :SymbolChar),
+            :typesig => Union{},
+            :module => M,
+        )
+        str = formatted(DSE.TYPEDEF, doc)
+        @test_reference ro_path("typedef_symbol_char.txt") str
     end
 
     # A type parameter's bound and a supertype written with `<:T` print as written.

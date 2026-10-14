@@ -1,0 +1,5 @@
+
+```julia
+primitive type BitParam{T} <: Real 64
+```
+

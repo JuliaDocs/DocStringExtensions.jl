@@ -54,10 +54,11 @@ end
 # A type parameter as `print` writes it, with any parameter written `<:T` inside it as written.
 parameter_text(p::TypeVar, io) = typevar_text(p, io)
 parameter_text(@nospecialize(p::Type), io) = type_text(p, io)
-parameter_text(p, io) = p
+parameter_text(p, io) = repr(p)
 
 function print_primitive_type(buf, object, io)
     print(buf, "primitive type ", object.name.name)
+    print_params(buf, object, io)
     print_supertype(buf, object, io)
     print(buf, " ", sizeof(object) * 8)
     return println(buf)
