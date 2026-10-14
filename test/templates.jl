@@ -14,6 +14,11 @@
     @test occursin("(METHODS, MACROS)", rendered(:(TemplateTests.@m)))
     @test occursin("(METHODS, MACROS)", rendered(:(TemplateTests.r)))
     @test occursin("(METHODS, MACROS)", rendered(:(TemplateTests.early)))
+    @test rendered(:(TemplateTests.bare)) == "(DEFAULT)\n\nfunction `bare` documented by its bare name\n"
+    @test rendered(:(TemplateTests.never_defined)) == "(DEFAULT)\n\nname `never_defined` documented but never defined\n"
+    # A method defined through a `const` alias is still a method.
+    @test occursin("(METHODS, MACROS)", rendered(:(TemplateTests.aliased)))
+    @test occursin("(METHODS, MACROS)", rendered(:(TemplateTests.Point2)))
     @test occursin("(METHODS, MACROS)", rendered(:(TemplateTests.Inner)))
     @test occursin("(METHODS, MACROS)", rendered(:(TemplateTests.InnerParametric)))
     # `@doc` returns the binding before Julia 1.13 and the documented value from 1.13.
@@ -21,6 +26,8 @@
     @test doc_value(TemplateTests.DOC_VALUE) == doc_value(Untemplated.DOC_VALUE)
     @test rendered(:(TemplateTests.LateTemplate.before)) == "method `before`\n"
     @test rendered(:(TemplateTests.LateTemplate.after)) == "(LATE)\n\nmethod `after`\n"
+    # A template applies to a docstring expanded in the same block, before the template is set.
+    @test rendered(:(TemplateTests.BlockTemplate.inside)) == "(BLOCK)\n\nmethod `inside`\n"
     # Bindings documented together each get the template for their own category.
     @test occursin("(DEFAULT)", rendered(:(TemplateTests.paired)))
     @test occursin("(TYPES)", rendered(:(TemplateTests.Paired)))

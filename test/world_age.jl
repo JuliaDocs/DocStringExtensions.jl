@@ -58,4 +58,33 @@
     @test_reference ro_path("enumx_instances.txt") latest(DSE.INSTANCES, doc)
     doc.data = Dict(:binding => Docs.Binding(M, :Shape), :typesig => Union{})
     @test_reference ro_path("subtypes.txt") latest(DSE.SUBTYPES, doc)
+
+    # A module defined after this function started is newer than its world.
+    function stale_exports()
+        Core.eval(
+            Main, :(
+                module StaleExports
+                export area
+                area() = 1
+                end
+            )
+        )
+        doc.data = Dict(:binding => Docs.Binding(Main, :StaleExports), :typesig => Union{})
+        return formatted(DSE.EXPORTS, doc)
+    end
+    @test stale_exports() == "\n  - [`area`](@ref)\n\n"
+
+    # `@template` defines the module's templates during this expansion, after its world.
+    function expand_with_template(mod)
+        return macroexpand(
+            mod, quote
+                @template DEFAULT = "(STALE) $(DOCSTRING)"
+                "doc" f(x) = x
+            end
+        )
+    end
+    stale_templates = Module()
+    Core.eval(stale_templates, :(using DocStringExtensions))
+    expanded = @test_nowarn expand_with_template(stale_templates)
+    @test occursin("Template{:before}", string(expanded))
 end

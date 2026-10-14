@@ -79,6 +79,22 @@ module TemplateTests
     early(x)
     early(x) = x
 
+    function bare end
+    "function `bare` documented by its bare name"
+    bare
+
+    "name `never_defined` documented but never defined"
+    TemplateTests.never_defined
+
+    const aliased = f
+    "method `f` defined through the alias `aliased`"
+    aliased(x::Int) = x
+
+    struct Point{N} end
+    const Point2 = Point{2}
+    "constructor `Point{2}` defined through the alias `Point2`"
+    Point2(x::Int) = Point{2}()
+
     struct Inner
         x
         @doc "inner constructor `Inner`" Inner(x::Int) = new(x)
@@ -191,6 +207,23 @@ module TemplateTests
 
         "method `after`"
         after(x) = x
+    end
+
+    module BlockTemplate
+
+        using DocStringExtensions
+
+        begin
+            @template DEFAULT =
+            """
+            (BLOCK)
+
+            $(DOCSTRING)
+            """
+
+            "method `inside`"
+            inside(x) = x
+        end
     end
 
     module OtherModule

@@ -1,0 +1,9 @@
+```julia
+Scaled{T}(x)
+```
+
+```julia
+Scaled(x)
+```
+
+struct `Scaled`

@@ -17,3 +17,15 @@ callable `Type{<:Grid}`
 ```
 
 callable `Type{T}`
+
+```julia
+(::Type{V})(x) where {T, V<:Wrap{Vector{T}}}
+```
+
+```julia
+(::Type{V})(
+    x::Symbol
+) where {T, V<:Main.CallablesTestModule.Wrap{Vector{T}}}
+```
+
+callable `Type{V}` with a bound that names `T`

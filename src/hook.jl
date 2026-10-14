@@ -13,30 +13,30 @@ function _capture_expression(docstr::Expr, expr::Expr)
     end
     return docstr
 end
-_capture_expression(@nospecialize(other), ::Expr) = other
+_capture_expression(@nospecialize(other), @nospecialize(_)) = other
 
 _process_interpolation(str::AbstractString, ::QuoteNode) = str
 _process_interpolation(@nospecialize(expr), quoted::QuoteNode) = Expr(:call, interpolation, expr, quoted)
 
 # Runs in place of `Core.atdoc`, so it calls the default expander itself.
-function template_hook(source::LineNumberNode, mod::Module, docstr, expr::Expr, define...)
+function template_hook(source::LineNumberNode, mod::Module, docstr, expr::Union{Symbol, Expr}, define...)
     hooked(docstr) || (docstr = hook_docstring(mod, docstr, expr))
     out = expander(source, mod, docstr, expr, define...)
-    return isdefined(mod, TEMP_SYM) ? forward_doc_calls(out) : out
+    return has_templates(mod) ? forward_doc_calls(out) : out
 end
 # On Julia 1.6 and later, the `@doc` calls that `@__doc__` leaves carry two leading arguments
 # that `Docs.docm` drops.
-template_hook(source::LineNumberNode, mod::Module, _, _, docstr, expr::Expr, define::Bool) =
+template_hook(source::LineNumberNode, mod::Module, _, _, docstr, expr::Union{Symbol, Expr}, define::Bool) =
     template_hook(source, mod, docstr, expr, define)
 template_hook(args...) = expander(args...)
 
-function hook_docstring(mod::Module, docstr, expr::Expr)
+function hook_docstring(mod::Module, docstr, expr::Union{Symbol, Expr})
     docstr = _capture_expression(docstr, expr)
     # During macro expansion we only need to wrap docstrings in special
     # abbreviations that later print out what was before and after the
     # docstring in it's specific template. This is only done when the module
     # actually defines templates.
-    if isdefined(mod, TEMP_SYM)
+    if has_templates(mod)
         dict = module_templates(mod)
         # We unwrap interpolated strings so that we can add the `:before` and
         # `:after` abbreviations. Otherwise they're just left as is.

@@ -101,8 +101,10 @@ end
 
 const TEMP_SYM = gensym("templates")
 
-# The templates `@template` stores in `mod`, by category.
-module_templates(mod::Module) = getfield(mod, TEMP_SYM)::Dict{Symbol, Vector}
+# The templates `@template` stores in `mod`, by category. `@template` can define them during the
+# same macro expansion that reads them, after the reader's world.
+has_templates(mod::Module) = Base.invokelatest(isdefined, mod, TEMP_SYM)::Bool
+module_templates(mod::Module) = Base.invokelatest(getfield, mod, TEMP_SYM)::Dict{Symbol, Vector}
 
 function template(src::LineNumberNode, mod::Module, ex::Expr)
     Meta.isexpr(ex, :(=), 2) || error("invalid `@template` syntax.")
@@ -111,7 +113,7 @@ end
 
 function template(source::LineNumberNode, mod::Module, tuple::Expr, docstr::Union{String, Symbol, Expr})
     Meta.isexpr(tuple, :tuple) || error("invalid `@template` syntax on LHS.")
-    isdefined(mod, TEMP_SYM) || Core.eval(mod, :(const $(TEMP_SYM) = $(Dict{Symbol, Vector}())))
+    has_templates(mod) || Core.eval(mod, :(const $(TEMP_SYM) = $(Dict{Symbol, Vector}())))
     block = Expr(:block)
     for category in tuple.args
         key = Meta.quot(category)
@@ -147,7 +149,7 @@ function checked_template(parts::Vector)
 end
 
 function copied_template(source::Module, category::Symbol)
-    isdefined(source, TEMP_SYM) && haskey(module_templates(source), category) &&
+    has_templates(source) && haskey(module_templates(source), category) &&
         return module_templates(source)[category]
     name = nameof(source)
     throw(
@@ -179,8 +181,8 @@ reference to a module's templates. `expr` is the documented expression, which is
 passed to [`interpolation`](@ref) for each part of the template.
 """
 struct Template{Location} <: Abbreviation
-    dict::Dict{Symbol, Vector{Any}}
-    expr::Expr
+    dict::Dict{Symbol, Vector}
+    expr::Union{Symbol, Expr}
 end
 
 function format(abbr::Template, buf, doc)
@@ -234,8 +236,12 @@ end
 # Runs as each templated docstring is registered. Specialising on the documented object would
 # compile, and cache in the documenting package's image, an instance for every function.
 function template_key(binding::Docs.Binding, @nospecialize(typesig))
+    Base.invokelatest(isdefined, binding.mod, binding.var)::Bool || return :DEFAULT
     obj = Base.invokelatest(Docs.resolve, binding)
-    return objname(obj)::Symbol === binding.var ? template_category(obj, typesig, binding)::Symbol : :CONSTANTS
+    name = objname(obj)::Symbol
+    # A method defined through a `const` alias documents the method, not the alias.
+    defines_object = name === binding.var || typesig !== Union{} && name !== Symbol("")
+    return defines_object ? template_category(obj, typesig, binding)::Symbol : :CONSTANTS
 end
 template_key(doc::Docs.DocStr) = template_key(doc_binding(doc), doc.data[:typesig])
 

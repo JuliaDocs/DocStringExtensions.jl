@@ -118,7 +118,8 @@ An [`Abbreviation`](@ref) that prints the signatures of the documented method li
 [`SIGNATURES`](@ref), with the types of positional and keyword arguments and the inferred
 return type. See [`printmethod`](@ref) for the simplifications it applies. In the docstring
 of a struct, it prints the constructors that [`SIGNATURES`](@ref) lists. A callable such as
-`(e::E)(x::Int)` prints as `(e::Main.E)(x::Int64)` when `E` is defined in `Main`. A macro
+`(e::E)(x::Int)` prints as `(e::Main.E)(x::Int64)` when `E` is defined in `Main`. Before
+Julia 1.6, a callable and a constructor written `T{P}(...)` print without a return type. A macro
 prints as [`SIGNATURES`](@ref) prints it, with argument types such as `@m ex::Expr` and no
 inferred return type. An inferred return type that Julia would print with a name it generated,
 as for a parameter written `<:T` that no `const` alias gives, is left out.
@@ -139,7 +140,7 @@ julia> @doc area
 ```
 
 !!! tip "Changing the Return Type"
-    The return type is often inferred as `Any`. To leave it out, use
+    A return type inferred as `Any` is left out. To leave out every return type, use
     `\$(DocStringExtensions.TypedMethodSignatures(returns = false))`. To describe the
     return value yourself, pass a string: `TypedMethodSignatures(returns = "success::Bool")`
     prints `-> success::Bool` after each signature.

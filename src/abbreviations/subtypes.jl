@@ -59,7 +59,7 @@ function subtype_names!(found, typename, mod::Module, prefix)
         isdefined(mod, sym) || continue
         obj = getfield(mod, sym)
         if obj isa Module
-            obj !== mod && parentmodule(obj) === mod &&
+            obj !== mod && parentmodule(obj) === mod && nameof(obj) === sym &&
                 subtype_names!(found, typename, obj, "$prefix$sym.")
         elseif obj isa Type && defines_subtype(mod, sym, obj, typename)
             push!(found, "$prefix$sym")

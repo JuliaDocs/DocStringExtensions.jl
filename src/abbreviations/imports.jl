@@ -30,7 +30,7 @@ const IMPORTS = ModuleImports()
 
 function format(::ModuleImports, buf, doc)
     binding = doc_binding(doc)
-    object = Base.invokelatest(Docs.resolve, binding)
+    object = Base.invokelatest(Docs.resolve, binding)::Module
     imports = unique(Vector{Module}(ccall(:jl_module_usings, Any, (Any,), object)::Vector{Any}))
     return if !isempty(imports)
         println(buf)

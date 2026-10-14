@@ -43,14 +43,13 @@ groups = methodgroups(f, Union{Tuple{Any}, Tuple{Any, Integer}}, Main; exact = f
 """
 function methodgroups(func, typesig, modname; exact = true)
     methods = getmethods(func, typesig)
-    # A docstring on a constructor written as `T{P}(...)` documents a method of `Type{T{P}}`,
-    # and one on `(e::T)(x)` a method of `T`'s instances. A list of `T`'s methods leaves out
-    # the callables.
-    if func isa Type && typesig != Union{}
-        func isa UnionAll && append!(methods, constructor_methods(func, typesig))
-        exact && append!(methods, callable_methods(func, typesig))
-        unique!(methods)
+    # A constructor written as `T{P}(...)` is a method of `Type{T{P}}`, and `(e::T)(x)` a
+    # method of `T`'s instances. A list of `T`'s methods leaves out the callables.
+    if func isa UnionAll
+        append!(methods, constructor_methods(func, typesig == Union{} ? Tuple{Vararg{Any}} : typesig))
     end
+    func isa Type && typesig != Union{} && exact && append!(methods, callable_methods(func, typesig))
+    unique!(methods)
     # Group methods by file and line number.
     groups = groupby(Tuple{Symbol, Int}, Vector{Method}, methods) do m
         (m.file, m.line), m
@@ -258,11 +257,28 @@ skipped by its position in `methods(func, typesig)`.
 function method_return_type(func, method::Method, typesig)
     matching = collect(Base.invokelatest(methods, func, typesig)::Base.MethodList)
     idx = findfirst(m -> m === method, matching)
-    idx === nothing && return []
+    idx === nothing && return signature_return_type(method, typesig)
     # Inference cannot run a generator on abstract argument types: Julia 1.0 throws and 1.10
     # hits a `BoundsError` in Base. Other versions infer `Any` for a generated method itself.
     any(hasgenerator, matching) && !isconcretetype(typesig) && return []
     return Any[(Base.invokelatest(Base.return_types, func, typesig)::Vector{Any})[idx]]
+end
+
+# A callable `(e::T)(x)` or a constructor `T{P}(x)` is not a method of the documented `func`,
+# so `methods(func)` misses it. Julia 1.6 and later infer it from its full signature.
+function signature_return_type(method::Method, typesig)
+    isdefined(Base, :code_typed_by_type) || return []
+    args = Base.unwrap_unionall(typesig)
+    args isa DataType || return []
+    tt = typeintersect(method.sig, Base.rewrap_unionall(Tuple{Any, args.parameters...}, typesig))
+    tt === Union{} && return []
+    world = Base.get_world_counter()
+    matching = Any[match.method for match in Base.invokelatest(Base._methods_by_ftype, tt, -1, world)]
+    idx = findfirst(m -> m === method, matching)
+    idx === nothing && return []
+    any(hasgenerator, matching) && !isconcretetype(tt) && return []
+    typed = Base.invokelatest(Base.code_typed_by_type, tt; optimize = false, world = world)
+    return Any[last(typed[idx])]
 end
 
 if isdefined(Base, :hasgenerator)

@@ -10,6 +10,18 @@
             m = first(methods(f))
 
         @test DSE.printmethod(b, f, m) == "K(; a)"
+        withenv("DOCSTRINGEXTENSIONS_SIGNATURE_WIDTH" => "4") do
+            @test DSE.printmethod(b, f, m) == "K(;\n    a\n)"
+        end
+    end
+    let b = Docs.Binding(Main, :f),
+            f = () -> 1,
+            m = first(methods(f))
+
+        # A call without arguments has nothing to wrap.
+        withenv("DOCSTRINGEXTENSIONS_SIGNATURE_WIDTH" => "1") do
+            @test DSE.printmethod(b, f, m) == "f()"
+        end
     end
     let b = Docs.Binding(Main, :f),
             f = (x, ::String) -> x,
@@ -42,6 +54,26 @@
         typed = DSE.printmethod(IOBuffer(), b, f, m, DSE.argsig(m); returns = false)
         @test String(take!(typed)) == "k_19(x::S) where {T, S<:Ref{T}}"
     end
+    let b = Docs.Binding(M, :k_24),
+            f = M.k_24,
+            m = first(methods(f))
+
+        # A bound that names another type parameter keeps its alias, which `show` writes from
+        # Julia 1.6.
+        typed = DSE.printmethod(IOBuffer(), b, f, m, DSE.argsig(m); returns = false)
+        vector = VERSION < v"1.6" ? "Array{T,1}" : "Vector{T}"
+        @test String(take!(typed)) == "k_24(x::T, y::S) where {T, S<:$vector}"
+    end
+    let b = Docs.Binding(M, :k_25),
+            f = M.k_25,
+            m = first(methods(f))
+
+        # A parameter that inference cannot work out prints as its bound. Julia 1.3 and later
+        # name it from a list inference keeps; earlier versions name it `_1`, printed as is.
+        typed = String(take!(DSE.printmethod(IOBuffer(), b, f, m, DSE.argsig(m))))
+        expected = VERSION < v"1.3" ? "Main.M.Pairing{_1,typeof(sin)} where _1" : "Main.M.Pairing{<:Any, typeof(sin)}"
+        @test typed == "k_25(x) -> $expected"
+    end
     let b = Docs.Binding(M, :Param2),
             f = M.Param2,
             m = first(methods(M.Param2{Int}, Tuple{Any}))
@@ -69,6 +101,8 @@
             m = first(methods(f))
 
         @test DSE.printmethod(b, f, m) == "f(x)"
+        # A return type inferred as `Any` tells the reader nothing, so it is left out.
+        @test String(take!(DSE.printmethod(IOBuffer(), b, f, m, Tuple{Any}))) == "f(x)"
         let result = @test_throws ErrorException DSE.printmethod(IOBuffer(), b, f, m, Ref)
             @test result.value.msg == "Expected `typeof(Ref{T})` to be `Tuple` or `UnionAll` but found `DataType`"
         end

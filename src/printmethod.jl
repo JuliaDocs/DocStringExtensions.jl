@@ -16,8 +16,12 @@ end
 
 # `binding(args; kws)` on one line, or with each argument on its own line when `multiline`.
 function print_call(io::IO, binding, args, kws, multiline::Bool)
-    newline, sep, indent = multiline ? ("\n", "\n", "    ") : ("", " ", "")
-    print(io, binding, "(", newline)
+    # A call without arguments stays `f()`, however long what follows it.
+    wrap = multiline && !(isempty(args) && isempty(kws))
+    newline, sep, indent = wrap ? ("\n", "\n", "    ") : ("", " ", "")
+    print(io, binding, "(")
+    # A keyword-only call keeps `;` on the first line, as in `f(;`.
+    isempty(args) || print(io, newline)
     print_arguments(io, args, sep, indent)
     if !isempty(kws)
         print(io, ";", sep)
@@ -79,9 +83,9 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         # The binding `Type` does not say which types the callable takes, so print them as
         # their module names them, with any type parameter they use.
         used = used_typevars(typevars(method.sig), [instance])
-        context = :module => method.module
-        vars = String[typevar_text(v, IOContext(aliases, context)) for v in used]
-        instance_call(method, type_text(instance, IOContext(unionall_env(used, aliases), context)))
+        env = IOContext(unionall_env(used, aliases), :module => method.module)
+        vars = String[typevar_text(v, env) for v in used]
+        instance_call(method, type_text(instance, env))
     else
         instance_call(method, string(binding.var))
     end
@@ -201,7 +205,7 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         instance === nothing ? callable_name(binding, params, typestring) : instance_call(method, typestring(instance)),
         args,
         kws;
-        where_clause = where_clause([typevar_text(v, aliases) for v in used]),
+        where_clause = where_clause([typevar_text(v, env) for v in used]),
         return_type = return_annotation(returns, func, method, typesig),
         macrocall = ismacro(method)
     )
@@ -258,10 +262,12 @@ function return_annotation(returns::Bool, func, method::Method, typesig)
     # A macro returns the expression it generates, whose type tells the reader nothing.
     returns && !ismacro(method) || return ""
     rt = method_return_type(func, method, typesig)
-    (isempty(rt) || rt[1] === Nothing || rt[1] === Union{}) && return ""
-    text = type_text(rt[1], alias_context(method.module))
+    # `Any` says only that inference gave up.
+    (isempty(rt) || rt[1] === Nothing || rt[1] === Union{} || rt[1] === Any) && return ""
+    io = IOContext(alias_context(method.module), :DocStringExtensions_inferred => true)
+    text = type_text(rt[1], io)
     # Inference leaves no source to write a generated type variable from.
-    return shows_anonymous(rt[1], text) ? "" : return_annotation(text, func, method, typesig)
+    return shows_anonymous(rt[1], text, io) ? "" : return_annotation(text, func, method, typesig)
 end
 
 printmethod(b, f, m) = String(take!(printmethod(IOBuffer(), b, f, m)))

@@ -322,7 +322,8 @@
         str = formatted(DSE.TYPEDSIGNATURES, doc)
         @test_reference ro_path("typed_method_signatures_k22.txt") str
 
-        str = formatted(DSE.TYPEDSIGNATURES, param_constructor_doc())
+        # Return types of `T{P}(...)` constructors are tested under `callable return types`.
+        str = formatted(DSE.TypedMethodSignatures(returns = false), param_constructor_doc())
         @test_reference ro_path("typed_method_signatures_parametric_constructor.txt") str
     end
 
@@ -451,6 +452,13 @@
         end
     end
 
+    # Before Julia 1.6 Base cannot infer a method by its signature alone, so these print
+    # without a return type.
+    @testset "callable return types" begin
+        str = join([rendered(:(CallablesTestModule.$name)) for name in [:Counter, :Boxed]], "\n")
+        @test_reference ro_path(VERSION >= v"1.6" ? "signatures_callable_returns.txt" : "signatures_callable_returns_pre_16.txt") str
+    end
+
     # A parameter written `<:T` prints as written, and `Ref{<:Any}` as `Ref`, on every version.
     @testset "anonymous type parameter signatures" begin
         names = [:grids, :unnamed, :anys, :bounded, :scaled, :scalar, :small, :deep, :keyed, :boxed, :kind, :held]
@@ -458,11 +466,12 @@
         @test_reference ro_path("signatures_anonymous.txt") str
     end
 
-    # A callable on `Type{<:T}` is filed under `Type`, so it prints the instance type.
+    # A callable on `Type{<:T}` is filed under `Type`, so it prints the instance type. Before
+    # Julia 1.6 `show` writes `Vector{T}` as `Array{T,1}`.
     @testset "Type callable signatures" begin
         multidoc = Docs.meta(CallablesTestModule)[Docs.Binding(Core, :Type)]
         str = join([Markdown.plain(Docs.parsedoc(multidoc.docs[sig])) for sig in multidoc.order], "\n")
-        @test_reference ro_path("signatures_type_callables.txt") str
+        @test_reference ro_path(VERSION < v"1.6" ? "signatures_type_callables_pre_16.txt" : "signatures_type_callables.txt") str
     end
 
     @testset "signature destructuring" begin
