@@ -59,9 +59,15 @@ simplifications include:
 
 # Examples
 
-```julia
-f(x; a = 1, b...) = x
-sig = printmethod(Docs.Binding(Main, :f), f, first(methods(f)))
+```jldoctest
+julia> f(x; a = 1, b...) = x;
+
+julia> buffer = IOBuffer();
+
+julia> DocStringExtensions.printmethod(buffer, Docs.Binding(@__MODULE__, :f), f, first(methods(f)));
+
+julia> String(take!(buffer))
+"f(x; a, b...)"
 ```
 """
 function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method; definition = nothing, returns = false, brackets = false)
@@ -161,9 +167,15 @@ clause after the arguments. Default values are left out unless `definition` give
 
 # Examples
 
-```julia
-f(x::Int; a = 1, b...) = x
-sig = printmethod(Docs.Binding(Main, :f), f, first(methods(f)))
+```jldoctest
+julia> f(x::Int; a = 1, b...) = x;
+
+julia> buffer = IOBuffer();
+
+julia> DocStringExtensions.printmethod(buffer, Docs.Binding(@__MODULE__, :f), f, first(methods(f)), Tuple{Int});
+
+julia> String(take!(buffer))
+"f(x::Int64; a, b...) -> Int64"
 ```
 """
 function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method, typesig; returns = true, definition = nothing, brackets = false)
