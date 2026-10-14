@@ -71,6 +71,8 @@ jobs:
           # The cleanup script calls `isnothing`, which Julia 1.0 lacks.
           delete-old-caches: ${{ matrix.version != '1.0' }}
       - uses: julia-actions/julia-runtest@6e050c8013b833b1195105ff2fce9cd802f53271 # v1.12.0
+        with:
+          depwarn: error
       - uses: julia-actions/julia-processcoverage@03114f09f119417c3242a9fb6e0b722676aedf38 # v1.2.2
       - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
