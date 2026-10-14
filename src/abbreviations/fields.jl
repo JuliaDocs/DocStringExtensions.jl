@@ -9,6 +9,7 @@ $(:SIGNATURES)
 
 The abbreviation behind [`FIELDS`](@ref) and [`TYPEDFIELDS`](@ref). `types = true` prints the
 type of each field, as `TYPEDFIELDS` does. `defaults = false` leaves out the default values.
+By default `types = false` and `defaults = true`, as in `FIELDS`.
 """
 TypeFields(; types::Bool = false, defaults::Bool = true) = TypeFields(types, defaults, nothing)
 

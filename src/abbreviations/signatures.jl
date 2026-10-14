@@ -20,7 +20,7 @@ $(:SIGNATURES)
 The abbreviation behind [`SIGNATURES`](@ref). `returns = true` follows each signature with its
 inferred return type, and a string such as `"success::Bool"` prints in its place.
 `defaults = true` shows default values. `defaults = :brackets` marks each optional positional
-argument in brackets.
+argument in brackets. By default `returns = false` and `defaults = false`, as in `SIGNATURES`.
 """
 MethodSignatures(; returns::Union{Bool, String} = false, defaults::Union{Bool, Symbol} = false) =
     MethodSignatures(returns, check_defaults(defaults), nothing, nothing)
@@ -106,7 +106,8 @@ $(:SIGNATURES)
 
 The abbreviation behind [`TYPEDSIGNATURES`](@ref). `returns = false` leaves out the return
 types, and a string such as `"success::Bool"` prints in their place. `defaults` takes the
-values that [`MethodSignatures`](@ref) takes.
+values that [`MethodSignatures`](@ref) takes. By default `returns = true` and
+`defaults = false`, as in `TYPEDSIGNATURES`.
 """
 TypedMethodSignatures(; returns::Union{Bool, String} = true, defaults::Union{Bool, Symbol} = false) =
     TypedMethodSignatures(returns, check_defaults(defaults), nothing, nothing)

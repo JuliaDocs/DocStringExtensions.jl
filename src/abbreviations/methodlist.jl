@@ -6,7 +6,7 @@ end
 $(:SIGNATURES)
 
 The abbreviation behind [`METHODLIST`](@ref). `returns = true` follows each signature with
-its inferred return type.
+its inferred return type. By default `returns = false`, as in `METHODLIST`.
 """
 MethodList(; returns::Bool = false) = MethodList(returns)
 
@@ -52,7 +52,7 @@ end
 $(:SIGNATURES)
 
 The abbreviation behind [`TYPEDMETHODLIST`](@ref). `returns = false` leaves out the return
-types.
+types. By default `returns = true`, as in `TYPEDMETHODLIST`.
 """
 TypedMethodList(; returns::Bool = true) = TypedMethodList(returns)
 
