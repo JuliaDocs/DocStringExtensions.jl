@@ -112,6 +112,20 @@
         [which(M.overlapping, Tuple{Int8}), which(M.overlapping, Tuple{Integer})]
     @test Base.return_types(M.overlapping, Tuple{Integer}) == [Int8, String]
 
+    # From Julia 1.6, `Base._methods_by_ftype` lists the methods matching a full signature,
+    # and `Base.code_typed_by_type` infers each, in the same order.
+    #
+    # Used in src/methods.jl by signature_return_type().
+    if VERSION >= v"1.6"
+        let tt = Tuple{typeof(M.overlapping), Integer},
+                world = Base.get_world_counter()
+
+            @test [match.method for match in Base._methods_by_ftype(tt, -1, world)] ==
+                [which(M.overlapping, Tuple{Int8}), which(M.overlapping, Tuple{Integer})]
+            @test last.(Base.code_typed_by_type(tt; optimize = false, world = world)) == [Int8, String]
+        end
+    end
+
     # A method's argument types, without the function type.
     #
     # Used in src/methods.jl by argsig().

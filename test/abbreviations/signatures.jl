@@ -322,7 +322,8 @@
         str = formatted(DSE.TYPEDSIGNATURES, doc)
         @test_reference ro_path("typed_method_signatures_k22.txt") str
 
-        str = formatted(DSE.TYPEDSIGNATURES, param_constructor_doc())
+        # Return types of `T{P}(...)` constructors are tested under `callable return types`.
+        str = formatted(DSE.TypedMethodSignatures(returns = false), param_constructor_doc())
         @test_reference ro_path("typed_method_signatures_parametric_constructor.txt") str
     end
 
@@ -449,6 +450,13 @@
         else
             @test_reference ro_path("signatures_callables_pre_19.txt") str
         end
+    end
+
+    # Before Julia 1.6 Base cannot infer a method by its signature alone, so these print
+    # without a return type.
+    @testset "callable return types" begin
+        str = join([rendered(:(CallablesTestModule.$name)) for name in [:Counter, :Boxed]], "\n")
+        @test_reference ro_path(VERSION >= v"1.6" ? "signatures_callable_returns.txt" : "signatures_callable_returns_pre_16.txt") str
     end
 
     # A parameter written `<:T` prints as written, and `Ref{<:Any}` as `Ref`, on every version.

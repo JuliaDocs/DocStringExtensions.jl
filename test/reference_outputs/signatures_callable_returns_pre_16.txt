@@ -1,0 +1,11 @@
+```julia
+(c::Main.CallablesTestModule.Counter)(x::Int8)
+```
+
+callable `Counter` with its return type
+
+```julia
+Boxed{T}(x::Int8, y::Int8) where T
+```
+
+constructor `Boxed{T}` with its return type

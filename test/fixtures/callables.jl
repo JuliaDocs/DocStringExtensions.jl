@@ -99,6 +99,26 @@ callable `Type{V}` with a bound that names `T`
 """
 (::Type{V})(x::Symbol) where {T, V <: Wrap{Vector{T}}} = V()
 
+struct Counter
+    n::Int8
+end
+
+"""
+$(TYPEDSIGNATURES)
+callable `Counter` with its return type
+"""
+(c::Counter)(x::Int8) = x
+
+struct Boxed{T}
+    x::T
+end
+
+"""
+$(TYPEDSIGNATURES)
+constructor `Boxed{T}` with its return type
+"""
+Boxed{T}(x::Int8, y::Int8) where {T} = Boxed{T}(T(x + y))
+
 struct Listed{NF}
     r::NF
 end
