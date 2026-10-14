@@ -101,6 +101,8 @@
             m = first(methods(f))
 
         @test DSE.printmethod(b, f, m) == "f(x)"
+        # A return type inferred as `Any` tells the reader nothing, so it is left out.
+        @test String(take!(DSE.printmethod(IOBuffer(), b, f, m, Tuple{Any}))) == "f(x)"
         let result = @test_throws ErrorException DSE.printmethod(IOBuffer(), b, f, m, Ref)
             @test result.value.msg == "Expected `typeof(Ref{T})` to be `Tuple` or `UnionAll` but found `DataType`"
         end

@@ -262,7 +262,8 @@ function return_annotation(returns::Bool, func, method::Method, typesig)
     # A macro returns the expression it generates, whose type tells the reader nothing.
     returns && !ismacro(method) || return ""
     rt = method_return_type(func, method, typesig)
-    (isempty(rt) || rt[1] === Nothing || rt[1] === Union{}) && return ""
+    # `Any` says only that inference gave up.
+    (isempty(rt) || rt[1] === Nothing || rt[1] === Union{} || rt[1] === Any) && return ""
     io = IOContext(alias_context(method.module), :DocStringExtensions_inferred => true)
     text = type_text(rt[1], io)
     # Inference leaves no source to write a generated type variable from.

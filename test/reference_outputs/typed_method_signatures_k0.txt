@@ -1,5 +1,5 @@
 
 ```julia
-k_0(x::T) where T -> Any
+k_0(x::T) where T
 ```
 

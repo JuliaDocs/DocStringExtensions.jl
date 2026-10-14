@@ -79,7 +79,7 @@ julia> @doc scale
 ```
 
 !!! tip "Disabling the Return Type"
-    The return type is often inferred as `Any`. To leave it out, use
+    A return type inferred as `Any` is left out. To leave out every return type, use
     `\$(DocStringExtensions.TypedMethodList(returns = false))`.
 """
 const TYPEDMETHODLIST = TypedMethodList()

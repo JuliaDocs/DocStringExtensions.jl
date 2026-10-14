@@ -140,7 +140,7 @@ julia> @doc area
 ```
 
 !!! tip "Changing the Return Type"
-    The return type is often inferred as `Any`. To leave it out, use
+    A return type inferred as `Any` is left out. To leave out every return type, use
     `\$(DocStringExtensions.TypedMethodSignatures(returns = false))`. To describe the
     return value yourself, pass a string: `TypedMethodSignatures(returns = "success::Bool")`
     prints `-> success::Bool` after each signature.
