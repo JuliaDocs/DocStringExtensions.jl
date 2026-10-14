@@ -125,4 +125,10 @@ const SymbolChar = Tag{:a, 'c'}
 
 k_24(x::T, y::S) where {T, S <: Vector{T}} = 1
 
+struct Pairing{A, F}
+    a::A
+    f::F
+end
+k_25(x) = Pairing(x, sin)
+
 end

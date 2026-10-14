@@ -278,10 +278,7 @@ function signature_return_type(method::Method, typesig)
     idx === nothing && return []
     any(hasgenerator, matching) && !isconcretetype(tt) && return []
     typed = Base.invokelatest(Base.code_typed_by_type, tt; optimize = false, world = world)
-    rt = last(typed[idx])
-    # Julia 1.6 infers a bare `P` as `P{_A} where _A`, which equals `P`.
-    body = Base.unwrap_unionall(rt)
-    return Any[body isa DataType && rt == body.name.wrapper ? body.name.wrapper : rt]
+    return Any[last(typed[idx])]
 end
 
 if isdefined(Base, :hasgenerator)

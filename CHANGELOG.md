@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fix inferred return types printing the names inference gives the type parameters it cannot work out, such as `-> Pair{_A, Int} where _A`. They print as their bound, `-> Pair{<:Any, Int}`, on Julia 1.3 and later
 - Fix `TYPEDSIGNATURES` leaving out the return type of a callable such as `(e::E)(x)` and of a constructor written `T{P}(...)`. Before Julia 1.6 they still print without one ([#279](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/279))
 - Fix a wrapped signature with only keyword arguments printing `;` alone on its own line. It prints `f(;` on the first line. A signature without arguments no longer wraps, so a long return type follows `f()` ([#281](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/281))
 - Fix `METHODLIST` and `TYPEDMETHODLIST` in a parametric type's docstring leaving out the constructors written `T{P}(...)` ([#280](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/280))

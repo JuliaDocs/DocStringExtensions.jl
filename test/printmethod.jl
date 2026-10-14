@@ -64,6 +64,16 @@
         vector = VERSION < v"1.6" ? "Array{T,1}" : "Vector{T}"
         @test String(take!(typed)) == "k_24(x::T, y::S) where {T, S<:$vector}"
     end
+    let b = Docs.Binding(M, :k_25),
+            f = M.k_25,
+            m = first(methods(f))
+
+        # A parameter that inference cannot work out prints as its bound. Julia 1.3 and later
+        # name it from a list inference keeps; earlier versions name it `_1`, printed as is.
+        typed = String(take!(DSE.printmethod(IOBuffer(), b, f, m, DSE.argsig(m))))
+        expected = VERSION < v"1.3" ? "Main.M.Pairing{_1,typeof(sin)} where _1" : "Main.M.Pairing{<:Any, typeof(sin)}"
+        @test typed == "k_25(x) -> $expected"
+    end
     let b = Docs.Binding(M, :Param2),
             f = M.Param2,
             m = first(methods(M.Param2{Int}, Tuple{Any}))

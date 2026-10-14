@@ -112,6 +112,17 @@
         [which(M.overlapping, Tuple{Int8}), which(M.overlapping, Tuple{Integer})]
     @test Base.return_types(M.overlapping, Tuple{Integer}) == [Int8, String]
 
+    # From Julia 1.3, inference names a type parameter it cannot work out from
+    # `Core.Compiler._tvarnames`, as in `Pairing{_A, typeof(sin)} where _A`.
+    #
+    # Used in src/type_text.jl by isanonymous(), for inferred return types.
+    if VERSION >= v"1.3"
+        let rt = only(Base.return_types(M.k_25, Tuple{Any}))
+            @test rt isa UnionAll && rt.var.name in Core.Compiler._tvarnames
+            @test rt == M.Pairing{<:Any, typeof(sin)}
+        end
+    end
+
     # From Julia 1.6, `Base._methods_by_ftype` lists the methods matching a full signature,
     # and `Base.code_typed_by_type` infers each, in the same order.
     #

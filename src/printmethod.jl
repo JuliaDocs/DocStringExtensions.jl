@@ -263,9 +263,10 @@ function return_annotation(returns::Bool, func, method::Method, typesig)
     returns && !ismacro(method) || return ""
     rt = method_return_type(func, method, typesig)
     (isempty(rt) || rt[1] === Nothing || rt[1] === Union{}) && return ""
-    text = type_text(rt[1], alias_context(method.module))
+    io = IOContext(alias_context(method.module), :DocStringExtensions_inferred => true)
+    text = type_text(rt[1], io)
     # Inference leaves no source to write a generated type variable from.
-    return shows_anonymous(rt[1], text) ? "" : return_annotation(text, func, method, typesig)
+    return shows_anonymous(rt[1], text, io) ? "" : return_annotation(text, func, method, typesig)
 end
 
 printmethod(b, f, m) = String(take!(printmethod(IOBuffer(), b, f, m)))

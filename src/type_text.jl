@@ -2,6 +2,16 @@
 # as `var"#s1"` in `Vector{var"#s1"} where var"#s1"<:Real` for `Vector{<:Real}`.
 isanonymous(v::TypeVar) = startswith(string(v.name), "#")
 
+# Inference names a type parameter it cannot work out from a fixed list, as in
+# `Pair{_A, Int} where _A` for `Pair{<:Any, Int}`. Julia 1.0 to 1.2 keep no such list.
+const INFERRED_NAMES = isdefined(Core.Compiler, :_tvarnames) ? Core.Compiler._tvarnames : Symbol[]
+
+# Whether `v` is anonymous in `io`, which marks with `:DocStringExtensions_inferred` a type that
+# inference made. A parameter its source names `_A` is only taken for one of inference's in such
+# a type.
+isanonymous(v::TypeVar, io::IO) =
+    isanonymous(v) || get(io, :DocStringExtensions_inferred, false)::Bool && v.name in INFERRED_NAMES
+
 # `t` as `show` prints it in `io`, with each anonymous type variable that `show` would print by
 # its generated name written as its bound, as in `Vector{<:Real}`. `show` prints the generated
 # name before Julia 1.7, and inside `Type{<:T}` on 1.14.
@@ -56,7 +66,7 @@ end
 # neither writes stays as `show` prints it.
 function name_anonymous!(names, @nospecialize(t), io::IO)
     if t isa UnionAll
-        isanonymous(t.var) || return UnionAll(t.var, name_anonymous!(names, t.body, io))
+        isanonymous(t.var, io) || return UnionAll(t.var, name_anonymous!(names, t.body, io))
         body = Base.unwrap_unionall(t)
         # `Ref{<:Any}` is `Ref`, which `show` prints bare on every version.
         body isa DataType && t == body.name.wrapper && return body.name.wrapper
@@ -180,11 +190,12 @@ function foreach_type(f, @nospecialize(t))
 end
 
 # Whether `text`, which `type_text` printed for `t`, still shows a name Julia generated for one of
-# the type variables of `t`.
-function shows_anonymous(@nospecialize(t), text)
+# the type variables of `t`, anonymous as `io` judges them.
+function shows_anonymous(@nospecialize(t), text, io::IO)
     anonymous = Symbol[]
-    foreach_type(part -> part isa UnionAll && isanonymous(part.var) && push!(anonymous, part.var.name), t)
-    return any(name -> occursin(string(name), text), anonymous)
+    foreach_type(part -> part isa UnionAll && isanonymous(part.var, io) && push!(anonymous, part.var.name), t)
+    # Whole names only: `_A` also appears inside a name such as `MAX_A`.
+    return any(name -> occursin(Regex("(?<!\\w)" * string(name) * "(?!\\w)"), text), anonymous)
 end
 
 # The name of the alias `name` of `mod` as `show` writes a type name in `io`: bare when it is
