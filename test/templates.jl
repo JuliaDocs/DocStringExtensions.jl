@@ -14,6 +14,7 @@
     @test occursin("(METHODS, MACROS)", rendered(:(TemplateTests.@m)))
     @test occursin("(METHODS, MACROS)", rendered(:(TemplateTests.r)))
     @test occursin("(METHODS, MACROS)", rendered(:(TemplateTests.early)))
+    @test rendered(:(TemplateTests.bare)) == "(DEFAULT)\n\nfunction `bare` documented by its bare name\n"
     @test rendered(:(TemplateTests.never_defined)) == "(DEFAULT)\n\nname `never_defined` documented but never defined\n"
     # A method defined through a `const` alias is still a method.
     @test occursin("(METHODS, MACROS)", rendered(:(TemplateTests.aliased)))

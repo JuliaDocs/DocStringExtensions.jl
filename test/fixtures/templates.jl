@@ -79,6 +79,10 @@ module TemplateTests
     early(x)
     early(x) = x
 
+    function bare end
+    "function `bare` documented by its bare name"
+    bare
+
     "name `never_defined` documented but never defined"
     TemplateTests.never_defined
 

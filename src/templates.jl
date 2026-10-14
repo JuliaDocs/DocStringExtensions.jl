@@ -180,7 +180,7 @@ passed to [`interpolation`](@ref) for each part of the template.
 """
 struct Template{Location} <: Abbreviation
     dict::Dict{Symbol, Vector}
-    expr::Expr
+    expr::Union{Symbol, Expr}
 end
 
 function format(abbr::Template, buf, doc)
