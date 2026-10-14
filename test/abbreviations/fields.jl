@@ -42,7 +42,11 @@
         @test DSE.TypeFields() === FIELDS
         @test DSE.TypeFields(types = true) === TYPEDFIELDS
         @test DSE.TypeFields(types = true, defaults = false) === DSE.TypeFields(true, false, nothing)
-        @test (@test_deprecated DSE.TypeFields(true; defaults = false)) === DSE.TypeFields(true, false, nothing)
+        @test_deprecated DSE.TypeFields(true; defaults = false)
+        # Under `--depwarn=error`, as CI runs, the deprecated call throws and has no value to check.
+        if Base.JLOptions().depwarn != 2
+            @test (@test_logs (:warn,) DSE.TypeFields(true; defaults = false)) === DSE.TypeFields(true, false, nothing)
+        end
     end
 
     @testset "code_span" begin

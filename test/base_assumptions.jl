@@ -201,7 +201,7 @@
     # type `A`, egal to the binding's value.
     #
     # Used in src/methods.jl by constructor_parameters().
-    let self(m) = Base.unwrap_unionall(Base.unwrap_unionall(m.sig).parameters[1]).parameters[1],
+    let self(m) = DSE.type_parameter(Base.unwrap_unionall(DSE.self_type(m))),
             A = AliasesTestModule
 
         @test self(which(A.Mat, (Matrix{Int},))) === A.Mat
