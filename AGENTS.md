@@ -49,11 +49,8 @@ just fmt-check  # Check without changing files, as CI does
 ## Building docs
 
 ```bash
-julia --project=docs <<'EOF'
-using Pkg; Pkg.develop(PackageSpec(path = pwd())); Pkg.instantiate()
-include("docs/make.jl")
-EOF
-git checkout docs/Project.toml
+julia --project=docs docs/instantiate.jl
+julia --project=docs docs/make.jl
 ```
 
-`Pkg.develop` adds the package to `docs/Project.toml`. The `git checkout` keeps that edit out of the commit.
+`docs/Project.toml` takes DocStringExtensions from this checkout and Documenter from `docs/deps/Documenter` through `[sources]`. Documenter depends on DocStringExtensions, so `docs/instantiate.jl` clones the latest Documenter there and widens its compat bound when it leaves out this version.
