@@ -95,6 +95,16 @@ $(SIGNATURES)
 """
 abstract type Abstract end
 
+"""
+$(METHODLIST)
+struct `Scaled`
+"""
+struct Scaled{T}
+    x::T
+    Scaled{T}(x::Int) where {T} = new{T}(T(x))
+end
+Scaled(x::Float64) = Scaled{Float64}(1)
+
 module Templated
 
     using DocStringExtensions

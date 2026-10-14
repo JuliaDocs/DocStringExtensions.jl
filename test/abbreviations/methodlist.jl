@@ -60,6 +60,12 @@
         @test_reference ro_path("method_lists_callables.txt") replace(str, r"defined at .*\n\n" => "")
     end
 
+    # A parametric type's list holds its constructors written `T{P}(...)`.
+    @testset "parametric constructor lists" begin
+        str = rendered(:(ConstructorsTestModule.Scaled))
+        @test_reference ro_path("method_lists_parametric_constructors.txt") replace(str, r"defined at .*\n\n" => "")
+    end
+
     # A macro lists without `__source__` and `__module__`. The link names this checkout's
     # commit, so it is dropped.
     @testset "macro lists" begin

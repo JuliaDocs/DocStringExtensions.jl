@@ -43,14 +43,13 @@ groups = methodgroups(f, Union{Tuple{Any}, Tuple{Any, Integer}}, Main; exact = f
 """
 function methodgroups(func, typesig, modname; exact = true)
     methods = getmethods(func, typesig)
-    # A docstring on a constructor written as `T{P}(...)` documents a method of `Type{T{P}}`,
-    # and one on `(e::T)(x)` a method of `T`'s instances. A list of `T`'s methods leaves out
-    # the callables.
-    if func isa Type && typesig != Union{}
-        func isa UnionAll && append!(methods, constructor_methods(func, typesig))
-        exact && append!(methods, callable_methods(func, typesig))
-        unique!(methods)
+    # A constructor written as `T{P}(...)` is a method of `Type{T{P}}`, and `(e::T)(x)` a
+    # method of `T`'s instances. A list of `T`'s methods leaves out the callables.
+    if func isa UnionAll
+        append!(methods, constructor_methods(func, typesig == Union{} ? Tuple{Vararg{Any}} : typesig))
     end
+    func isa Type && typesig != Union{} && exact && append!(methods, callable_methods(func, typesig))
+    unique!(methods)
     # Group methods by file and line number.
     groups = groupby(Tuple{Symbol, Int}, Vector{Method}, methods) do m
         (m.file, m.line), m
