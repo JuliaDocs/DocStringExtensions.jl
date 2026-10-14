@@ -9,6 +9,6 @@ jobs:
   register:
     runs-on: ubuntu-latest
     steps:
-      - uses: julia-actions/RegisterAction@latest
+      - uses: julia-actions/RegisterAction@d391a7f14ee6db8ad3f8cd26f6da1a6c6fd5b7fb # v0.3.2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
