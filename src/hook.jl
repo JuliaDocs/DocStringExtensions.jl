@@ -22,7 +22,7 @@ _process_interpolation(@nospecialize(expr), quoted::QuoteNode) = Expr(:call, int
 function template_hook(source::LineNumberNode, mod::Module, docstr, expr::Union{Symbol, Expr}, define...)
     hooked(docstr) || (docstr = hook_docstring(mod, docstr, expr))
     out = expander(source, mod, docstr, expr, define...)
-    return isdefined(mod, TEMP_SYM) ? forward_doc_calls(out) : out
+    return has_templates(mod) ? forward_doc_calls(out) : out
 end
 # On Julia 1.6 and later, the `@doc` calls that `@__doc__` leaves carry two leading arguments
 # that `Docs.docm` drops.
@@ -36,7 +36,7 @@ function hook_docstring(mod::Module, docstr, expr::Union{Symbol, Expr})
     # abbreviations that later print out what was before and after the
     # docstring in it's specific template. This is only done when the module
     # actually defines templates.
-    if isdefined(mod, TEMP_SYM)
+    if has_templates(mod)
         dict = module_templates(mod)
         # We unwrap interpolated strings so that we can add the `:before` and
         # `:after` abbreviations. Otherwise they're just left as is.

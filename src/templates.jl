@@ -101,8 +101,10 @@ end
 
 const TEMP_SYM = gensym("templates")
 
-# The templates `@template` stores in `mod`, by category.
-module_templates(mod::Module) = getfield(mod, TEMP_SYM)::Dict{Symbol, Vector}
+# The templates `@template` stores in `mod`, by category. `@template` can define them during the
+# same macro expansion that reads them, after the reader's world.
+has_templates(mod::Module) = Base.invokelatest(isdefined, mod, TEMP_SYM)::Bool
+module_templates(mod::Module) = Base.invokelatest(getfield, mod, TEMP_SYM)::Dict{Symbol, Vector}
 
 function template(src::LineNumberNode, mod::Module, ex::Expr)
     Meta.isexpr(ex, :(=), 2) || error("invalid `@template` syntax.")
@@ -111,7 +113,7 @@ end
 
 function template(source::LineNumberNode, mod::Module, tuple::Expr, docstr::Union{String, Symbol, Expr})
     Meta.isexpr(tuple, :tuple) || error("invalid `@template` syntax on LHS.")
-    isdefined(mod, TEMP_SYM) || Core.eval(mod, :(const $(TEMP_SYM) = $(Dict{Symbol, Vector}())))
+    has_templates(mod) || Core.eval(mod, :(const $(TEMP_SYM) = $(Dict{Symbol, Vector}())))
     block = Expr(:block)
     for category in tuple.args
         key = Meta.quot(category)
@@ -147,7 +149,7 @@ function checked_template(parts::Vector)
 end
 
 function copied_template(source::Module, category::Symbol)
-    isdefined(source, TEMP_SYM) && haskey(module_templates(source), category) &&
+    has_templates(source) && haskey(module_templates(source), category) &&
         return module_templates(source)[category]
     name = nameof(source)
     throw(
