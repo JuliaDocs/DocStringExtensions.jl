@@ -7,21 +7,21 @@ This docstring comes before the `@template` definitions below, so it renders as 
 unit_circle() = Circle(1.0)
 
 @template (FUNCTIONS, METHODS) = """
-    $(TYPEDSIGNATURES)
-    $(DOCSTRING)
-    """
+$(TYPEDSIGNATURES)
+$(DOCSTRING)
+"""
 
 @template TYPES = """
-    $(TYPEDEF)
-    $(DOCSTRING)
-    $(TYPEDFIELDS)
-    """
+$(TYPEDEF)
+$(DOCSTRING)
+$(TYPEDFIELDS)
+"""
 
 @template ABSTRACTTYPES = """
-    $(TYPEDEF)
-    $(DOCSTRING)
-    $(SUBTYPES)
-    """
+$(TYPEDEF)
+$(DOCSTRING)
+$(SUBTYPES)
+"""
 
 """
 This docstring holds only this sentence. `Shape` is abstract, so the `ABSTRACTTYPES` template
@@ -44,27 +44,27 @@ This docstring holds only this sentence. The template adds the signature above i
 area(c::Circle) = π * c.radius^2
 
 module Plain
-using DocStringExtensions
-import ..Geometry: Circle
+    using DocStringExtensions
+    import ..Geometry: Circle
 
-"""
-`Plain` is a submodule of `Geometry` but defines no template of its own, so this docstring
-renders as written.
-"""
-perimeter(c::Circle) = 2π * c.radius
+    """
+    `Plain` is a submodule of `Geometry` but defines no template of its own, so this docstring
+    renders as written.
+    """
+    perimeter(c::Circle) = 2π * c.radius
 end
 
 module Copied
-using DocStringExtensions
-import ..Geometry
-import ..Geometry: Circle
+    using DocStringExtensions
+    import ..Geometry
+    import ..Geometry: Circle
 
-@template (FUNCTIONS, METHODS) = Geometry
+    @template (FUNCTIONS, METHODS) = Geometry
 
-"""
-`Copied` copies the function template from `Geometry`, so the signature is added here too.
-"""
-diameter(c::Circle) = 2 * c.radius
+    """
+    `Copied` copies the function template from `Geometry`, so the signature is added here too.
+    """
+    diameter(c::Circle) = 2 * c.radius
 end
 
 end

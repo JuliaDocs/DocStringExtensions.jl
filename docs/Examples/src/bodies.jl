@@ -5,7 +5,7 @@ with nested blocks and a macro call:
 $(BODY)
 """
 function duplicates(xs)
-    counts = Dict{eltype(xs),Int}()
+    counts = Dict{eltype(xs), Int}()
     for x in xs
         if haskey(counts, x)
             counts[x] += 1

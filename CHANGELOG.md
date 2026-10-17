@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+- Improved the TTFX of the package by reducing specializations and adding a
+  precompilation workload ([#309](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/309)).
+
 ## [v0.10.0](https://github.com/JuliaDocs/DocStringExtensions.jl/releases/tag/v0.10.0) - 2026-10-14
 
 ### Breaking
