@@ -17,10 +17,10 @@ $(TYPEDFIELDS)
 """
 struct Foobar{T <: AbstractString}
     "Docstring for the `x` field."
-    x :: Nothing
-    y :: T # y has no docstring
+    x::Nothing
+    y::T # y has no docstring
     "Docstring for the `z` field."
-    z :: Vector{T}
+    z::Vector{T}
 end
 
 """

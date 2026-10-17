@@ -37,6 +37,8 @@ $(EXPORTS)
 """
 module DocStringExtensions
 
+using PrecompileTools: @setup_workload, @compile_workload
+
 # Exports.
 
 export @template, FIELDS, TYPEDFIELDS, EXPORTS, PUBLIC, METHODLIST, TYPEDMETHODLIST, IMPORTS
@@ -94,6 +96,8 @@ let λ = s -> isa(s, Symbol) ? getfield(DocStringExtensions, s) : s
         end
     end
 end
+
+include("precompile.jl")
 
 __init__() = (setter!(template_hook); nothing)
 

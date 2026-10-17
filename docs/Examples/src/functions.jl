@@ -52,7 +52,7 @@ signature written by hand:
 
     $(FUNCTIONNAME)(x, ...)
 """
-foo(x::Int, y::Int=3) = x + y
+foo(x::Int, y::Int = 3) = x + y
 
 """
 A second method of [`$(FUNCTIONNAME)`](@ref). [`SIGNATURES`](@ref):
