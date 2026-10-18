@@ -223,7 +223,7 @@ function printed_typesig(func, method::Method, tuples)
         expanded_vararg(method) || constructor_parameters(func, method) !== nothing ||
             instance_type(func, method) !== nothing
     ) && return sig
-    idx = findfirst(t -> t == sig, tuples)
+    idx = findtuple(sig, tuples)
     if idx === nothing
         n = length(arguments(method))
         @static if Sys.iswindows() && VERSION < v"1.8"
@@ -234,6 +234,17 @@ function printed_typesig(func, method::Method, tuples)
     end
     # Julia 1.12 and later can normalise `typesig` to `Tuple`, leaving no tuple of length `n`.
     return idx === nothing ? sig : tuples[idx]
+end
+
+# We use a loop rather than findfirst() with a closure over `sig` to avoid
+# excessive compilation.
+function findtuple(sig, tuples)
+    for (i, t) in enumerate(tuples)
+        if t == sig
+            return i
+        end
+    end
+    return nothing
 end
 
 has_arity(t::UnionAll, n) = has_arity(t.body, n)
