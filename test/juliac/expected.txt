@@ -1,0 +1,31 @@
+10
+```julia
+struct Point
+```
+
+A point on the integer grid.
+
+  * `x::Int64`: Horizontal position.
+  * `y::Int64`: Vertical position.
+
+```julia
+shift(p::JuliacApp.Point, dx::Int64) -> JuliacApp.Point
+shift(
+    p::JuliacApp.Point,
+    dx::Int64,
+    dy::Int64
+) -> JuliacApp.Point
+```
+
+shift moves `p` by `dx` and `dy`.
+
+```julia
+norm1(p::JuliacApp.Point) -> Int64
+```
+
+```julia
+norm1(p)
+```
+
+Taxicab distance of `p` from the origin.
+

@@ -6,6 +6,7 @@ The suite mirrors `src/`: the tests for `src/X.jl` live in `test/X.jl`, and each
 - `fixtures/` holds the documented modules the tests render, such as `TestModule/M.jl` (module `M`) and `templates.jl` (module `TemplateTests`).
 - `helpers.jl` holds the shared helpers, `reference.jl` the reference tests below.
 - `base_assumptions.jl` records each undocumented Base internal the package relies on, and `world_age.jl` formats from a stale world.
+- `juliac/` is a package that the CI `Juliac trim` job compiles with `juliac --trim=safe` through `just juliac`. Trimming strips docstrings from the binary, so the package renders its docstrings while it builds, and the binary prints them. The job compares that output with `juliac/expected.txt`, which is not part of `runtests.jl`. When the rendering changes on purpose, rebuild and copy the binary's output over that file.
 
 ## Reference tests
 
