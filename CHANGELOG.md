@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [v0.10.1](https://github.com/JuliaDocs/DocStringExtensions.jl/releases/tag/v0.10.1) - 2026-10-20
+
 ### Changed
 
 - Improved the TTFX of the package by reducing specializations and adding a
