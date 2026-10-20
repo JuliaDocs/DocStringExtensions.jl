@@ -190,7 +190,8 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     vars = params === nothing && instance === nothing ? typevars(typesig) :
         [typevars(method.sig); typevars(self_type(method))]
     kwtypes, kwvars = keyword_types(method, kwnames, vars)
-    types = Any[body; collect(values(kwtypes))]
+    types = Any[body]
+    append!(types, values(kwtypes))
     params === nothing || append!(types, params)
     instance === nothing || push!(types, instance)
     used = used_typevars([vars; kwvars], types)

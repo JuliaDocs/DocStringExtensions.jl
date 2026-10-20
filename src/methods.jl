@@ -366,7 +366,14 @@ the callables written as `(e::T)(...)`, which `methods(T)` leaves out.
 function callable_methods(func::Type, typesig)
     self = TypeVar(:Self, func)
     found = self_methods(t -> UnionAll(self, t), self, typesig)
-    return filter(m -> instance_type(func, m) !== nothing, found)
+    # Use a loop rather than e.g. filter() to avoid excessive compilation
+    results = Method[]
+    for m in found
+        if instance_type(func, m) !== nothing
+            push!(results, m)
+        end
+    end
+    return results
 end
 
 # The methods of the callable type `self` whose arguments match `typesig`. `wrap` declares
