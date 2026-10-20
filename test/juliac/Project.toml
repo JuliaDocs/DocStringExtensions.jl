@@ -1,0 +1,11 @@
+name = "JuliacApp"
+uuid = "5a3c1f0e-2b1d-4c7e-9f3a-1d2e3f4a5b6c"
+version = "0.1.0"
+
+[deps]
+DocStringExtensions = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
+Markdown = "d6f4376e-aef5-505a-96c1-9c027394607a"
+REPL = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
+
+[sources]
+DocStringExtensions = {path = "../.."}

@@ -6,4 +6,5 @@ docs/deps
 docs/site
 docs/Manifest.toml
 Manifest.toml
+test/juliac/build
 .vscode
