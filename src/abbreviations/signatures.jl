@@ -76,21 +76,21 @@ function format(abbr::MethodSignatures, buf, doc)
 
     return if !isempty(groups)
         lines = String[]
+        io = IOBuffer()
         for group in groups, method in collapse_defaults(group, defaults)
-            push!(
-                lines, sprint(
-                    io -> printmethod(
-                        io, binding, func, method;
-                        definition = abbr.definition, returns = abbr.returns,
-                        brackets = abbr.defaults === :brackets
-                    )
-                )
+            printmethod(
+                io, binding, func, method;
+                definition = abbr.definition, returns = abbr.returns,
+                brackets = abbr.defaults === :brackets
             )
+            push!(lines, String(take!(io)))
         end
         println(buf)
         println(buf, "```julia")
         # A struct's typed constructor and its untyped fallback print the same signature.
-        foreach(line -> println(buf, line), unique(lines))
+        for line in unique(lines)
+            println(buf, line)
+        end
         println(buf, "```\n")
     end
 end

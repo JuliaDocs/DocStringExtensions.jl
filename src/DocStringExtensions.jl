@@ -37,7 +37,9 @@ $(EXPORTS)
 """
 module DocStringExtensions
 
-using PrecompileTools: @setup_workload, @compile_workload
+@static if VERSION >= v"1.6"
+    Base.Experimental.@compiler_options compile = min optimize = 0
+end
 
 # Exports.
 
@@ -96,8 +98,6 @@ let λ = s -> isa(s, Symbol) ? getfield(DocStringExtensions, s) : s
         end
     end
 end
-
-include("precompile.jl")
 
 __init__() = (setter!(template_hook); nothing)
 

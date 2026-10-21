@@ -191,15 +191,15 @@
     end
 
     @testset "typed_argument" begin
-        typestring(t) = sprint(show, t)
+        io = IOContext(devnull)
         unbounded = last(Tuple{Vararg{Int8}}.parameters)
         counted = last((Tuple{Vararg{Int8, N}} where {N}).body.parameters)
-        @test DSE.typed_argument("x", Any, typestring) == "x"
-        @test DSE.typed_argument("x", Int8, typestring) == "x::Int8"
-        @test DSE.typed_argument("_", Int8, typestring) == "::Int8"
-        @test DSE.typed_argument("_", Any, typestring) == "_"
-        @test DSE.typed_argument("xs", unbounded, typestring) == "xs::Int8..."
-        @test DSE.typed_argument("_", unbounded, typestring) == "::Int8..."
-        @test DSE.typed_argument("xs", counted, typestring) == "xs::Vararg{Int8, N}"
+        @test DSE.typed_argument("x", Any, io) == "x"
+        @test DSE.typed_argument("x", Int8, io) == "x::Int8"
+        @test DSE.typed_argument("_", Int8, io) == "::Int8"
+        @test DSE.typed_argument("_", Any, io) == "_"
+        @test DSE.typed_argument("xs", unbounded, io) == "xs::Int8..."
+        @test DSE.typed_argument("_", unbounded, io) == "::Int8..."
+        @test DSE.typed_argument("xs", counted, io) == "xs::Vararg{Int8, N}"
     end
 end

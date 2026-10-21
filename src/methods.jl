@@ -50,22 +50,27 @@ function methodgroups(func, typesig, modname; exact = true)
     end
     func isa Type && typesig != Union{} && exact && append!(methods, callable_methods(func, typesig))
     unique!(methods)
-    # Group methods by file and line number.
-    groups = groupby(Tuple{Symbol, Int}, Vector{Method}, methods) do m
-        (m.file, m.line), m
+    # Group the methods from `modname` by file and line number.
+    groups = Vector{Method}[]
+    for m in methods
+        m.module == modname || continue
+        index = findfirst_group(groups, m)
+        index === nothing ? push!(groups, Method[m]) : push!(groups[index], m)
     end
 
-    # Filter out methods from other modules and with non-matching signatures.
+    # Filter out methods with non-matching signatures.
     typesigs = alltypesigs(typesig)
     results = Vector{Method}[]
-    for (key, group) in groups
-        filter!(m -> m.module == modname, group)
+    for group in groups
         if exact
             # Julia 1.12 and later can normalise the union of a definition's signatures
             # into a single type, such as `Union{Tuple{}, Tuple{Any, Vararg{Any}}} == Tuple`.
             # When no method matches a component, keep the group if its signatures together
             # equal `typesig`.
-            matching = filter(m -> argsig(m) in typesigs, group)
+            matching = Method[]
+            for m in group
+                argsig(m) in typesigs && push!(matching, m)
+            end
             if !isempty(matching) || !signatures_equal(group, typesig)
                 group = matching
             end
@@ -73,10 +78,29 @@ function methodgroups(func, typesig, modname; exact = true)
         isempty(group) || push!(results, group)
     end
 
-    # Sort the groups by file and line.
-    sort!(results, lt = comparemethods, by = first)
+    return insertion_sort!(results, (a, b) -> comparemethods(first(a), first(b)))
+end
 
-    return results
+function findfirst_group(groups, m::Method)
+    for i in eachindex(groups)
+        first(groups[i]).file === m.file && first(groups[i]).line == m.line && return i
+    end
+    return nothing
+end
+
+# `Base.sort!` compiles a specialisation for each `lt`, while this runs interpreted with the
+# rest of the package. The lists it sorts hold a few methods.
+function insertion_sort!(xs, lt)
+    for i in 2:length(xs)
+        x = xs[i]
+        j = i - 1
+        while j >= 1 && lt(x, xs[j])
+            xs[j + 1] = xs[j]
+            j -= 1
+        end
+        xs[j + 1] = x
+    end
+    return xs
 end
 
 """
@@ -91,9 +115,13 @@ function documented_groups(groups, doc)
     path = get(doc.data, :path, nothing)::Union{String, Nothing}
     line = get(doc.data, :linenumber, nothing)::Union{Int, Nothing}
     (path === nothing || line === nothing) && return groups
-    after = filter(g -> String(first(g).file) == path && first(g).line >= line, groups)
-    isempty(after) && return groups
-    return [after[argmin(map(g -> first(g).line, after))]]
+    nearest = nothing
+    for group in groups
+        m = first(group)
+        String(m.file) == path && m.line >= line || continue
+        (nearest === nothing || m.line < first(nearest).line) && (nearest = group)
+    end
+    return nearest === nothing ? groups : [nearest]
 end
 
 # The argument types of `m`, without the function's own type or a macro's hidden arguments.
@@ -447,37 +475,6 @@ function alltypesigs(sig)::Vector{Any}
     end
 end
 
-"""
-$(:SIGNATURES)
-
-A helper method for [`groupby`](@ref) that uses a pre-allocated `groups` `Dict`.
-"""
-function groupby!(f, groups, data)
-    for each in data
-        key, value = f(each)
-        push!(get!(groups, key, []), value)
-    end
-    return sort!(collect(groups), by = first)
-end
-
-"""
-$(:SIGNATURES)
-
-Group `data` using function `f` where key type is specified by `K` and group type by `V`.
-
-The function `f` takes a single argument, an element of `data`, and should return a 2-tuple
-of `(computed_key, element)`. See the example below for details.
-
-# Examples
-
-```julia
-groupby(Int, Vector{Int}, collect(1:10)) do num
-    mod(num, 3), num
-end
-```
-"""
-groupby(f, K, V, data) = groupby!(f, Dict{K, V}(), data)
-
 get_method_source(m::Method) = Base.uncompressed_ast(m)::Core.CodeInfo
 nargs(m::Method) = m.nargs
 
@@ -559,13 +556,28 @@ function keyword_types(method::Method, kws, vars)
     body = isempty(kws) ? nothing : keyword_body(method)
     body === nothing && return types, TypeVar[]
     own = typevars(body.sig)
-    shared = Dict(v.name => v for v in vars)
-    sig = isempty(own) ? body.sig : body.sig{[get(shared, v.name, v) for v in own]...}
-    names = get_method_source(body).slotnames[2:nargs(body)]
-    for (name, type) in zip(names, tuple_parameters(sig)[2:end])
-        types[string(name)] = type
+    # A keyword type parameter named as one in `vars` is that parameter.
+    params = Any[]
+    keyword_only = TypeVar[]
+    for v in own
+        i = findlast_named(vars, v.name)
+        i === nothing && push!(keyword_only, v)
+        push!(params, i === nothing ? v : vars[i])
     end
-    return types, filter(v -> !haskey(shared, v.name), own)
+    sig = isempty(own) ? body.sig : body.sig{params...}
+    names = get_method_source(body).slotnames
+    sigtypes = tuple_parameters(sig)
+    for i in 2:min(nargs(body), length(sigtypes))
+        types[string(names[i])] = sigtypes[i]
+    end
+    return types, keyword_only
+end
+
+function findlast_named(vars, name::Symbol)
+    for i in length(vars):-1:1
+        vars[i].name === name && return i
+    end
+    return nothing
 end
 
 

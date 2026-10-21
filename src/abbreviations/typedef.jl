@@ -46,7 +46,10 @@ function print_params(buf, object, io)
     isempty(object.parameters) && return
     env = parameter_context(object, io)
     print(buf, "{")
-    join(buf, map(p -> parameter_text(p, env), object.parameters), ", ")
+    for (i, p) in enumerate(object.parameters)
+        i > 1 && print(buf, ", ")
+        print(buf, parameter_text(p, env))
+    end
     print(buf, "}")
     return
 end

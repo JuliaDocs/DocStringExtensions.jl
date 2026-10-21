@@ -51,12 +51,20 @@ end
 
 # `t` as `show` prints it in `io`, with each free type variable of `names` written as its text.
 function named_text(@nospecialize(t), names, io::IO)
-    text = sprint(show, t; context = unionall_env(map(first, names), io))
+    text = sprint(show, t; context = unionall_env(placeholders(names), io))
     # Last first, so that the first placeholder is not replaced inside the tenth.
-    for (v, replacement) in reverse(names)
-        text = replace(text, string(v.name) => replacement)
+    for i in length(names):-1:1
+        text = replace(text, string(names[i].first.name) => names[i].second)
     end
     return text
+end
+
+function placeholders(names)
+    vars = TypeVar[]
+    for name in names
+        push!(vars, name.first)
+    end
+    return vars
 end
 
 # `t` with each anonymous type variable that `show` prints by its generated name in `io` replaced
@@ -77,7 +85,7 @@ function name_anonymous!(names, @nospecialize(t), io::IO)
             push!(names, v => bound_text(v, io))
             return name_anonymous!(names, t{v}, io)
         end
-        text = alias_text(t, unionall_env(map(first, names), io))
+        text = alias_text(t, unionall_env(placeholders(names), io))
         text === nothing && return t
         # A placeholder for the whole `UnionAll`: Julia caches a type such as `Ref{X}` by type
         # equality, so `Ref{X}` rebuilt from a renamed `X` comes back with the generated name.
@@ -87,8 +95,14 @@ function name_anonymous!(names, @nospecialize(t), io::IO)
     elseif t isa Union
         return Union{name_anonymous!(names, t.a, io), name_anonymous!(names, t.b, io)}
     elseif t isa DataType
-        params = Any[name_anonymous!(names, p, io) for p in t.parameters]
-        return all(map(===, params, collect(t.parameters))) ? t : t.name.wrapper{params...}
+        params = Any[]
+        changed = false
+        for p in t.parameters
+            named = name_anonymous!(names, p, io)
+            changed |= named !== p
+            push!(params, named)
+        end
+        return changed ? t.name.wrapper{params...} : t
     elseif istypeoftype(t)
         # From Julia 1.14 `Type{T}` is a `TypeEq`, not a `DataType`.
         p = name_anonymous!(names, type_parameter(t), io)
@@ -116,7 +130,13 @@ function writes_as_bound(t::UnionAll)
     end
     istypeoftype(body) && return type_parameter(body) === v
     body isa DataType || return false
-    return count(p -> p === v, body.parameters) == 1 && count(p -> Base.has_typevar(p, v), body.parameters) == 1
+    identical = 0
+    containing = 0
+    for p in body.parameters
+        identical += p === v
+        containing += Base.has_typevar(p, v)
+    end
+    return identical == 1 && containing == 1
 end
 
 # `io` extended so that `type_text` also looks for aliases in `mod`, the module that defines
@@ -143,9 +163,10 @@ function alias_text(t::UnionAll, io::IO)
     best === nothing && return nothing
     _, mod, name, args = best
     anonymous, _ = leading_anonymous(t)
-    texts = map(args) do arg
-        i = findfirst(v -> v === arg, anonymous)
-        i === nothing ? type_text(arg, io) : bound_text(anonymous[i], io)
+    texts = String[]
+    for arg in args
+        i = findfirst_identical(arg, anonymous)
+        push!(texts, i === nothing ? type_text(arg, io) : bound_text(anonymous[i], io))
     end
     return "$(alias_name(mod, name, io)){$(join(texts, ", "))}"
 end
@@ -180,7 +201,9 @@ function foreach_type(f, @nospecialize(t))
         foreach_type(f, t.a)
         foreach_type(f, t.b)
     elseif t isa DataType
-        foreach(p -> foreach_type(f, p), t.parameters)
+        for p in t.parameters
+            foreach_type(f, p)
+        end
     elseif istypeoftype(t)
         foreach_type(f, type_parameter(t))
     elseif Base.isvarargtype(t)
@@ -195,7 +218,10 @@ function shows_anonymous(@nospecialize(t), text, io::IO)
     anonymous = Symbol[]
     foreach_type(part -> part isa UnionAll && isanonymous(part.var, io) && push!(anonymous, part.var.name), t)
     # Whole names only: `_A` also appears inside a name such as `MAX_A`.
-    return any(name -> occursin(Regex("(?<!\\w)" * string(name) * "(?!\\w)"), text), anonymous)
+    for name in anonymous
+        occursin(Regex("(?<!\\w)" * string(name) * "(?!\\w)"), text) && return true
+    end
+    return false
 end
 
 # The name of the alias `name` of `mod` as `show` writes a type name in `io`: bare when it is
@@ -210,10 +236,13 @@ end
 # The names of the `const` aliases of `mod`, with those it imports. Not cached: before Julia 1.12
 # defining a `const` leaves the world counter alone, so nothing would tell a cache that `mod`
 # gained an alias.
-module_aliases(mod::Module) = filter(
-    name -> Base.invokelatest(isalias, mod, name),
-    Base.invokelatest(names, mod; all = true, imported = true)
-)
+function module_aliases(mod::Module)
+    aliases = Symbol[]
+    for name in Base.invokelatest(names, mod; all = true, imported = true)::Vector{Symbol}
+        Base.invokelatest(isalias, mod, name)::Bool && push!(aliases, name)
+    end
+    return aliases
+end
 
 # Whether `name` is a `const` of `mod` bound to a parametric alias, such as `Vector` or
 # `const ScalarOrRef{T} = Union{T, Ref{T}} where T`, and not to a type's own `UnionAll`.
@@ -233,23 +262,37 @@ function alias_arguments(@nospecialize(alias), t::UnionAll)
     vars = typevars(alias)
     args = Vector{Any}(undef, length(vars))
     match_alias!(args, vars, Base.unwrap_unionall(alias), body) || return nothing
-    all(i -> isassigned(args, i), eachindex(args)) || return nothing
+    for i in eachindex(args)
+        isassigned(args, i) || return nothing
+    end
     for v in anonymous
-        count(arg -> arg === v, args) == 1 || return nothing
-        any(arg -> arg !== v && Base.has_typevar(arg, v), args) && return nothing
+        identical = 0
+        for arg in args
+            identical += arg === v
+            arg !== v && Base.has_typevar(arg, v) && return nothing
+        end
+        identical == 1 || return nothing
     end
     # The match reads `t` structurally, so only an alias that rebuilds `t` gives it. Julia
     # applies an alias to a type variable outside its bounds without complaint, so `t` must also
     # be a subtype of the alias.
-    fresh = Dict{TypeVar, TypeVar}(v => TypeVar(v.name, v.lb, v.ub) for v in anonymous)
+    fresh = TypeVar[]
+    for v in anonymous
+        push!(fresh, TypeVar(v.name, v.lb, v.ub))
+    end
+    freshargs = Any[]
+    for arg in args
+        i = findfirst_identical(arg, anonymous)
+        push!(freshargs, i === nothing ? arg : fresh[i])
+    end
     applied = try
-        alias{Any[arg isa TypeVar ? get(fresh, arg, arg) : arg for arg in args]...}
+        alias{freshargs...}
     catch err
         err isa TypeError || rethrow()
         return nothing
     end
-    for v in reverse(anonymous)
-        applied = UnionAll(fresh[v], applied)
+    for i in length(fresh):-1:1
+        applied = UnionAll(fresh[i], applied)
     end
     return applied == t && t <: alias ? args : nothing
 end
@@ -269,7 +312,7 @@ end
 # `pattern` reads as `t` with those bindings. A variable bound twice must bind equal parts.
 function match_alias!(args, vars, @nospecialize(pattern), @nospecialize(t))
     if pattern isa TypeVar
-        i = findfirst(v -> v === pattern, vars)
+        i = findfirst_identical(pattern, vars)
         i === nothing && return pattern === t
         isassigned(args, i) && return same_parameter(args[i], t)
         args[i] = t
@@ -280,17 +323,24 @@ function match_alias!(args, vars, @nospecialize(pattern), @nospecialize(t))
         match_alias!(args, vars, pattern.var.ub, t.var.ub) || return false
         # The variable `pattern` binds stands for the one `t` binds, within the body.
         inner = Vector{Any}(undef, length(args) + 1)
-        foreach(i -> isassigned(args, i) && (inner[i] = args[i]), eachindex(args))
+        for i in eachindex(args)
+            isassigned(args, i) && (inner[i] = args[i])
+        end
         inner[end] = t.var
         match_alias!(inner, [vars; pattern.var], pattern.body, t.body) || return false
-        foreach(i -> isassigned(inner, i) && (args[i] = inner[i]), eachindex(args))
+        for i in eachindex(args)
+            isassigned(inner, i) && (args[i] = inner[i])
+        end
         return true
     elseif pattern isa Union
         return t isa Union && match_alias!(args, vars, pattern.a, t.a) && match_alias!(args, vars, pattern.b, t.b)
     elseif pattern isa DataType
         t isa DataType && pattern.name === t.name && length(pattern.parameters) == length(t.parameters) ||
             return false
-        return all(i -> match_alias!(args, vars, pattern.parameters[i], t.parameters[i]), eachindex(pattern.parameters))
+        for i in eachindex(pattern.parameters)
+            match_alias!(args, vars, pattern.parameters[i], t.parameters[i]) || return false
+        end
+        return true
     elseif istypeoftype(pattern)
         return istypeoftype(t) && match_alias!(args, vars, type_parameter(pattern), type_parameter(t))
     elseif Base.isvarargtype(pattern)
@@ -304,5 +354,17 @@ end
 # Whether two type parameters are the same: identical, or equal types.
 same_parameter(@nospecialize(a), @nospecialize(b)) = a === b || a isa Type && b isa Type && a == b
 
+function findfirst_identical(@nospecialize(x), xs)
+    for i in eachindex(xs)
+        xs[i] === x && return i
+    end
+    return nothing
+end
+
 # `io` extended so that `show` prints each of `typevars` by name.
-unionall_env(typevars, io = IOContext(devnull)) = foldl((io, v) -> IOContext(io, :unionall_env => v), typevars; init = io)
+function unionall_env(typevars, io = IOContext(devnull))
+    for v in typevars
+        io = IOContext(io, :unionall_env => v)
+    end
+    return io
+end
