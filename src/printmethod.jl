@@ -73,10 +73,12 @@ julia> String(take!(buffer))
 function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Method; definition = nothing, returns = false, brackets = false)
     aliases = alias_context(method.module)
     env = unionall_env(typevars(method.sig), aliases)
-    typestring(t) = type_text(t, env)
     names = argument_names(method, definition)
-    args = map(names, argument_types(method, length(names))) do arg, t
-        arg == "_" && t !== Any ? "::$(typestring(t))" : arg
+    types = argument_types(method, length(names))
+    args = String[]
+    for i in eachindex(names)
+        arg, t = names[i], types[i]
+        push!(args, arg == "_" && t !== Any ? "::$(type_text(t, env))" : arg)
     end
     method.isva && (args[end] = "$(args[end])...")
     kws = string.(keywords(func, method))
@@ -84,13 +86,13 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     instance = instance_type(func, method)
     vars = String[]
     name = if instance === nothing
-        callable_name(binding, constructor_parameters(func, method), typestring)
+        callable_name(binding, constructor_parameters(func, method), env)
     elseif func === Type
         # The binding `Type` does not say which types the callable takes, so print them as
         # their module names them, with any type parameter they use.
         used = used_typevars(typevars(method.sig), [instance])
         env = IOContext(unionall_env(used, aliases), :module => method.module)
-        vars = String[typevar_text(v, env) for v in used]
+        vars = typevar_texts(used, env)
         instance_call(method, type_text(instance, env))
     else
         instance_call(method, string(binding.var))
@@ -111,10 +113,12 @@ appears in `definition`.
 function argument_names(method::Method, definition)
     args = arguments(method)
     matches_definition(method, definition) || return args
-    return map(enumerate(args)) do (i, arg)
+    names = String[]
+    for i in eachindex(args)
         name, _ = definition.positional[i]
-        arg == "_" ? name : arg
+        push!(names, args[i] == "_" ? name : args[i])
     end
+    return names
 end
 
 """
@@ -128,9 +132,12 @@ function matches_definition(method::Method, definition::DefinitionArguments)
     names = arguments(method)
     length(names) <= length(definition.positional) || return false
     # `_` stands for an argument whose name one side does not know, such as `@nospecialize(x)`.
-    return all(zip(names, definition.positional)) do (name, (expected, _))
-        name == "_" || expected == "_" || name == expected
+    for i in eachindex(names)
+        name = names[i]
+        expected, _ = definition.positional[i]
+        name == "_" || expected == "_" || name == expected || return false
     end
+    return true
 end
 
 """
@@ -143,16 +150,20 @@ and leave `kws` unchanged. Leaves both unchanged when `method` does not match `d
 """
 function append_defaults(args, kws, kwnames, method::Method, definition; brackets::Bool = false)
     matches_definition(method, definition) || return args, kws
-    args = map(enumerate(args)) do (i, arg)
+    with_defaults = String[]
+    for i in eachindex(args)
+        arg = args[i]
         _, default = definition.positional[i]
-        default === nothing ? arg : brackets ? "[$arg]" : "$arg=$default"
+        push!(with_defaults, default === nothing ? arg : brackets ? "[$arg]" : "$arg=$default")
     end
-    brackets && return args, kws
-    kws = map(kws, kwnames) do kw, name
-        default = get(definition.keywords, name, nothing)
-        default === nothing ? kw : "$kw=$default"
+    brackets && return with_defaults, kws
+    kws_with_defaults = String[]
+    for i in eachindex(kws)
+        kw = kws[i]
+        default = get(definition.keywords, kwnames[i], nothing)
+        push!(kws_with_defaults, default === nothing ? kw : "$kw=$default")
     end
-    return args, kws
+    return with_defaults, kws_with_defaults
 end
 
 """
@@ -197,7 +208,6 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
     used = used_typevars([vars; kwvars], types)
     aliases = alias_context(method.module)
     env = unionall_env(used, aliases)
-    typestring(t) = type_text(t, env)
 
     argtypes = collect(body.types)
     if expanded_vararg(method)
@@ -206,19 +216,23 @@ function printmethod(buffer::IOBuffer, binding::Docs.Binding, func, method::Meth
         argtypes = Any[argtypes[1:(end - n)]..., Vararg{n > 0 ? argtypes[end] : Any, n}]
     end
 
-    args = map((arg, t) -> typed_argument(arg, t, typestring), args, argtypes)
-    kws = map(kwnames) do kw
-        t = get(kwtypes, kw, Any)
-        t === Any ? kw : "$kw::$(typestring(t))"
+    typed = String[]
+    for i in eachindex(args)
+        push!(typed, typed_argument(args[i], argtypes[i], env))
     end
-    args, kws = append_defaults(args, kws, kwnames, method, definition; brackets = brackets)
+    kws = String[]
+    for kw in kwnames
+        t = get(kwtypes, kw, Any)
+        push!(kws, t === Any ? kw : "$kw::$(type_text(t, env))")
+    end
+    args, kws = append_defaults(typed, kws, kwnames, method, definition; brackets = brackets)
 
     return printmethod_format(
         buffer,
-        instance === nothing ? callable_name(binding, params, typestring) : instance_call(method, typestring(instance)),
+        instance === nothing ? callable_name(binding, params, env) : instance_call(method, type_text(instance, env)),
         args,
         kws;
-        where_clause = where_clause([typevar_text(v, env) for v in used]),
+        where_clause = where_clause(typevar_texts(used, env)),
         return_type = return_annotation(returns, func, method, typesig),
         macrocall = ismacro(method)
     )
@@ -228,18 +242,30 @@ end
 function used_typevars(vars, types)
     # Innermost first: a type parameter used only in a later parameter's bound is still used.
     used = Any[]
-    for v in reverse(vars)
+    for i in length(vars):-1:1
+        v = vars[i]
         isanonymous(v) && continue
-        if any(t -> Base.has_typevar(t, v), types) ||
-                any(u -> Base.has_typevar(u.lb, v) || Base.has_typevar(u.ub, v), used)
-            pushfirst!(used, v)
-        end
+        (has_typevar_in(types, v) || bounds_have_typevar(used, v)) && pushfirst!(used, v)
     end
     return used
 end
 
-# The positional argument `arg` of type `t`, as the typed `printmethod` prints it.
-function typed_argument(arg, t, typestring)
+function has_typevar_in(types, v::TypeVar)
+    for t in types
+        Base.has_typevar(t, v) && return true
+    end
+    return false
+end
+
+function bounds_have_typevar(vars, v::TypeVar)
+    for u in vars
+        (Base.has_typevar(u.lb, v) || Base.has_typevar(u.ub, v)) && return true
+    end
+    return false
+end
+
+# The positional argument `arg` of type `t`, as the typed `printmethod` prints it in `io`.
+function typed_argument(arg, t, io)
     type = ""
     suffix = ""
     if Base.isvarargtype(t)
@@ -248,11 +274,11 @@ function typed_argument(arg, t, typestring)
         if len === nothing
             suffix = "..."
         else
-            type = "::Vararg{$(typestring(t)), $len}"
+            type = "::Vararg{$(type_text(t, io)), $len}"
         end
     end
     if t !== Any && isempty(type)
-        type = "::$(typestring(t))"
+        type = "::$(type_text(t, io))"
     end
     # An unnamed argument with a type prints as `::T`.
     if arg == "_" && !isempty(type)
@@ -290,9 +316,23 @@ where_clause(typevars) =
     length(typevars) == 1 ? " where $(typevars[1])" :
     " where {$(join(typevars, ", "))}"
 
+function typevar_texts(vars, io)
+    texts = String[]
+    for v in vars
+        push!(texts, typevar_text(v, io))
+    end
+    return texts
+end
+
 # The name `method` is called by, with the parameters of a constructor written as `T{P}(...)`.
-callable_name(binding, params, typestring) =
-    params === nothing ? string(binding.var) : "$(binding.var){$(join(map(typestring, params), ", "))}"
+function callable_name(binding, params, io)
+    params === nothing && return string(binding.var)
+    texts = String[]
+    for p in params
+        push!(texts, type_text(p, io))
+    end
+    return "$(binding.var){$(join(texts, ", "))}"
+end
 
 # The instance a callable method is called on, `(e::T)` or `(::T)`, with `type` printed for `T`.
 function instance_call(method::Method, type)

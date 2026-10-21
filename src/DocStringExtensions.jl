@@ -37,7 +37,10 @@ $(EXPORTS)
 """
 module DocStringExtensions
 
-using PrecompileTools: @setup_workload, @compile_workload
+# A docstring renders once per session, so interpreting the package costs less than compiling it.
+@static if VERSION >= v"1.6"
+    Base.Experimental.@compiler_options compile = min
+end
 
 # Exports.
 
@@ -96,8 +99,6 @@ let λ = s -> isa(s, Symbol) ? getfield(DocStringExtensions, s) : s
         end
     end
 end
-
-include("precompile.jl")
 
 __init__() = (setter!(template_hook); nothing)
 

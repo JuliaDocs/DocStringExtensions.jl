@@ -149,18 +149,6 @@
         @test DSE.alltypesigs(Tuple{G} where {G}) == Any[Tuple{G} where {G}]
     end
 
-    @testset "groupby" begin
-        let groups = DSE.groupby(Int, Vector{Int}, collect(1:10)) do each
-                mod(each, 3), each
-            end
-            @test groups == Pair{Int, Vector{Int}}[
-                0 => [3, 6, 9],
-                1 => [1, 4, 7, 10],
-                2 => [2, 5, 8],
-            ]
-        end
-    end
-
     @testset "comparemethods" begin
         let f = first(methods(M.f)),
                 g = first(methods(M.g))

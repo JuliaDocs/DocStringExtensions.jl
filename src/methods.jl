@@ -11,12 +11,14 @@ function struct_constructors(func, definition::StructDefinition, modname)
     if func isa UnionAll
         candidates = unique([candidates; constructor_methods(func, Tuple{Vararg{Any}})])
     end
-    found = filter(candidates) do m
-        m.module == modname || return false
-        String(m.file) == definition.file && return m.line <= definition.last_line
-        return definition.wrapped && generated_constructor(func, m)
+    found = Method[]
+    for m in candidates
+        m.module == modname || continue
+        constructor = String(m.file) == definition.file ? m.line <= definition.last_line :
+            definition.wrapped && generated_constructor(func, m)
+        constructor && push!(found, m)
     end
-    return sort!(found; by = m -> (length(arguments(m)), string(m.sig)))
+    return insertion_sort!(found, (a, b) -> isless((length(arguments(a)), string(a.sig)), (length(arguments(b)), string(b.sig))))
 end
 
 # The keyword constructor `Base.@kwdef` and similar macros generate, and the positional one
@@ -50,22 +52,27 @@ function methodgroups(func, typesig, modname; exact = true)
     end
     func isa Type && typesig != Union{} && exact && append!(methods, callable_methods(func, typesig))
     unique!(methods)
-    # Group methods by file and line number.
-    groups = groupby(Tuple{Symbol, Int}, Vector{Method}, methods) do m
-        (m.file, m.line), m
+    # Group the methods from `modname` by file and line number.
+    groups = Vector{Method}[]
+    for m in methods
+        m.module == modname || continue
+        index = findfirst_group(groups, m)
+        index === nothing ? push!(groups, Method[m]) : push!(groups[index], m)
     end
 
-    # Filter out methods from other modules and with non-matching signatures.
+    # Filter out methods with non-matching signatures.
     typesigs = alltypesigs(typesig)
     results = Vector{Method}[]
-    for (key, group) in groups
-        filter!(m -> m.module == modname, group)
+    for group in groups
         if exact
             # Julia 1.12 and later can normalise the union of a definition's signatures
             # into a single type, such as `Union{Tuple{}, Tuple{Any, Vararg{Any}}} == Tuple`.
             # When no method matches a component, keep the group if its signatures together
             # equal `typesig`.
-            matching = filter(m -> argsig(m) in typesigs, group)
+            matching = Method[]
+            for m in group
+                argsig(m) in typesigs && push!(matching, m)
+            end
             if !isempty(matching) || !signatures_equal(group, typesig)
                 group = matching
             end
@@ -73,10 +80,29 @@ function methodgroups(func, typesig, modname; exact = true)
         isempty(group) || push!(results, group)
     end
 
-    # Sort the groups by file and line.
-    sort!(results, lt = comparemethods, by = first)
+    return insertion_sort!(results, (a, b) -> comparemethods(first(a), first(b)))
+end
 
-    return results
+function findfirst_group(groups, m::Method)
+    for i in eachindex(groups)
+        first(groups[i]).file === m.file && first(groups[i]).line == m.line && return i
+    end
+    return nothing
+end
+
+# `Base.sort!` compiles a specialisation for each `lt`, while this runs interpreted with the
+# rest of the package. The lists it sorts hold a few methods.
+function insertion_sort!(xs, lt)
+    for i in 2:length(xs)
+        x = xs[i]
+        j = i - 1
+        while j >= 1 && lt(x, xs[j])
+            xs[j + 1] = xs[j]
+            j -= 1
+        end
+        xs[j + 1] = x
+    end
+    return xs
 end
 
 """
@@ -91,9 +117,13 @@ function documented_groups(groups, doc)
     path = get(doc.data, :path, nothing)::Union{String, Nothing}
     line = get(doc.data, :linenumber, nothing)::Union{Int, Nothing}
     (path === nothing || line === nothing) && return groups
-    after = filter(g -> String(first(g).file) == path && first(g).line >= line, groups)
-    isempty(after) && return groups
-    return [after[argmin(map(g -> first(g).line, after))]]
+    nearest = nothing
+    for group in groups
+        m = first(group)
+        String(m.file) == path && m.line >= line || continue
+        (nearest === nothing || m.line < first(nearest).line) && (nearest = group)
+    end
+    return nearest === nothing ? groups : [nearest]
 end
 
 # The argument types of `m`, without the function's own type or a macro's hidden arguments.
@@ -111,7 +141,12 @@ function ismacro(m::Method)
     return startswith(String(m.name), "@") && length(params) >= 3 &&
         params[2] === LineNumberNode && params[3] === Module
 end
-ismacro(@nospecialize(f::Function)) = any(ismacro, Base.invokelatest(methods, f)::Base.MethodList)
+function ismacro(@nospecialize(f::Function))
+    for m in Base.invokelatest(methods, f)::Base.MethodList
+        ismacro(m) && return true
+    end
+    return false
+end
 
 # The argument types `f` is called with for those in `sig`, which a macro's docstring gives as
 # its caller writes them.
@@ -129,12 +164,22 @@ arguments, up to one past the most parameters any tuple declares. Larger counts 
 varargs and compare the same.
 """
 function signatures_equal(group, typesig)
-    sigs = map(argsig, group)
-    combined = Union{sigs...}
-    longest = mapreduce(t -> length(tuple_parameters(t)), max, [alltypesigs(typesig); sigs]; init = 0)
-    return all(0:(longest + 1)) do n
-        typeintersect(typesig, NTuple{n, Any}) == typeintersect(combined, NTuple{n, Any})
+    sigs = Any[]
+    for m in group
+        push!(sigs, argsig(m))
     end
+    combined = Union{sigs...}
+    longest = 0
+    for t in sigs
+        longest = max(longest, length(tuple_parameters(t)))
+    end
+    for t in alltypesigs(typesig)
+        longest = max(longest, length(tuple_parameters(t)))
+    end
+    for n in 0:(longest + 1)
+        typeintersect(typesig, NTuple{n, Any}) == typeintersect(combined, NTuple{n, Any}) || return false
+    end
+    return true
 end
 
 """
@@ -189,10 +234,12 @@ end
 # Sets `params[i]` to the part of `t` in the place of `vars[i]` within `pattern`.
 function match_parameters!(params, vars, pattern, t)
     if pattern isa TypeVar
-        i = findfirst(v -> v === pattern, vars)
+        i = findfirst_identical(pattern, vars)
         i === nothing || (params[i] = t)
     elseif pattern isa DataType && t isa DataType && pattern.name === t.name
-        foreach((p, q) -> match_parameters!(params, vars, p, q), pattern.parameters, t.parameters)
+        for i in 1:min(length(pattern.parameters), length(t.parameters))
+            match_parameters!(params, vars, pattern.parameters[i], t.parameters[i])
+        end
     end
     return params
 end
@@ -255,12 +302,15 @@ every method that matches, so a more specific method whose signature overlaps `m
 skipped by its position in `methods(func, typesig)`.
 """
 function method_return_type(func, method::Method, typesig)
-    matching = collect(Base.invokelatest(methods, func, typesig)::Base.MethodList)
-    idx = findfirst(m -> m === method, matching)
+    matching = Method[]
+    for m in Base.invokelatest(methods, func, typesig)::Base.MethodList
+        push!(matching, m)
+    end
+    idx = findfirst_identical(method, matching)
     idx === nothing && return signature_return_type(method, typesig)
     # Inference cannot run a generator on abstract argument types: Julia 1.0 throws and 1.10
     # hits a `BoundsError` in Base. Other versions infer `Any` for a generated method itself.
-    any(hasgenerator, matching) && !isconcretetype(typesig) && return []
+    any_generated(matching) && !isconcretetype(typesig) && return []
     return Any[(Base.invokelatest(Base.return_types, func, typesig)::Vector{Any})[idx]]
 end
 
@@ -273,12 +323,22 @@ function signature_return_type(method::Method, typesig)
     tt = typeintersect(method.sig, Base.rewrap_unionall(Tuple{Any, args.parameters...}, typesig))
     tt === Union{} && return []
     world = Base.get_world_counter()
-    matching = Any[match.method for match in Base.invokelatest(Base._methods_by_ftype, tt, -1, world)]
-    idx = findfirst(m -> m === method, matching)
+    matching = Method[]
+    for match in Base.invokelatest(Base._methods_by_ftype, tt, -1, world)
+        push!(matching, match.method)
+    end
+    idx = findfirst_identical(method, matching)
     idx === nothing && return []
-    any(hasgenerator, matching) && !isconcretetype(tt) && return []
+    any_generated(matching) && !isconcretetype(tt) && return []
     typed = Base.invokelatest(Base.code_typed_by_type, tt; optimize = false, world = world)
     return Any[last(typed[idx])]
+end
+
+function any_generated(methods)
+    for m in methods
+        hasgenerator(m) && return true
+    end
+    return false
 end
 
 if isdefined(Base, :hasgenerator)
@@ -394,10 +454,16 @@ The methods matching the full call signature `tt`, a `Tuple` type of the callabl
 the argument types.
 """
 function matched_methods(tt)
-    world = ccall(:jl_get_world_counter, UInt, ())
+    found = Method[]
     # Julia 1.0 gives each match as an `svec` holding the method third.
-    return Method[m isa Core.SimpleVector ? m[3] : m.method for m in Base._methods_by_ftype(tt, -1, world)]
+    for m in Base._methods_by_ftype(tt, -1, world_counter())
+        push!(found, m isa Core.SimpleVector ? m[3] : m.method)
+    end
+    return found
 end
+
+# Julia compiles any method holding a `ccall`, even in an interpreted module.
+world_counter() = ccall(:jl_get_world_counter, UInt, ())
 
 """
 $(:SIGNATURES)
@@ -438,45 +504,15 @@ function alltypesigs(sig)::Vector{Any}
     elseif isa(sig, Union)
         uniontypes(sig)
     elseif isa(sig, UnionAll)
-        Any[
-            Base.rewrap_unionall(usig, sig) for
-                usig in uniontypes(Base.unwrap_unionall(sig))
-        ]
+        sigs = Any[]
+        for usig in uniontypes(Base.unwrap_unionall(sig))
+            push!(sigs, Base.rewrap_unionall(usig, sig))
+        end
+        sigs
     else
         Any[sig]
     end
 end
-
-"""
-$(:SIGNATURES)
-
-A helper method for [`groupby`](@ref) that uses a pre-allocated `groups` `Dict`.
-"""
-function groupby!(f, groups, data)
-    for each in data
-        key, value = f(each)
-        push!(get!(groups, key, []), value)
-    end
-    return sort!(collect(groups), by = first)
-end
-
-"""
-$(:SIGNATURES)
-
-Group `data` using function `f` where key type is specified by `K` and group type by `V`.
-
-The function `f` takes a single argument, an element of `data`, and should return a 2-tuple
-of `(computed_key, element)`. See the example below for details.
-
-# Examples
-
-```julia
-groupby(Int, Vector{Int}, collect(1:10)) do num
-    mod(num, 3), num
-end
-```
-"""
-groupby(f, K, V, data) = groupby!(f, Dict{K, V}(), data)
 
 get_method_source(m::Method) = Base.uncompressed_ast(m)::Core.CodeInfo
 nargs(m::Method) = m.nargs
@@ -512,13 +548,18 @@ function keywords(func, m::Method)
     if !isa(kwargs, Vector) || isempty(kwargs)
         return Symbol[]
     end
-    filter!(arg -> !occursin("#", string(arg)), kwargs)
-    # Keywords *may* not be sorted correctly. We move the vararg one to the end.
-    index = findfirst(arg -> endswith(string(arg), "..."), kwargs)
-    if index != nothing
-        kwargs[index], kwargs[end] = kwargs[end], kwargs[index]
+    named = Symbol[]
+    index = nothing
+    for arg in kwargs
+        occursin("#", string(arg)) && continue
+        push!(named, arg)
+        index === nothing && endswith(string(arg), "...") && (index = length(named))
     end
-    return kwargs
+    # Keywords *may* not be sorted correctly. We move the vararg one to the end.
+    if index != nothing
+        named[index], named[end] = named[end], named[index]
+    end
+    return named
 end
 
 """
@@ -559,13 +600,28 @@ function keyword_types(method::Method, kws, vars)
     body = isempty(kws) ? nothing : keyword_body(method)
     body === nothing && return types, TypeVar[]
     own = typevars(body.sig)
-    shared = Dict(v.name => v for v in vars)
-    sig = isempty(own) ? body.sig : body.sig{[get(shared, v.name, v) for v in own]...}
-    names = get_method_source(body).slotnames[2:nargs(body)]
-    for (name, type) in zip(names, tuple_parameters(sig)[2:end])
-        types[string(name)] = type
+    # A keyword type parameter named as one in `vars` is that parameter.
+    params = Any[]
+    keyword_only = TypeVar[]
+    for v in own
+        i = findlast_named(vars, v.name)
+        i === nothing && push!(keyword_only, v)
+        push!(params, i === nothing ? v : vars[i])
     end
-    return types, filter(v -> !haskey(shared, v.name), own)
+    sig = isempty(own) ? body.sig : body.sig{params...}
+    names = get_method_source(body).slotnames
+    sigtypes = tuple_parameters(sig)
+    for i in 2:min(nargs(body), length(sigtypes))
+        types[string(names[i])] = sigtypes[i]
+    end
+    return types, keyword_only
+end
+
+function findlast_named(vars, name::Symbol)
+    for i in length(vars):-1:1
+        vars[i].name === name && return i
+    end
+    return nothing
 end
 
 
@@ -583,7 +639,11 @@ args = arguments(first(methods(f)))
 ```
 """
 function arguments(m::Method)
-    return String[isunnamed(arg) ? "_" : string(arg) for arg in slot_names(m)[(2 + hidden_arguments(m)):end]]
+    names = String[]
+    for arg in slot_names(m)[(2 + hidden_arguments(m)):end]
+        push!(names, isunnamed(arg) ? "_" : string(arg))
+    end
+    return names
 end
 
 # The names of the argument slots of `m`, the callable itself first. Empty when `m` records none.

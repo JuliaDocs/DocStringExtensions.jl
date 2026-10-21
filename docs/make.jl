@@ -18,7 +18,6 @@ const TOPICS = ["functions", "types", "enums", "modules", "templates"]
 makedocs(
     sitename = "DocStringExtensions.jl",
     modules = [DocStringExtensions, Examples],
-    checkdocs_ignored_modules = [DocStringExtensions._PrecompileWorkload],
     clean = false,
     pages = Any[
         "Home" => "index.md",

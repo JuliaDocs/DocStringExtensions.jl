@@ -28,7 +28,8 @@ julia> @doc Fruit
 const INSTANCES = EnumInstances()
 
 function format(::EnumInstances, buf, doc)
-    entries = Base.invokelatest(enum_entries ∘ Docs.resolve, doc_binding(doc))::Vector{Tuple{String, String}}
+    enum = Base.invokelatest(Docs.resolve, doc_binding(doc))
+    entries = Base.invokelatest(enum_entries, enum)::Vector{Tuple{String, String}}
     if !isempty(entries)
         println(buf)
         for (name, value) in entries
@@ -39,8 +40,13 @@ function format(::EnumInstances, buf, doc)
     return nothing
 end
 
-enum_entries(enum::Type{<:Base.Enum}, prefix = "") =
-    [("$prefix$(Symbol(instance))", string(Integer(instance))) for instance in instances(enum)]
+function enum_entries(enum::Type{<:Base.Enum}, prefix = "")
+    entries = Tuple{String, String}[]
+    for instance in instances(enum)
+        push!(entries, ("$prefix$(Symbol(instance))", string(Integer(instance))))
+    end
+    return entries
+end
 # EnumX.jl documents the module that holds its enum type `T`, and callers write `Module.Name`.
 enum_entries(mod::Module) = isdefined(mod, :T) ? enum_entries(mod.T, "$(nameof(mod)).") : Tuple{String, String}[]
 enum_entries(other, prefix = "") = Tuple{String, String}[]

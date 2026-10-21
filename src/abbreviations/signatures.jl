@@ -76,21 +76,21 @@ function format(abbr::MethodSignatures, buf, doc)
 
     return if !isempty(groups)
         lines = String[]
+        io = IOBuffer()
         for group in groups, method in collapse_defaults(group, defaults)
-            push!(
-                lines, sprint(
-                    io -> printmethod(
-                        io, binding, func, method;
-                        definition = abbr.definition, returns = abbr.returns,
-                        brackets = abbr.defaults === :brackets
-                    )
-                )
+            printmethod(
+                io, binding, func, method;
+                definition = abbr.definition, returns = abbr.returns,
+                brackets = abbr.defaults === :brackets
             )
+            push!(lines, String(take!(io)))
         end
         println(buf)
         println(buf, "```julia")
         # A struct's typed constructor and its untyped fallback print the same signature.
-        foreach(line -> println(buf, line), unique(lines))
+        for line in unique(lines)
+            println(buf, line)
+        end
         println(buf, "```\n")
     end
 end
@@ -181,12 +181,18 @@ the method that takes every argument of `definition`.
 """
 collapse_defaults(group, ::Nothing) = group
 function collapse_defaults(group, definition::DefinitionArguments)
-    matching = filter(m -> matches_definition(m, definition), group)
-    isempty(matching) && return group
-    longest = maximum(m -> length(arguments(m)), matching)
-    return filter(group) do m
-        !matches_definition(m, definition) || length(arguments(m)) == longest
+    longest = nothing
+    for m in group
+        matches_definition(m, definition) || continue
+        n = length(arguments(m))
+        (longest === nothing || n > longest) && (longest = n)
     end
+    longest === nothing && return group
+    kept = Method[]
+    for m in group
+        (!matches_definition(m, definition) || length(arguments(m)) == longest) && push!(kept, m)
+    end
+    return kept
 end
 
 function format(tms::TypedMethodSignatures, buf, doc)
@@ -227,9 +233,12 @@ function printed_typesig(func, method::Method, tuples)
     if idx === nothing
         n = length(arguments(method))
         @static if Sys.iswindows() && VERSION < v"1.8"
-            idx = findlast(t -> has_arity(t, n), tuples)
+            candidates = length(tuples):-1:1
         else
-            idx = findfirst(t -> has_arity(t, n), tuples)
+            candidates = 1:length(tuples)
+        end
+        for i in candidates
+            has_arity(tuples[i], n) && (idx = i; break)
         end
     end
     # Julia 1.12 and later can normalise `typesig` to `Tuple`, leaving no tuple of length `n`.

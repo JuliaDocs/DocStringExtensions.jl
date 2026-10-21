@@ -28,13 +28,19 @@ julia> @doc Plots
 """
 const IMPORTS = ModuleImports()
 
+# Kept out of `format`: Julia compiles any method holding a `ccall`, even in an interpreted module.
+module_usings(mod::Module) = ccall(:jl_module_usings, Any, (Any,), mod)::Vector{Any}
+
 function format(::ModuleImports, buf, doc)
     binding = doc_binding(doc)
     object = Base.invokelatest(Docs.resolve, binding)::Module
-    imports = unique(Vector{Module}(ccall(:jl_module_usings, Any, (Any,), object)::Vector{Any}))
+    imports = Module[]
+    for mod in module_usings(object)
+        mod in imports || push!(imports, mod)
+    end
     return if !isempty(imports)
         println(buf)
-        for mod in sort(imports, by = string)
+        for mod in insertion_sort!(imports, (a, b) -> string(a) < string(b))
             println(buf, "  - `", mod, "`")
         end
         println(buf)
