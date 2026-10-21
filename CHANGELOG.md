@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [v0.10.2](https://github.com/JuliaDocs/DocStringExtensions.jl/releases/tag/v0.10.2) - 2026-10-21
+
 ### Changed
 
 - Remove the precompilation workload and the PrecompileTools dependency, which made every package depending on DocStringExtensions slower to precompile and load. On Julia 1.6 and later the package runs interpreted, with inference on. Rendering the first docstring of a session takes about 0.2 s, against 1 s in v0.10.0 ([#313](https://github.com/JuliaDocs/DocStringExtensions.jl/issues/313), [#314](https://github.com/JuliaDocs/DocStringExtensions.jl/pull/314))
