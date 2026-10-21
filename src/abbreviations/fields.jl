@@ -128,7 +128,10 @@ first_line(text) = occursin('\n', text) ? "$(first(split(text, '\n'))) …" : te
 # Julia's Markdown reads an even run of backticks as LaTeX, so the fence is the shortest odd
 # run longer than any in `text`. A space keeps a backtick at either end out of the fence.
 function code_span(text)
-    longest = reduce(max, [length(m.match) for m in eachmatch(r"`+", text)]; init = 0)
+    longest = 0
+    for m in eachmatch(r"`+", text)
+        longest = max(longest, length(m.match))
+    end
     fence = "`"^(isodd(longest) ? longest + 2 : longest + 1)
     padding = startswith(text, '`') || endswith(text, '`') ? " " : ""
     return "$fence$padding$text$padding$fence"

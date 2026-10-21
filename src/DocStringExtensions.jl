@@ -37,8 +37,9 @@ $(EXPORTS)
 """
 module DocStringExtensions
 
+# A docstring renders once per session, so interpreting the package costs less than compiling it.
 @static if VERSION >= v"1.6"
-    Base.Experimental.@compiler_options compile = min optimize = 0
+    Base.Experimental.@compiler_options compile = min
 end
 
 # Exports.

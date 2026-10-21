@@ -38,14 +38,18 @@ const EXPORTS = ModuleExports()
 function format(::ModuleExports, buf, doc)
     object = Base.invokelatest(Docs.resolve, doc_binding(doc))::Module
     # `names` also returns `public` names on Julia 1.11 and later.
-    return print_name_list(buf, object, filter(sym -> Base.invokelatest(Base.isexported, object, sym)::Bool, names(object)))
+    exported = Symbol[]
+    for sym in names(object)
+        Base.invokelatest(Base.isexported, object, sym)::Bool && push!(exported, sym)
+    end
+    return print_name_list(buf, object, exported)
 end
 
 function print_name_list(buf, object::Module, syms)
     if !isempty(syms)
         println(buf)
         # Sorting ignores the `@` in macro names and sorts them in with others.
-        for sym in sort(syms, by = s -> lstrip(string(s), '@'))
+        for sym in insertion_sort!(copy(syms), (a, b) -> lstrip(string(a), '@') < lstrip(string(b), '@'))
             # Skip the module itself, since that's always exported.
             sym === nameof(object) && continue
             # We print linked names using Documenter.jl cross-reference syntax
